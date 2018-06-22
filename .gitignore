@@ -1,0 +1,11 @@
+*.swp
+*.swo
+*.JPG
+*.jpg
+*.mp4
+tags
+*.log
+*.cgi
+Session.vim
+*.tgz
+*.tar.gz
