@@ -10,27 +10,17 @@ h1, h2, h3, h4, h5, h6, p, blockquote {
     padding: 0;
 }
 
-body {
-    font-family: "PingFang SC", "Hiragino Sans GB", Helvetica, Arial, sans-serif;
-    padding: 1em;
-    margin: auto;
-    max-width: 42em;
-    color: #737373;
-    background-color: white;
-    margin: 10px 13px 10px 13px;
+h1, h2, h3, h4, h5, h6 {
+	color: #404040;
+	line-height: 36px;
 }
 
-table {
-    margin: 10px 0 15px 0;
-    border-collapse: collapse;
-}
-
-td, th {
-    border: 1px solid #ddd;
-    padding: 3px 10px;
-}
-
-th { padding: 5px 10px; }
+h1 { margin-bottom: 18px; font-size: 30px; }
+h2 { font-size: 24px; }
+h3 { font-size: 18px; }
+h4 { font-size: 16px; }
+h5 { font-size: 14px; }
+h6 { font-size: 13px; }
 
 a { color: #0069d6; }
 
@@ -41,24 +31,9 @@ a:hover {
 
 a img { border: none; }
 
-p { margin-bottom: 9px; }
+p { margin-bottom: 9px; text-indent: 2em;}
 
-h1, h2, h3, h4, h5, h6 {
-    color: #404040;
-    line-height: 36px;
-}
-
-h1 { margin-bottom: 18px; font-size: 30px; }
-
-h2 { font-size: 24px; }
-
-h3 { font-size: 18px; }
-
-h4 { font-size: 16px; }
-
-h5 { font-size: 14px; }
-
-h6 { font-size: 13px; }
+li p {text-indent: 0em;}
 
 hr {
     margin: 0 0 19px;
@@ -81,21 +56,22 @@ code, pre {
 
 code {
     background-color: #ffffe0;
-    border: 1px solid orange;
+    /* border: 1px solid orange; 
+	 * padding: 1px 3px;
+	 */
+	border: none;
     color: rgba(0, 0, 0, 0.75);
-    padding: 1px 3px;
-    -webkit-border-radius: 3px;
-    -moz-border-radius: 3px;
-    border-radius: 3px;
 }
 
 pre {
     display: block;
 	background-color: #f8f8f8;    
     border: 1px solid #2f6fab;
+    -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
     border-radius: 3px;
     overflow: auto;
-    padding: 14px;
+    padding: 6px;
     white-space: pre-wrap;
     word-wrap: break-word;
 }
@@ -116,18 +92,15 @@ sup {
     -webkit-print-color-adjust: exact;
 }
 
-@media screen and (min-width: 914px) {
-    body {
-        width: 854px;
-        margin: 10px auto;
-    }
+table {
+	margin: 10px 0 15px 0;
+	border-collapse: collapse;
 }
 
-@media print {
-    body, code, pre code, h1, h2, h3, h4, h5, h6 {
-        color: black;
-    }
-    table, pre {
-        page-break-inside: avoid;
-    }
+td, th {
+	border: 1px solid #ddd;
+	padding: 3px 10px;
 }
+
+th { padding: 5px 10px; }
+

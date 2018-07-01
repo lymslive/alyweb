@@ -1,5 +1,85 @@
 
-body {
+body.simple {
 	width: 90%;
 	margin: 0 auto;
+}
+
+body {
+	font-family: "PingFang SC", "Hiragino Sans GB", Helvetica, Arial, sans-serif;
+	padding: 1em;
+	margin: auto;
+	max-width: 42em;
+	color: #737373;
+	background-color: white;
+	margin: 10px 13px 10px 13px;
+}
+
+@media screen and (min-width: 914px) {
+	body {
+		width: 854px;
+		margin: 10px auto;
+	}
+}
+
+@media print {
+	body, code, pre code, h1, h2, h3, h4, h5, h6 {
+		color: black;
+	}
+	table, pre {
+		page-break-inside: avoid;
+	}
+}
+
+#header {
+	color: #404040;
+	background-color: #f8f8f8;
+	margin-bottom: -16px;
+}
+
+#header div.left {
+	text-align: left;
+	border: 0px solid orange; 
+	position: relative;
+	top: 16px;
+}
+#header div.middle {
+	text-align: center;
+	width: 34%;
+	border: 0px solid orange; 
+	position: relative;
+	left: 33%;
+}
+#header div.right {
+	text-align: center;
+	width: 33%;
+	border: 0px solid orange; 
+	position: relative;
+	left: 67%;
+	top: -16px;
+}
+
+#header span.qijiezi {
+	font-size: 32px;
+}
+#header span.xingzhe {
+	font-size: 30px;
+}
+#header span.hu {
+	font-size: 18px;
+	font-style:italic;
+}
+#header span.zhi {
+	font-size: 16px;
+	font-style:italic;
+}
+#header span.zhuti {
+	font-size: 24px;
+}
+#header span.ye {
+	font-size: 16px;
+	font-style:italic;
+}
+
+.icp-foot {
+  text-align: center;
 }

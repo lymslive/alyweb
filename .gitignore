@@ -10,3 +10,5 @@ tags
 Session.vim
 *.tgz
 *.tar.gz
+book/
+notebook/
