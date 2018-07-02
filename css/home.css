@@ -1,0 +1,21 @@
+.blog-header {
+}
+
+.blog-outter {
+  text-align:right;
+}
+
+p {
+  text-indent: 2em;
+}
+
+a {
+  color: #0069d6; 
+  text-decoration: none;
+}
+
+a:hover {
+  color: #0050a3;
+  text-decoration: underline;
+}
+
