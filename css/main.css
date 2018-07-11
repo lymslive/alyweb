@@ -81,5 +81,14 @@ body {
 }
 
 .icp-foot {
-  text-align: center;
+	text-align: center;
+}
+
+#site-footer {
+	font-size: 12px;
+	text-align: center;
+}
+
+#article-footer {
+	text-align: right;
 }

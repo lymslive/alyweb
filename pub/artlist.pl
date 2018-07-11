@@ -8,14 +8,34 @@ use WebPage;
 use NoteList;
 use Text::Markdown qw(markdown);
 
+my %topic_name = (
+	misc => "随笔杂文",
+	game => "游戏娱乐",
+	opera => "戏曲戏剧",
+	snake => "白蛇研究",
+	art => "文学艺术",
+	code => "编程技术",
+);
+
 sub Response
 {
 	my ($topic) = @_;
 	my ($title, $body) = qw(notitle nobody);
-	$title = "七阶子博客";
+	my $chname = $topic_name{$topic} || '';
+	$title = "七阶子博客：$chname";
 	$body = note_list_html($topic);
+	my $head = <<EndOfHTML;
+	<h2><a href="/home">七阶子博客</a>：$chname</h2>
+EndOfHTML
 
-	return WebPage::ResSimple($title, $body);
+	my $body_ref = {
+		title => $title,
+		articleHeader => $head,
+		articleMain => $body, 
+	};
+
+	# return WebPage::ResSimple($title, $body);
+	return WebPage::ResComplex($body_ref);
 }
 
 sub note_list_html

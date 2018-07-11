@@ -17,7 +17,7 @@ warn "Bin: $Bin\n" if $DEBUG;
 
 # 解析 GET 参数
 my $query = $ENV{QUERY_STRING};
-my %query = map {$1 => $2 if /(\w+)=(\S+)/} split('&', $query);
+my %query = map {$1 => $2 if /(\w+)=(\S+)/} split(/&/, $query);
 
 exit main();
 
@@ -26,12 +26,17 @@ sub main
 	my $noteid = $query{n};
 	my $topic = $query{t};
 
+	warn "noteid => $noteid\n" if $DEBUG;
+	warn "topic  => $topic\n" if $DEBUG;
+
 	if (defined $noteid) {
 		require "article.pl";
+		warn "load article.pl\n" if $DEBUG;
 		return article::Response($noteid, $topic);
 	}
 	elsif (defined $topic) {
 		require "artlist.pl";
+		warn "load artlist.pl\n" if $DEBUG;
 		return artlist::Response($topic);
 	}
 	else {
@@ -41,6 +46,7 @@ sub main
 		return WebPage::ResSimple($title, $body);
 	}
 	
+	warn "end blog.pl\n" if $DEBUG;
 }
 
 # main end
