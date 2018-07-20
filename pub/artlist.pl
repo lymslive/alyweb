@@ -47,6 +47,7 @@ sub note_list_html
 	my $html = qq{<ol class="toc-notelist">\n};
 	foreach my $line (reverse @$content_ref) {
 		chomp($line);
+		next if $line =~ /^\s*$/;
 		my ($noteid, $title, $tagstr) = split(/\t/, $line);
 		my $list = one_list_html($topic, $noteid, $title);
 		$html .= "$list\n";

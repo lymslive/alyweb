@@ -3,6 +3,7 @@
 *.bak
 *.JPG
 *.jpg
+*.ico
 *.mp4
 tags
 *.log

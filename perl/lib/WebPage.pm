@@ -91,6 +91,7 @@ sub def_site_footer
 {
 	return <<EndOfHTML;
 	七阶子谭，原创博客，一家之言，仅供参考。<br/>
+	email: 403708621\@qq.com <br/>
 	<a href="http://www.miitbeian.gov.cn/">粤ICP备18078352号</a>
 EndOfHTML
 }
