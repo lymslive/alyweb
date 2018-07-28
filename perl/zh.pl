@@ -1,4 +1,6 @@
 #!/usr/local/bin/perl
+# use lib "/home/lymslive/perl5/lib/perl5";
+use URI::Escape;
 
 print "Content-type:text/html\n\n";
 print <<EndOfHTML;
@@ -11,7 +13,12 @@ print <<EndOfHTML;
 EndOfHTML
 
 foreach $key (sort(keys %ENV)) {
-  print "$key = $ENV{$key}<br>\n";
+	print "$key = $ENV{$key}<br>\n";
+	if ($key =~ /QUERY_STRING/ || $key =~ /REQUEST_URI/) {
+		my $val = uri_unescape($ENV{$key});
+		# my $val = $ENV{$key};
+		print "$key = $val<br>\n";
+	}
 }
 
 print "</body></html>";
