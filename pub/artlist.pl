@@ -3,10 +3,8 @@ package artlist;
 use strict;
 use warnings;
 
-use lib "$ENV{DOCUMENT_ROOT}/perl/lib";
 use WebPage;
 use NoteList;
-use Text::Markdown qw(markdown);
 
 my %topic_name = (
 	misc => "随笔杂文",
@@ -14,7 +12,7 @@ my %topic_name = (
 	opera => "戏曲戏剧",
 	snake => "白蛇研究",
 	art => "文学艺术",
-	code => "编程技术",
+	code => "程序生涯",
 );
 
 sub Response

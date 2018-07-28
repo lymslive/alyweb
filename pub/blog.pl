@@ -25,6 +25,7 @@ sub main
 {
 	my $noteid = $query{n};
 	my $topic = $query{t};
+	my $search = $query{q};
 
 	warn "noteid => $noteid\n" if $DEBUG;
 	warn "topic  => $topic\n" if $DEBUG;
@@ -34,16 +35,22 @@ sub main
 		warn "load article.pl\n" if $DEBUG;
 		return article::Response($noteid, $topic);
 	}
+	elsif (defined $search) {
+		use URI::Escape;
+		$search = uri_unescape($search);
+		require "artsear.pl";
+		warn "load artsear.pl\n" if $DEBUG;
+		return artsear::Response($search);
+	}
 	elsif (defined $topic) {
 		require "artlist.pl";
 		warn "load artlist.pl\n" if $DEBUG;
 		return artlist::Response($topic);
 	}
 	else {
-		my $title = "七阶子博客"; 
-		my $body = "PAGE ERROR: no query string.";
-		$body .= "Bin: $Bin\n";
-		return WebPage::ResSimple($title, $body);
+		require "arthome.pl";
+		warn "load arthome.pl\n" if $DEBUG;
+		return arthome::Response();
 	}
 	
 	warn "end blog.pl\n" if $DEBUG;
