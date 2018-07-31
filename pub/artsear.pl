@@ -14,14 +14,15 @@ my $max_result = 100;
 sub Response
 {
 	my ($search) = @_;
-	my ($title, $body) = qw(notitle nobody);
-	$title = "七阶子博客";
-	$body = search_list(split /\s+/, $search);
+	my $title = "七阶子博客";
+	my $body = '';
 	my $head = <<EndOfHTML;
-	<h2><a href="/home">七阶子博客</a>：搜索结果</h2>
+	<h2><a href="?">七阶子博客</a>：搜索结果</h2>
 EndOfHTML
 
-	$body .= search_form();
+	$body .= NoteList::HgenSearchForm();
+	$body .= NoteList::HgenTopicShow();
+	$body .= search_list(split /\s+/, $search);
 	my $body_ref = {
 		title => $title,
 		articleHeader => $head,
@@ -66,46 +67,7 @@ sub search_list
 		return qq{<p>未找到合适的文章</p>};
 	}
 	
-	# output
-	my $html = qq{<ol class="toc-notelist">\n};
-	foreach my $line (@records) {
-		chomp($line);
-		next if $line =~ /^\s*$/;
-		my ($noteid, $title, $tagstr) = split(/\t/, $line);
-		my $list = one_list_html($noteid, $title);
-		$html .= "$list\n";
-	}
-
-	$html .= "</ol>\n";
-	return $html;
-}
-
-sub one_list_html
-{
-	my ($noteid, $title) = @_;
-	my ($year, $month, $day) = $noteid =~ /^(\d{4})(\d\d)(\d\d)/;
-	my $date = "$year-$month-$day";
-
-	my $html = <<EndOfHTML;
-	<li>
-	  <span class="note-date">$date</span>
-	  <span class="note-title"><a href="?n=$noteid">$title</a></span>
-	</li>
-EndOfHTML
-
-	return $html;
-}
-
-sub search_form
-{
-	return <<EndOfHTML;
-	<div class="search-form">
-	<form action="/pub/blog.cgi">
-		<input type="text" name="q" />
-		<input type="submit" value="搜索日志" />
-	</form>
-	</div>
-EndOfHTML
+	return NoteList::HgenList(\@records);
 }
 
 1;

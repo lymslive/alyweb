@@ -20,12 +20,15 @@ my @new_weight = (30, 15, 7, 3, 0);
 
 sub Response
 {
-	my ($title, $body) = qw(notitle nobody);
 	my $head = <<EndOfHTML;
-	<h2><a href="/home">七阶子行者</a>：博客首页</h2>
+	<h2><a href="/home">七阶子行者</a>：博客家园</h2>
 EndOfHTML
-	$title = "七阶子博客";
-	$body = top_list();
+	my $title = "七阶子博客";
+	my $body = '';
+
+	$body .= NoteList::HgenSearchForm();
+	$body .= NoteList::HgenTopicShow();
+	$body .= top_list();
 	$body .= new_list();
 	$body .= hot_list();
 	my $body_ref = {
@@ -78,7 +81,7 @@ sub new_list
 	if (scalar(@records) > $new_article) {
 		@records = @records[0..$new_article-1];
 	}
-	$html .= make_list(\@records);
+	$html .= NoteList::HgenList(\@records);
 	return $html;
 }
 
@@ -86,44 +89,6 @@ sub hot_list
 {
 	my $html = qq{<h2>最热文章</h2>};
 	return '';
-}
-
-# @param: $list_ref, note records list
-# @param: $htype, html list type, 'ul' or 'ol'(default)
-sub make_list
-{
-	my ($list_ref, $htype) = @_;
-	return '' unless $list_ref && @$list_ref;
-	$htype ||= 'ol';
-
-	# output
-	my $html = qq{<$htype class="toc-notelist">\n};
-	foreach my $line (@$list_ref) {
-		chomp($line);
-		next if $line =~ /^\s*$/;
-		my ($noteid, $title, $tagstr) = split(/\t/, $line);
-		my $list = one_list_html($noteid, $title);
-		$html .= "$list\n";
-	}
-
-	$html .= "</$htype>\n";
-	return $html;
-}
-
-sub one_list_html
-{
-	my ($noteid, $title) = @_;
-	my ($year, $month, $day) = $noteid =~ /^(\d{4})(\d\d)(\d\d)/;
-	my $date = "$year-$month-$day";
-
-	my $html = <<EndOfHTML;
-	<li>
-	  <span class="note-date">$date</span>
-	  <span class="note-title"><a href="?n=$noteid">$title</a></span>
-	</li>
-EndOfHTML
-
-	return $html;
 }
 
 1;
