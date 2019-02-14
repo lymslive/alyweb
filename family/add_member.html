@@ -1,0 +1,26 @@
+<html>
+	<head>
+		<title>添加家庭成员</title>
+		<meta charset="utf-8" />
+	</head>
+	<body>
+		<div> 
+			<h1>添加家庭成员</h1>
+			<form action="/family/post_add_member.cgi" method="post">
+				姓名：<input type="text" name="member_name" /> <br/>
+				性别：男<input type="radio" name="sex" value="male"/> 女<input type="radio" name="sex" value="female"/><br/>
+				父亲：<input type="text" name="father_name" /><br/>
+				母亲：<input type="text" name="mother_name" /><br/>
+				配偶：<input type="text" name="partner_name" /><br/>
+				生日：<input type="date" name="birthday" /> <br/>
+				忌日：<input type="date" name="deathday" /> <br/>
+				简介：<br/>
+				<textarea name="desc" rows="10" cols="30" ></textarea><br/>
+				<input type="submit" value="提交" /><br/>
+			</form>
+			<div>
+				注意：父亲、母亲或配偶三种关系必须填一个，且要求之前已经入库。
+			</div>
+		</div>
+	</body>
+</html>
