@@ -44,16 +44,21 @@ sub handel_request
 		return $FALSE;
 	}
 
+	my $refer_name;
 	if ($query->{partner_name}) {
-		
+		$refer_name = $query->{partner_name};
 	}
 	elsif ($query->{father_name}) {
+		$refer_name = $query->{father_name};
 	}
 	elsif ($query->{mother_name}) {
+		$refer_name = $query->{mother_name};
 	}
 	else {
 		return $FALSE;
 	}
+
+	my $refer_member = FamilyDB::QueryByName($dbh, $refer_name);
 }
 
 sub response
