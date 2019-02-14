@@ -11,7 +11,7 @@ use JSON;
 use Log::Log4perl qw(get_logger);
 
 # 默认参数常量
-use constant PORT => 8081;
+use constant PORT => 8001;
 use constant DEBUG => 1;
 use constant TICK => 5;
 use constant LOG_CONF => 'log.conf';
