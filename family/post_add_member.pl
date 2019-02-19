@@ -17,11 +17,13 @@ my $TRUE = 1;
 my $html_title = '添加家庭成员：结果';
 my $html_body = '';
 
+my $error_msg = '';
+handel_request(\%query);
+
 my $raw_post = uri_unescape($post);
 my $debug_output = "接收请求：\n$raw_post\n";
 $debug_output .= "关键信息：\n姓名：$query{member_name}；父亲：$query{father_name}\n";
-
-my $error_msg = '';
+$debug_output .= "$error_msg\n" . $FamilyDB::error;
 
 $debug_output =~ s/\n/\n<br>/g;
 
@@ -44,6 +46,7 @@ sub handel_request
 		return $FALSE;
 	}
 
+	# 查找参考人名
 	my $refer_name;
 	if ($query->{partner_name}) {
 		$refer_name = $query->{partner_name};
@@ -59,6 +62,40 @@ sub handel_request
 	}
 
 	my $refer_member = FamilyDB::QueryByName($dbh, $refer_name);
+	if (!$refer_member->{F_id}) {
+		return $FALSE;
+	}
+
+	# 构建新对象结构
+	my $new_member = {};
+	$new_member->{F_name} = $query->{member_name};
+	$new_member->{F_sex} = $query->{sex};
+	if ($query->{partner_name}) {
+		$new_member->{F_partner} = $refer_member->{F_id};
+		$new_member->{F_level} = 0 - $refer_member->{F_level};
+	}
+	elsif ($query->{father_name}) {
+		$new_member->{F_father} = $refer_member->{F_id};
+		$new_member->{F_level} = 1 + $refer_member->{F_level};
+	}
+	elsif ($query->{mother_name}) {
+		$new_member->{F_level} = 1 + $refer_member->{F_level};
+	}
+	else {
+		return $FALSE;
+	}
+
+	if ($query->{birthday}) {
+		$new_member->{F_birthday} = $query->{birthday};
+	}
+	if ($query->{deathday}) {
+		$new_member->{F_deathday} = $query->{deathday};
+	}
+	if ($query->{desc}) {
+		$new_member->{F_desc} = $query->{desc};
+	}
+
+	my $ret = FamilyDB::InsertMember($dbh, $new_member);
 }
 
 sub response

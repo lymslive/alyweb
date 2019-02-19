@@ -62,5 +62,35 @@ sub QueryByName
 	return $sth->fetchrow_hashref();
 }
 
+sub InsertMember
+{
+	my ($dbh, $new_member) = @_;
+	set_error();
+
+	$dbh = Connect() unless $dbh;
+	return 0 unless $dbh;
+
+	my $sql = "INSERT INTO t_family_member SET F_name = '$new_member->{F_name}', F_sex = $new_member-{F_sex}, F_level = $new_member->{F_level}, ";
+	if ($new_member->{father}) {
+		$sql .= "F_father = $new_member->{F_father}, ";
+	}
+	if ($new_member->{father}) {
+		$sql .= "F_father = $new_member->{F_father}, ";
+	}
+	if ($new_member->{partner}) {
+		$sql .= "F_partner = $new_member->{F_partner}, ";
+	}
+	if ($new_member->{birthday}) {
+		$sql .= "F_birthday = $new_member->{F_birthday}, ";
+	}
+	if ($new_member->{deathday}) {
+		$sql .= "F_deathday = $new_member->{F_deathday}, ";
+	}
+
+	$sql .= "F_create_time = now(), F_update_time = now()";
+	$dbh->do($sql) or return error(0, "Fail to inser member" . $dbh->errstr);
+	return 1;
+}
+
 1;
 __END__
