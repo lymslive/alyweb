@@ -6,10 +6,10 @@ use warnings;
 use DBI;
 
 my $driver = 'mysql';
-my $dsn = 'database=db_family';
+my $dsn = 'host=47.106.142.119;database=db_family';
 my $username = 'family';
 my $passwd = 'family';
-my $flags = {AutoCommit => 1};
+my $flags = {AutoCommit => 1, mysql_enable_utf8 => 1};
 
 # my $dbh;
 
@@ -57,17 +57,11 @@ sub QueryByName
 	$dbh = Connect() unless $dbh;
 	return {} unless $dbh;
 
-	my $sth = $dbh->prepare(qq{SELECT F_id, F_level, F_sex FROM t_family_member WHERE F_name = '$name'})
-		or return error({}, "Failed in statement prepare: " . $dbh->errstr);
-	# $sth->execute($name) or return error({}, "Failed to execute statement: " . $dbh->errstr);
-	$sth->execute() or return error({}, "Failed to execute statement: " . $dbh->errstr);
+	my $result = $dbh->selectrow_hashref(
+		'SELECT F_id, F_level, F_sex, F_name FROM t_family_member WHERE F_name = ?', undef, $name)
+		or set_error("No member who named: $name");
 
-	# my $row = $sth->rows;
-	# return error({}, "row: $row; No member who named: $name") if $row < 1;
-	# return error({}, "row: $row; Too many members that named: $name") if $row > 1;
-
-	my $row_ref = $sth->fetchrow_hashref() or set_error("No member who named: $name");
-	return $row_ref;
+	return $result;
 }
 
 sub InsertMember
@@ -80,19 +74,19 @@ sub InsertMember
 
 	my $sql = "INSERT INTO t_family_member SET F_name = '$new_member->{F_name}', F_sex = $new_member-{F_sex}, F_level = $new_member->{F_level}, ";
 	if ($new_member->{father}) {
-		$sql .= "F_father = $new_member->{F_father}, ";
+		$sql .= "F_father = '$new_member->{F_father}', ";
 	}
-	if ($new_member->{father}) {
-		$sql .= "F_father = $new_member->{F_father}, ";
+	if ($new_member->{mother}) {
+		$sql .= "F_mother = '$new_member->{F_mother}', ";
 	}
 	if ($new_member->{partner}) {
-		$sql .= "F_partner = $new_member->{F_partner}, ";
+		$sql .= "F_partner = '$new_member->{F_partner}', ";
 	}
 	if ($new_member->{birthday}) {
-		$sql .= "F_birthday = $new_member->{F_birthday}, ";
+		$sql .= "F_birthday = '$new_member->{F_birthday}', ";
 	}
 	if ($new_member->{deathday}) {
-		$sql .= "F_deathday = $new_member->{F_deathday}, ";
+		$sql .= "F_deathday = '$new_member->{F_deathday}', ";
 	}
 
 	$sql .= "F_create_time = now(), F_update_time = now()";
@@ -107,6 +101,9 @@ sub main
 	my $dbh = Connect() or die $error;
 	my $rs = QueryByName($dbh, $name) or warn $error;
 	print "id: $rs->{F_id}\n";
+
+	# my $result = $dbh->selectrow_hashref('SELECT F_id, F_level, F_sex, F_name FROM t_family_member WHERE F_id = ?', undef, 10001);
+	# print "id: $result->{F_id}; name: $result->{F_name}\n";
 
 	Disconnect($dbh);
 }
