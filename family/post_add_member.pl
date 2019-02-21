@@ -35,7 +35,7 @@ response();
 #
 sub handle_request
 {
-	$error_msg = "enter handle_request\n";
+	# $error_msg = "enter handle_request\n";
 	my ($query) = @_;
 	if (!$query->{father_name} && !$query->{mother_name} && !$query->{partner_name}) {
 		$error_msg = "lack of relation name\n";
