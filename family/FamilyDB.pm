@@ -42,6 +42,12 @@ sub Connect
 	return $dbh;
 }
 
+sub Disconnect
+{
+	my ($dbh) = @_;
+	$dbh->disconnect;
+}
+
 # 根据姓名查 id level sex
 sub QueryByName
 {
@@ -51,15 +57,17 @@ sub QueryByName
 	$dbh = Connect() unless $dbh;
 	return {} unless $dbh;
 
-	my $sth = $dbh->prepare(q{SELECT F_id, F_level, F_sex FROM t_family_member WHERE F_name = ?})
+	my $sth = $dbh->prepare(qq{SELECT F_id, F_level, F_sex FROM t_family_member WHERE F_name = '$name'})
 		or return error({}, "Failed in statement prepare: " . $dbh->errstr);
-	$sth->execute($name) or return error({}, "Failed to execute statement: " . $dbh->errstr);
+	# $sth->execute($name) or return error({}, "Failed to execute statement: " . $dbh->errstr);
+	$sth->execute() or return error({}, "Failed to execute statement: " . $dbh->errstr);
 
-	my $row = $sth->rows;
-	return error({}, "No member who named: $name") if $row < 1;
-	return error({}, "Too many members that named: $name") if $row > 1;
+	# my $row = $sth->rows;
+	# return error({}, "row: $row; No member who named: $name") if $row < 1;
+	# return error({}, "row: $row; Too many members that named: $name") if $row > 1;
 
-	return $sth->fetchrow_hashref();
+	my $row_ref = $sth->fetchrow_hashref() or set_error("No member who named: $name");
+	return $row_ref;
 }
 
 sub InsertMember
@@ -92,5 +100,18 @@ sub InsertMember
 	return 1;
 }
 
+##-- MAIN --##
+sub main
+{
+	my ($name) = @_;
+	my $dbh = Connect() or die $error;
+	my $rs = QueryByName($dbh, $name) or warn $error;
+	print "id: $rs->{F_id}\n";
+
+	Disconnect($dbh);
+}
+
+##-- END --##
+&main(@ARGV) unless defined caller;
 1;
 __END__

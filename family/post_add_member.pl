@@ -14,11 +14,11 @@ my %query = map {$1 => uri_unescape($2) if /(\w+)=(\S+)/} split(/&/, $post);
 
 my $FALSE = 0;
 my $TRUE = 1;
-my $html_title = '添加家庭成员：结果';
+my $html_title = '添加家庭成员：返回';
 my $html_body = '';
 
-my $error_msg = '';
-handel_request(\%query);
+my $error_msg = 'no error';
+handle_request(\%query);
 
 my $raw_post = uri_unescape($post);
 my $debug_output = "接收请求：\n$raw_post\n";
@@ -33,10 +33,12 @@ response();
 
 ##### 子函数 #####
 #
-sub handel_request
+sub handle_request
 {
+	$error_msg = "enter handle_request\n";
 	my ($query) = @_;
 	if (!$query->{father_name} && !$query->{mother_name} && !$query->{partner_name}) {
+		$error_msg = "lack of relation name\n";
 		return $FALSE;
 	}
 
@@ -46,6 +48,14 @@ sub handel_request
 		return $FALSE;
 	}
 
+	db_operate($dbh, $query);
+	FamilyDB::Disconnect($dbh);
+}
+
+sub db_operate
+{
+	my ($dbh, $query) = @_;
+	
 	# 查找参考人名
 	my $refer_name;
 	if ($query->{partner_name}) {
@@ -62,7 +72,8 @@ sub handel_request
 	}
 
 	my $refer_member = FamilyDB::QueryByName($dbh, $refer_name);
-	if (!$refer_member->{F_id}) {
+	if (!$refer_member || !$refer_member->{F_id}) {
+		$error_msg = "fail to query relation name\n";
 		return $FALSE;
 	}
 
@@ -96,6 +107,7 @@ sub handel_request
 	}
 
 	my $ret = FamilyDB::InsertMember($dbh, $new_member);
+	return $ret;
 }
 
 sub response
