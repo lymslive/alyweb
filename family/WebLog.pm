@@ -22,7 +22,7 @@ sub wlog(@)
 	return 1 if $disable;
 
 	my $msg = join(" ", @_);
-	my ($package, $filename, $line, $subroutine) = caller(1);
+	my ($package, $filename, $line, $subroutine) = caller(0);
 	my $logstr = "[$filename:$line] ($subroutine) | $msg";
 
 	if ($to_std) {
