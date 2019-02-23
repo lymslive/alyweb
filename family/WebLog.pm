@@ -6,6 +6,7 @@ use Exporter 'import';
 
 use strict;
 use warnings;
+use File::Basename;
 
 our @in_buff = ();
 our $to_std = 0;
@@ -22,7 +23,14 @@ sub wlog(@)
 	return 1 if $disable;
 
 	my $msg = join(" ", @_);
-	my ($package, $filename, $line, $subroutine) = caller(0);
+
+	# 获取函数名要多退一层栈
+	my ($package, $filename, $line, $subroutine_) = caller(0);
+	my ($package_, $filename_, $line_, $subroutine) = caller(1);
+
+	$filename = basename($filename);
+	# caller 获取的函数名含包名前缀，去掉
+	$subroutine =~ s/^.*:://g;
 	my $logstr = "[$filename:$line] ($subroutine) | $msg";
 
 	if ($to_std) {
