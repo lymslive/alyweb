@@ -42,7 +42,7 @@ my $HANDLER = {
 };
 
 # 分发响应函数
-# req = {action => '接口名', data => {实际请求数据}}
+# req = {api => '接口名', data => {实际请求数据}}
 sub handle_request
 {
 	my ($jreq) = @_;
