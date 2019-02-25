@@ -1,5 +1,5 @@
 #! /usr/bin/env perl
-package HTML;
+package HTPL;
 use strict;
 use warnings;
 
@@ -72,5 +72,39 @@ sub table_head
 </tr>
 EndOfHTML
 
-	return $html
+	return $html;
+}
+
+sub table_form
+{
+	my ($var) = @_;
+	
+	my $html = <<EndOfHTML;
+<form action="" method="post">
+	<tr>
+		<td colspan="9">待操作方式：
+			新增<input type="radio" name="oprate" value="create" checked="checked"/>，
+			修改<input type="radio" name="oprate" value="modify"/>
+		</td>
+	</tr>
+	<tr>
+		<td><input size="3" type="text" name="mine_id"/></td>
+		<td><input size="3" type="text" name="mine_name"/></td>
+		<td><select name="sex">
+				<option value="1">男</option>
+				<option value="0">女</option>
+			</select></td>
+		<td>--</td>
+		<td><input size="3" type="text" name="father"/></td>
+		<td><input size="3" type="text" name="mother"/></td>
+		<td><input size="3" type="text" name="partner"/></td>
+		<td><input size="5" type="date" name="birthday"/></td>
+		<td><input size="5" type="date" name="deathday"/></td>
+		<td><input type="submit" value="提交"/></td>
+		<td><input type="reset" value="重置"/></td>
+	</tr>
+</form>
+EndOfHTML
+
+	return $html;
 }
