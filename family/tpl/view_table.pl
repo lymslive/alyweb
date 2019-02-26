@@ -1,5 +1,6 @@
 #! /usr/bin/env perl
 package HTPL;
+use utf8;
 use strict;
 use warnings;
 
@@ -79,6 +80,17 @@ sub table_row
 {
 	my ($row, $link) = @_;
 	my ($id, $name, $sex, $level, $father, $mother, $partner, $birthday, $deathday) = @$row;
+	my $row_tail = '';
+	if ($link) {
+		my $modify = qq{<a href="#operate-form">修改</a>};
+		my $remove = qq{<a href="?action=remove&id=$id">删除</a>};
+		$row_tail .= qq{	<td>$modify</td>\n};
+		$row_tail .= qq{	<td>$remove</td>\n};
+	}
+	else {
+		$row_tail .= qq{	<td>--</td>\n};
+		$row_tail .= qq{	<td>--</td>\n};
+	}
 	my $html = <<EndOfHTML;
 <tr>
 	<td>$id</td>
@@ -90,16 +102,9 @@ sub table_row
 	<td>$partner</td>
 	<td>$birthday</td>
 	<td>$deathday</td>
+	$row_tail
 </tr>
 EndOfHTML
-	if ($link) {
-		$html .= qq{	<td>修改</td>};
-		$html .= qq{	<td>删除</td>};
-	}
-	else {
-		$html .= qq{	<td>--</td>};
-		$html .= qq{	<td>--</td>};
-	}
 	return $html;
 }
 
@@ -108,9 +113,9 @@ sub table_form
 	my ($var) = @_;
 	
 	my $html = <<EndOfHTML;
-<form action="" method="post">
+<form action="view_table.cgi" method="post">
 	<tr>
-		<td colspan="9">待操作方式：
+		<td colspan="9"><span id="operate-form">待操作方式：</span>
 			新增<input type="radio" name="oprate" value="create" checked="checked"/>，
 			修改<input type="radio" name="oprate" value="modify"/>
 		</td>

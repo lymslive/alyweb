@@ -13,6 +13,7 @@ use URI::Escape;
 
 # 先取出 id=>name 映射，能读入全表时无误
 my $mapid = {};
+my $DEBUG = 1;
 
 ##-- MAIN --##
 sub main
@@ -55,7 +56,7 @@ sub main
 
 	my $Table = inner_table($hot_row, \%post);
 	my $Body = HTPL::body($BodyH1, $Table);
-	if ($query{debug}) {
+	if ($DEBUG || $query{debug}) {
 		$Body .= "\n" . debug_log();
 	}
 
