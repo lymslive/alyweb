@@ -36,7 +36,7 @@ sub body
 <h1>$H1</h1>
 <div id="family_table">
 	<table border="1">
-	$TableRows;
+	$TableRows
 	</table>
 </div>
 <div id = "table_instruction">

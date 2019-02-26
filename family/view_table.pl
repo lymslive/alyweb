@@ -19,8 +19,41 @@ my $DEBUG = 1;
 sub main
 {
 	my @argv = @_;
+	my $param = input_param(@argv);
 
-	# 获取 GET 与 POST 参数，转为 hash
+	# 当前需要操作的行
+	my $hot_row = {};
+	if ($param && $param->{action} eq 'remove') {
+		$hot_row->{remove} = remove_row($param);
+	}
+	if ($param && $param->{action} eq 'modify') {
+		$hot_row->{modify} = modify_row($param);
+	}
+	if ($param && $param->{action} eq 'create') {
+		$hot_row->{create} = create_row($param);
+	}
+
+	my $Title = '谭氏家谱网';
+	my $BodyH1 = '谭氏年浪翁子嗣家谱表';
+
+	my $Table = inner_table($hot_row, $param);
+	my $Body = HTPL::body($BodyH1, $Table);
+	if ($DEBUG || $param->{debug}) {
+		$Body .= "\n" . debug_log();
+	}
+
+	return HTPL::response($Title, $Body);
+}
+
+##-- SUBS --##
+# 获取 GET 与 POST 参数，转为 hash ，忽略空值
+# 返回 hashref
+sub input_param
+{
+	# 在终端测试时，可提供命令行参数
+	# 模拟 web cgi 时，GET 从环境变量获取，POST 从标准输入获取
+	my ($var) = @_;
+	
 	my ($query, %query, $post, %post);
 	$query = $ENV{QUERY_STRING};
 	{
@@ -33,37 +66,19 @@ sub main
 	%post = map {$1 => uri_unescape($2) if /(\w+)=(\S+)/} split(/&/, $post) if $post;
 
 	# 统一合并为 param 
-	my %param = (%query, %post);
-	foreach my $key (sort keys %param) {
-		wlog("param: $key=" . $param{$key});
+	# my %param = (%query, %post); # 直接拼合，undef 可能乱
+	my %param = ();
+	foreach my $key (sort keys %query) {
+		wlog("query: $key=" . $query{$key});
+		$param{$key} = $query{$key};
 	}
-	
-
-	# 当前需要操作的行
-	my $hot_row = {};
-	if (%query && $query{action} eq 'remove') {
-		$hot_row->{remove} = remove_row(\%query);
-	}
-	if (%post && $post{action} eq 'modify') {
-		$hot_row->{modify} = modify_row(\%post);
-	}
-	if (%post && $post{action} eq 'create') {
-		$hot_row->{create} = create_row(\%post);
+	foreach my $key (sort keys %post) {
+		wlog("post $key=" . $post{$key});
+		$param{$key} = $post{$key};
 	}
 
-	my $Title = '谭氏家谱网';
-	my $BodyH1 = '谭氏年浪翁子嗣家谱表';
-
-	my $Table = inner_table($hot_row, \%post);
-	my $Body = HTPL::body($BodyH1, $Table);
-	if ($DEBUG || $query{debug}) {
-		$Body .= "\n" . debug_log();
-	}
-
-	return HTPL::response($Title, $Body);
+	return \%param;
 }
-
-##-- SUBS --##
 
 sub inner_table
 {
@@ -135,6 +150,7 @@ sub unpack_row
 
 sub remove_row
 {
+	wlog("Enter ...");
 	my ($param) = @_;
 	my $id = $param->{id} or return '';
 
@@ -159,6 +175,7 @@ EndOfHTML
 
 sub modify_row
 {
+	wlog("Enter ...");
 	my ($param) = @_;
 	my $id = $param->{id} or return '';
 
@@ -183,6 +200,7 @@ EndOfHTML
 
 sub create_row
 {
+	wlog("Enter ...");
 	my ($param) = @_;
 	my $id = $param->{id} or return '';
 	my $req = { api => "create", data => { id => $id}};
