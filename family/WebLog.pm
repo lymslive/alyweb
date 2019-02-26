@@ -1,4 +1,5 @@
 #! /usr/bin/env perl
+use utf8;
 package WebLog;
 
 use Exporter 'import';

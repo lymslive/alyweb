@@ -83,7 +83,7 @@ sub table_row
 	my $row_tail = '';
 	if ($link) {
 		my $modify = qq{<a href="#operate-form">修改</a>};
-		my $remove = qq{<a href="?action=remove&id=$id">删除</a>};
+		my $remove = qq{<a href="?operate=remove&id=$id">删除</a>};
 		$row_tail .= qq{	<td>$modify</td>\n};
 		$row_tail .= qq{	<td>$remove</td>\n};
 	}
@@ -116,8 +116,8 @@ sub table_form
 <form action="view_table.cgi" method="post">
 	<tr>
 		<td colspan="9"><span id="operate-form">待操作方式：</span>
-			新增<input type="radio" name="oprate" value="create" checked="checked"/>，
-			修改<input type="radio" name="oprate" value="modify"/>
+			新增<input type="radio" name="operate" value="create" checked="checked"/>，
+			修改<input type="radio" name="operate" value="modify"/>
 		</td>
 	</tr>
 	<tr>

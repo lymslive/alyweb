@@ -14,6 +14,7 @@ use URI::Escape;
 # 先取出 id=>name 映射，能读入全表时无误
 my $mapid = {};
 my $DEBUG = 1;
+my $QUICK = shift // 0;
 
 ##-- MAIN --##
 sub main
@@ -23,22 +24,23 @@ sub main
 
 	# 当前需要操作的行
 	my $hot_row = {};
-	if ($param && $param->{action} eq 'remove') {
+	if ($param && $param->{operate} eq 'remove') {
 		$hot_row->{remove} = remove_row($param);
 	}
-	if ($param && $param->{action} eq 'modify') {
+	if ($param && $param->{operate} eq 'modify') {
 		$hot_row->{modify} = modify_row($param);
 	}
-	if ($param && $param->{action} eq 'create') {
+	if ($param && $param->{operate} eq 'create') {
 		$hot_row->{create} = create_row($param);
 	}
 
 	my $Title = '谭氏家谱网';
 	my $BodyH1 = '谭氏年浪翁子嗣家谱表';
 
+	return if $QUICK;
 	my $Table = inner_table($hot_row, $param);
 	my $Body = HTPL::body($BodyH1, $Table);
-	if ($DEBUG || $param->{debug}) {
+	if ($ENV{REMOTE_ADDR} && ($DEBUG || $param->{debug})) {
 		$Body .= "\n" . debug_log();
 	}
 
@@ -46,7 +48,7 @@ sub main
 }
 
 ##-- SUBS --##
-# 获取 GET 与 POST 参数，转为 hash ，忽略空值
+# 获取 GET 与 POST 参数，转为 hash ，保留空值
 # 返回 hashref
 sub input_param
 {
@@ -55,15 +57,15 @@ sub input_param
 	my ($var) = @_;
 	
 	my ($query, %query, $post, %post);
-	$query = $ENV{QUERY_STRING};
+	$query = $ENV{QUERY_STRING} // '';
 	{
 		local $/ = undef;
 		$post = <>;
 	}
 	wlog("query: $query");
 	wlog("post: $post");
-	%query = map {$1 => uri_unescape($2) if /(\w+)=(\S+)/} split(/&/, $query) if $query;
-	%post = map {$1 => uri_unescape($2) if /(\w+)=(\S+)/} split(/&/, $post) if $post;
+	%query = map {$1 => uri_unescape($2) if /(\w+)=(\S*)/} split(/&/, $query) if $query;
+	%post = map {$1 => uri_unescape($2) if /(\w+)=(\S*)/} split(/&/, $post) if $post;
 
 	# 统一合并为 param 
 	# my %param = (%query, %post); # 直接拼合，undef 可能乱
@@ -73,7 +75,7 @@ sub input_param
 		$param{$key} = $query{$key};
 	}
 	foreach my $key (sort keys %post) {
-		wlog("post $key=" . $post{$key});
+		wlog("post: $key=" . $post{$key});
 		$param{$key} = $post{$key};
 	}
 
@@ -237,5 +239,12 @@ EndOfHTML
 
 ##-- END --##
 &main(@ARGV) unless defined caller;
+
+if ($QUICK && !$ENV{REMOTE_ADDR}) {
+	my $log = WebLog::buff_as_web();
+	print $log . "\n";
+
+}
+
 1;
 __END__
