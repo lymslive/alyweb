@@ -75,6 +75,34 @@ EndOfHTML
 	return $html;
 }
 
+sub table_row
+{
+	my ($row, $link) = @_;
+	my ($id, $name, $sex, $level, $father, $mother, $partner, $birthday, $deathday) = @$row;
+	my $html = <<EndOfHTML;
+<tr>
+	<td>$id</td>
+	<td>$name</td>
+	<td>$sex</td>
+	<td>$level</td>
+	<td>$father</td>
+	<td>$mother</td>
+	<td>$partner</td>
+	<td>$birthday</td>
+	<td>$deathday</td>
+</tr>
+EndOfHTML
+	if ($link) {
+		$html .= qq{	<td>修改</td>};
+		$html .= qq{	<td>删除</td>};
+	}
+	else {
+		$html .= qq{	<td>--</td>};
+		$html .= qq{	<td>--</td>};
+	}
+	return $html;
+}
+
 sub table_form
 {
 	my ($var) = @_;
@@ -108,3 +136,6 @@ EndOfHTML
 
 	return $html;
 }
+
+1;
+__END__

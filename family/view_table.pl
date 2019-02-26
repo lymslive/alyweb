@@ -82,7 +82,8 @@ sub inner_table
 	my $th = HTPL::table_head();
 	my @html = ($th);
 	foreach my $row (@$data) {
-		push @html, table_row($row);
+		my $row_data = unpack_row($row);
+		push @html, HTPL::table_row($row_data, 1);
 	}
 
 	if ($hot_row) {
@@ -128,31 +129,7 @@ sub unpack_row
 	my $birthday = $row->{F_birthday} // $null;
 	my $deathday = $row->{F_deathday} // $null;
 
-	return ($id, $name, $sex, $level, $father, $mother, $partner, $birthday, $deathday);
-}
-
-sub table_row
-{
-	my ($row) = @_;
-	my ($id, $name, $sex, $level, $father, $mother, $partner, $birthday, $deathday) = unpack_row($row);
-
-	my $html = <<EndOfHTML;
-<tr>
-	<td>$id</td>
-	<td>$name</td>
-	<td>$sex</td>
-	<td>$level</td>
-	<td>$father</td>
-	<td>$mother</td>
-	<td>$partner</td>
-	<td>$birthday</td>
-	<td>$deathday</td>
-	<td>修改</td>
-	<td>删除</td>
-</tr>
-EndOfHTML
-
-	return $html;
+	return [$id, $name, $sex, $level, $father, $mother, $partner, $birthday, $deathday];
 }
 
 sub remove_row
@@ -160,103 +137,69 @@ sub remove_row
 	my ($param) = @_;
 	my $id = $param->{id} or return '';
 
-	my $req = { api => query, data => { filter => { id => $id}}};
+	my $req = { api => "query", data => { filter => { id => $id}}};
 	my $res = FamilyAPI::handle_request($req);
 
 	my $data = $res->{data} or return '';
 	my $row = $data->[0] or return '';
-	my ($id, $name, $sex, $level, $father, $mother, $partner, $birthday, $deathday) = unpack_row($row);
+	my $row_data = unpack_row($row);
 
-	$req = { api => remove, data => { id => $id}};
+	$req = { api => "remove", data => { id => $id}};
 	$res = FamilyAPI::handle_request($req);
 
 	my $html = <<EndOfHTML;
 <tr>
 	<td colspan="9">刚删除的行</td>
 </tr>
-<tr>
-	<td>$id</td>
-	<td>$name</td>
-	<td>$sex</td>
-	<td>$level</td>
-	<td>$father</td>
-	<td>$mother</td>
-	<td>$partner</td>
-	<td>$birthday</td>
-	<td>$deathday</td>
-	<td>--</td>
-	<td>--</td>
-</tr>
 EndOfHTML
+	$html .= HTLP::table_row($row_data, 0);
 	return $html;
 }
 
 sub modify_row
 {
 	my ($param) = @_;
+	my $id = $param->{id} or return '';
 
-	my $req = { api => modify, data => { id => $id}};
+	my $req = { api => "modify", data => { id => $id}};
 	my $res = FamilyAPI::handle_request($req);
 
-	$req = { api => query, data => { filter => { id => $id}}};
+	$req = { api => "query", data => { filter => { id => $id}}};
 	$res = FamilyAPI::handle_request($req);
 
 	my $data = $res->{data} or return '';
 	my $row = $data->[0] or return '';
-	my ($id, $name, $sex, $level, $father, $mother, $partner, $birthday, $deathday) = unpack_row($row);
+	my $row_data = unpack_row($row);
 
 	my $html = <<EndOfHTML;
 <tr>
 	<td colspan="9">刚修改的行</td>
 </tr>
-<tr>
-	<td>$id</td>
-	<td>$name</td>
-	<td>$sex</td>
-	<td>$level</td>
-	<td>$father</td>
-	<td>$mother</td>
-	<td>$partner</td>
-	<td>$birthday</td>
-	<td>$deathday</td>
-	<td>--</td>
-	<td>--</td>
-</tr>
 EndOfHTML
+	$html .= HTLP::table_row($row_data, 0);
 	return $html;
 }
 
 sub create_row
 {
 	my ($param) = @_;
-	my $req = { api => create, data => { id => $id}};
+	my $id = $param->{id} or return '';
+	my $req = { api => "create", data => { id => $id}};
 	my $res = FamilyAPI::handle_request($req);
 
-	$req = { api => query, data => { filter => { id => $id}}};
+	$req = { api => "query", data => { filter => { id => $id}}};
 	$res = FamilyAPI::handle_request($req);
 
 	my $data = $res->{data} or return '';
 	my $row = $data->[0] or return '';
-	my ($id, $name, $sex, $level, $father, $mother, $partner, $birthday, $deathday) = unpack_row($row);
+	my $row_data = unpack_row($row);
 
 	my $html = <<EndOfHTML;
 <tr>
 	<td colspan="9">刚添加的行</td>
 </tr>
-<tr>
-	<td>$id</td>
-	<td>$name</td>
-	<td>$sex</td>
-	<td>$level</td>
-	<td>$father</td>
-	<td>$mother</td>
-	<td>$partner</td>
-	<td>$birthday</td>
-	<td>$deathday</td>
-	<td>--</td>
-	<td>--</td>
-</tr>
 EndOfHTML
+	$html .= HTLP::table_row($row_data, 0);
 	return $html;
 }
 
@@ -272,6 +215,7 @@ sub debug_log
 EndOfHTML
 	return $html;
 }
+
 ##-- END --##
 &main(@ARGV) unless defined caller;
 1;
