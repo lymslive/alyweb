@@ -1,4 +1,5 @@
 #! /usr/bin/env perl
+use utf8;
 package FamilyDB;
 use strict;
 use warnings;
