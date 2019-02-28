@@ -23,6 +23,9 @@ my $MESSAGE_REF = {
 	ERR_DBI_FAILED => '10. 数据库操作失败',
 	ERR_NAME_DUPED => '11. 数据库中存在重名，建议改用唯一ID',
 	ERR_NAME_LACKED => '12. 数据库中不存在该人名，请检查',
+	ERR_PARENT_LACKED => '13. 缺少父母关系',
+	ERR_PARENT_DISMATCH => '14. 父母辈份不匹配',
+	ERR_MEMBER_LACKED => '15. 不存在成员ID',
 };
 
 sub error_msg
@@ -166,94 +169,28 @@ sub handle_create
 	my $jres = {};
 
 	my $mine_name = $jreq->{name}
-		or return('ERR_ARGNO_NAME');
+		or return ('ERR_ARGNO_NAME');
 	my $mine_sex = $jreq->{sex}
-		or return('ERR_ARGNO_SEX');
+		or return ('ERR_ARGNO_SEX');
+
+	$error = check_parent($db, $jreq);
+	return ($error) if $error;
 
 	my $fieldvals = {};
 	$fieldvals->{F_name} = $mine_name;
 	$fieldvals->{F_sex} = $mine_sex;
 
-	$fieldvals->{F_id} = $jreq->{id} if $jreq->{id};
-	$fieldvals->{F_birthday} = $jreq->{birthday} if $jreq->{birthday};
-	$fieldvals->{F_deathday} = $jreq->{deathday} if $jreq->{deathday};
-
-	# 父亲关系
-	if ($jreq->{father_id}) {
-		my $records = $db->Query(['F_level'], {F_id => $jreq->{father_id}});
-		if ((scalar @$records) < 1) {
-			$error = 'ERR_NAME_LACKED';
-			return ($error, $jres);
-		}
-		$fieldvals->{F_father} = $jreq->{father_id};
-		$fieldvals->{F_level} = $records->[0]->{F_level} + 1;
-	}
-	elsif ($jreq->{father_name}) {
-		my $records = $db->Query(['F_id, F_level'], {F_name => $jreq->{father_name}});
-		if ((scalar @$records) < 1) {
-			$error = 'ERR_NAME_LACKED';
-			return ($error, $jres);
-		}
-		elsif ((scalar @$records) > 1) {
-			$error = 'ERR_NAME_DUPED';
-			return ($error, $jres);
-		}
-		$fieldvals->{F_father} = $records->[0]->{F_id};
-		$fieldvals->{F_level} = $records->[0]->{F_level} + 1;
-	}
-
-	# 母亲关系
-	if ($jreq->{mother_id}) {
-		my $records = $db->Query(['F_level'], {F_id => $jreq->{mother_id}});
-		if ((scalar @$records) < 1) {
-			$error = 'ERR_NAME_LACKED';
-			return ($error, $jres);
-		}
-		$fieldvals->{F_mother} = $jreq->{mother_id};
-		$fieldvals->{F_level} //= abs($records->[0]->{F_level}) + 1;
-	}
-	elsif ($jreq->{mother_name}) {
-		my $records = $db->Query(['F_id, F_level'], {F_name => $jreq->{mother_name}});
-		if ((scalar @$records) < 1) {
-			$error = 'ERR_NAME_LACKED';
-			return ($error, $jres);
-		}
-		elsif ((scalar @$records) > 1) {
-			$error = 'ERR_NAME_DUPED';
-			return ($error, $jres);
-		}
-		$fieldvals->{F_mother} = $records->[0]->{F_id};
-		$fieldvals->{F_level} //= abs($records->[0]->{F_level}) + 1;
-	}
-
-	# 配偶关系
-	if ($jreq->{partner_id}) {
-		my $records = $db->Query(['F_level'], {F_id => $jreq->{partner_id}});
-		if ((scalar @$records) < 1) {
-			$error = 'ERR_NAME_LACKED';
-			return ($error, $jres);
-		}
-		$fieldvals->{F_partner} = $jreq->{partner_id};
-		$fieldvals->{F_level} //= 0 - $records->[0]->{F_level};
-	}
-	elsif ($jreq->{partner_name}) {
-		my $records = $db->Query(['F_id, F_level'], {F_name => $jreq->{partner_name}});
-		if ((scalar @$records) < 1) {
-			$error = 'ERR_NAME_LACKED';
-			return ($error, $jres);
-		}
-		elsif ((scalar @$records) > 1) {
-			$error = 'ERR_NAME_DUPED';
-			return ($error, $jres);
-		}
-		$fieldvals->{F_partner} = $records->[0]->{F_id};
-		$fieldvals->{F_level} //= 0 - $records->[0]->{F_level};
-	}
-
+	$fieldvals->{F_level} = $jreq->{level};
 	unless ($fieldvals->{F_level}) {
 		$error = 'ERR_ARGNO_RELATE';
 		return ($error, $jres);
 	}
+
+	$fieldvals->{F_id} = $jreq->{id} if $jreq->{id};
+	$fieldvals->{F_father} = $jreq->{father} if $jreq->{father};
+	$fieldvals->{F_mother} = $jreq->{mother} if $jreq->{mother};
+	$fieldvals->{F_birthday} = $jreq->{birthday} if $jreq->{birthday};
+	$fieldvals->{F_deathday} = $jreq->{deathday} if $jreq->{deathday};
 
 	my $now_time = now_time_str();
 	$fieldvals->{F_create_time} = $now_time;
@@ -274,6 +211,12 @@ sub handle_create
 	}
 	else {
 		$jres->{id} = $db->LastInsertID();
+		$jreq->{id} = $jres->{id}; # 更新配偶时要 id 信息
+	}
+
+	# 新增成员时同时增加配偶信息
+	if ($jreq->{partner_id} || $jreq->{partner_name}) {
+		modify_partner($db, $jreq);
 	}
 
 	return ($error, $jres);
@@ -298,77 +241,15 @@ sub handle_modify
 	my $mine_id = $jreq->{id}
 		or return('ERR_ARGNO_ID');
 
+	$error = check_parent($db, $jreq);
+
 	my $fieldvals = {};
 	$fieldvals->{F_name} = $jreq->{name} if $jreq->{name};
 	$fieldvals->{F_sex} = $jreq->{sex} if $jreq->{sex};
+	$fieldvals->{F_father} = $jreq->{father} if $jreq->{father};
+	$fieldvals->{F_mother} = $jreq->{mother} if $jreq->{mother};
 	$fieldvals->{F_birthday} = $jreq->{birthday} if $jreq->{birthday};
 	$fieldvals->{F_deathday} = $jreq->{deathday} if $jreq->{deathday};
-
-	# 父亲关系
-	if ($jreq->{father_id}) {
-		my $records = $db->Query(['F_level'], {F_id => $jreq->{father_id}});
-		if ((scalar @$records) == 1) {
-			$fieldvals->{F_father} = $jreq->{father_id};
-			$fieldvals->{F_level} = $records->[0]->{F_level} + 1;
-		}
-		else {
-			wlog("Ingore invalid id: " . $jreq->{father_id});
-		}
-	}
-	elsif ($jreq->{father_name}) {
-		my $records = $db->Query(['F_id, F_level'], {F_name => $jreq->{father_name}});
-		if ((scalar @$records) == 1) {
-			$fieldvals->{F_father} = $records->[0]->{F_id};
-			$fieldvals->{F_level} = $records->[0]->{F_level} + 1;
-		}
-		else {
-			wlog("Ingore invalid name: " . $jreq->{father_name});
-		}
-	}
-
-	# 母亲关系
-	if ($jreq->{mother_id}) {
-		my $records = $db->Query(['F_level'], {F_id => $jreq->{mother_id}});
-		if ((scalar @$records) == 1) {
-			$fieldvals->{F_mother} = $jreq->{mother_id};
-			$fieldvals->{F_level} = abs($records->[0]->{F_level}) + 1;
-		}
-		else {
-			wlog("Ingore invalid id: " . $jreq->{mother_id});
-		}
-	}
-	elsif ($jreq->{mother_name}) {
-		my $records = $db->Query(['F_id, F_level'], {F_name => $jreq->{mother_name}});
-		if ((scalar @$records) == 1) {
-			$fieldvals->{F_mother} = $records->[0]->{F_id};
-			$fieldvals->{F_level} = abs($records->[0]->{F_level}) + 1;
-		}
-		else {
-			wlog("Ingore invalid name: " . $jreq->{mother_name});
-		}
-	}
-
-	# 配偶关系
-	if ($jreq->{partner_id}) {
-		my $records = $db->Query(['F_level'], {F_id => $jreq->{partner_id}});
-		if ((scalar @$records) == 1) {
-			$fieldvals->{F_partner} = $jreq->{partner_id};
-			$fieldvals->{F_level} = 0 - $records->[0]->{F_level};
-		}
-		else {
-			wlog("Ingore invalid id: " . $jreq->{partner_id});
-		}
-	}
-	elsif ($jreq->{partner_name}) {
-		my $records = $db->Query(['F_id, F_level'], {F_name => $jreq->{partner_name}});
-		if ((scalar @$records) == 1) {
-			$fieldvals->{F_partner} = $records->[0]->{F_id};
-			$fieldvals->{F_level} = 0 - $records->[0]->{F_level};
-		}
-		else {
-			wlog("Ingore invalid name: " . $jreq->{partner_name});
-		}
-	}
 
 	my $now_time = now_time_str();
 	$fieldvals->{F_update_time} = $now_time;
@@ -385,6 +266,12 @@ sub handle_modify
 	}
 
 	$jres->{modified} = $ret;
+
+	# 额外同步配偶信息
+	if ($jreq->{partner_id} || $jreq->{partner_name}) {
+		modify_partner($db, $jreq);
+	}
+
 	return ($error, $jres);
 }
 
@@ -422,6 +309,157 @@ sub handle_remove
 	$jres->{removed} = $ret;
 
 	return ($error, $jres);
+}
+
+# 检查双亲关系
+sub check_parent
+{
+	my ($db, $jreq) = @_;
+	
+	my $error = 0;
+
+	# 父亲关系
+	my $father_level = 0;
+	if ($jreq->{father_id}) {
+		my $records = $db->Query(['F_level'], {F_id => $jreq->{father_id}});
+		if ((scalar @$records) < 1) {
+			return 'ERR_MEMBER_LACKED';
+		}
+		$jreq->{F_father} = $jreq->{father_id};
+		$father_level = $records->[0]->{F_level};
+	}
+	elsif ($jreq->{father_name}) {
+		my $records = $db->Query(['F_id, F_level'], {F_name => $jreq->{father_name}});
+		if ((scalar @$records) < 1) {
+			return 'ERR_NAME_LACKED';
+		}
+		elsif ((scalar @$records) > 1) {
+			return 'ERR_NAME_DUPED';
+		}
+		$jreq->{F_father} = $records->[0]->{F_id};
+		$father_level = $records->[0]->{F_level};
+	}
+
+	# 母亲关系
+	my $mother_level = 0;
+	if ($jreq->{mother_id}) {
+		my $records = $db->Query(['F_level'], {F_id => $jreq->{mother_id}});
+		if ((scalar @$records) < 1) {
+			return 'ERR_MEMBER_LACKED';
+		}
+		$jreq->{F_mother} = $jreq->{mother_id};
+		$mother_level = abs($records->[0]->{F_level});
+	}
+	elsif ($jreq->{mother_name}) {
+		my $records = $db->Query(['F_id, F_level'], {F_name => $jreq->{mother_name}});
+		if ((scalar @$records) < 1) {
+			return 'ERR_NAME_LACKED';
+		}
+		elsif ((scalar @$records) > 1) {
+			return 'ERR_NAME_DUPED';
+		}
+		$jreq->{F_mother} = $jreq->{mother_id};
+		$mother_level = abs($records->[0]->{F_level});
+	}
+
+	if (!$father_level && !$mother_level) {
+		return 'ERR_PARENT_LACKED';
+	}
+
+	my $level;
+	if ($father_level && !$mother_level) {
+		$level = $father_level;
+	}
+	elsif (!$father_level && $mother_level) {
+		$level = $mother_level;
+	}
+	elsif ($father_level != $mother_level) {
+		return 'ERR_PARENT_DISMATCH';
+	}
+	else {
+		$level = $father_level;
+	}
+
+	$jreq->{level} = $level;
+	return $error;
+}
+
+# 修改并同步配偶信息
+# 如果提供姓名 partner_name ，为配偶新增一条记录
+sub modify_partner
+{
+	my ($db, $jreq) = @_;
+	
+	my $mine_id = $jreq->{id};
+	return 'ERR_ARGUMENT' unless $mine_id;
+
+	my $records = $db->Query(['F_sex, F_level'], {F_id => $mine_id});
+	if ((scalar @$records) < 1) {
+		return 'ERR_MEMBER_LACKED';
+	}
+	my $mine_sex = $records->[0]->{F_sex};
+	my $mine_level = $records->[0]->{F_level};
+
+	my $now_time = now_time_str();
+	if ($jreq->{partner_id}) {
+		wlog('modify by partner id: ' . $jreq->{partner_id});
+		my $records = $db->Query(['F_sex, F_level'], {F_id => $jreq->{partner_id}});
+		if ((scalar @$records) < 1) {
+			return 'ERR_MEMBER_LACKED';
+		}
+
+		# 检查后直接修改自己的信息
+		my $fieldvals = {};
+		$fieldvals->{F_update_time} = $now_time;
+		$fieldvals->{F_partner} = $jreq->{partner_id};
+		if (!$mine_sex) {
+			$fieldvals->{F_sex} = 1 - $records->[0]->{F_sex};
+		}
+		if (!$mine_level) {
+			$fieldvals->{F_level} = 0 - $records->[0]->{F_level};
+		}
+		my $ret = $db->Modify($fieldvals, { F_id => $mine_id});
+		if ($db->{error}) {
+			wlog("DB error: $db->{error}");
+			return 'ERR_DBI_FAILED';
+		}
+	}
+	elsif ($jreq->{partner_name}) {
+		wlog('modify by partner name ' . $jreq->{partner_name});
+
+		# 新增配偶记录
+		my $fieldvals = {};
+		$fieldvals->{F_name} = $jreq->{partner_name};
+		$fieldvals->{F_partner} = $mine_id;
+		$fieldvals->{F_level} = 0 - $mine_level;
+		$fieldvals->{F_sex} = 1 - $mine_sex;
+		$fieldvals->{F_update_time} = $now_time;
+		$fieldvals->{F_create_time} = $now_time;
+		my $ret = $db->Create($fieldvals);
+		if ($db->{error}) {
+			wlog("DB error: $db->{error}");
+			return 'ERR_DBI_FAILED';
+		}
+		if ($ret != 1) {
+			wlog("Expect to insert just one row");
+		}
+		my $partner_id = $db->LastInsertID();
+
+		# 修改自己的信息
+		$fieldvals = {};
+		$fieldvals->{F_update_time} = $now_time;
+		$fieldvals->{F_partner} = $partner_id;
+		$ret = $db->Modify($fieldvals, { F_id => $mine_id});
+		if ($db->{error}) {
+			wlog("DB error: $db->{error}");
+			return 'ERR_DBI_FAILED';
+		}
+	}
+	else {
+		return 'ERR_ARGUMENT';
+	}
+
+	return 0;
 }
 
 sub now_time_str

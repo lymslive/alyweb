@@ -65,7 +65,7 @@ sub table_head
 	<td>代际</td>
 	<td>父亲</td>
 	<td>母亲</td>
-	<td>配偶</td>
+	<td>元配</td>
 	<td>生日</td>
 	<td>忌日</td>
 	<td>&nbsp;</td>
