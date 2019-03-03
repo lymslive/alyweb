@@ -4,6 +4,14 @@ use utf8;
 use strict;
 use warnings;
 
+# 控制是否显示表格尾列的操作链接
+my $OPERATE = 0;
+sub show_operate
+{
+	my ($show) = @_;
+	$OPERATE = $show;
+}
+
 sub response
 {
 	my ($Title, $Body) = @_;
@@ -45,7 +53,9 @@ sub body
 		<li> 收录同一祖先以下的子嗣血脉。祖先设为第 1 代，后续递增。也可收录配偶，代际前加一短横（取负数）以区别。
 		<li> 原则上不分男女，都可收录，甚至女儿的后代也算血脉延续。有更多数据后可按需要再筛选。
 		<li> 在表的末行可添加新成员。至少要填写所依的父亲或母亲，可填 ID 或姓名（不存在重名时）。
-		<li> 新成员可先入库基本信息（姓名与父/母依存关系），后面再修改补充其他信息。
+		<li> 新成员可先入库基本信息（姓名与父/母依存关系），后面再修改补充其他信息。修改须指定编号。
+		<li> 删除数据须谨慎。本页地址暂不要外传，操作修改尚未作登陆验证。
+		<li> 该页面主要为初步测试服务端 api ，有懂前端会做网页的兄弟可联系我优化与重设计网页。
 	</ul>
 </div>
 EndOfHTML
@@ -80,10 +90,14 @@ sub table_row
 {
 	my ($row, $link) = @_;
 	my ($id, $name, $sex, $level, $father, $mother, $partner, $birthday, $deathday) = @$row;
+
 	my $row_tail = '';
 	if ($link) {
 		my $modify = qq{<a href="#operate-form">修改</a>};
-		my $remove = qq{<a href="?operate=remove&id=$id">删除</a>};
+		my $remove = qq{<a href="javascript:void(0)">删除</a>};
+		if ($OPERATE) {
+			$remove = qq{<a href="?operate=remove&id=$id">删除</a>};
+		}
 		$row_tail .= qq{	<td>$modify</td>\n};
 		$row_tail .= qq{	<td>$remove</td>\n};
 	}
@@ -91,6 +105,7 @@ sub table_row
 		$row_tail .= qq{	<td>--</td>\n};
 		$row_tail .= qq{	<td>--</td>\n};
 	}
+
 	my $html = <<EndOfHTML;
 <tr>
 	<td>$id</td>
@@ -108,14 +123,41 @@ EndOfHTML
 	return $html;
 }
 
+sub table_sumary
+{
+	my ($count) = @_;
+	
+	my $html = <<EndOfHTML;
+	<tr>
+		<td colspan="9"><span id="table-sumary">小计：</span>
+		共收录 $count 名家族成员。再接再励！
+		</td>
+	</tr>
+EndOfHTML
+
+	return $html;
+}
+
+# 操作失败提示
+sub operate_error
+{
+	my ($msg) = @_;
+	my $html = <<EndOfHTML;
+<tr>
+	<td colspan="9">提示：$msg</td>
+</tr>
+EndOfHTML
+	return $html;
+}
+
 sub table_form
 {
 	my ($var) = @_;
 	
 	my $html = <<EndOfHTML;
-<form action="view_table.cgi" method="post">
+<form action="#table-sumary" method="post">
 	<tr>
-		<td colspan="9"><span id="operate-form">待操作方式：</span>
+		<td colspan="9"><span id="operate-form">操作：</span>
 			新增<input type="radio" name="operate" value="create" checked="checked"/>，
 			修改<input type="radio" name="operate" value="modify"/>
 		</td>

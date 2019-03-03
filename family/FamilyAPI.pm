@@ -170,8 +170,10 @@ sub handle_create
 
 	my $mine_name = $jreq->{name}
 		or return ('ERR_ARGNO_NAME');
-	my $mine_sex = $jreq->{sex}
-		or return ('ERR_ARGNO_SEX');
+	my $mine_sex = $jreq->{sex} // -1;
+	if ($mine_sex != 1 && $mine_sex != 0) {
+		return ('ERR_ARGNO_SEX');
+	}
 
 	$error = check_parent($db, $jreq);
 	return ($error) if $error;
@@ -203,7 +205,7 @@ sub handle_create
 	}
 
 	if ($ret != 1) {
-		wlog("Expect to insert just one row");
+		wlog("Expect to insert just one row: $ret");
 	}
 
 	if ($jreq->{id}) {
@@ -241,11 +243,14 @@ sub handle_modify
 	my $mine_id = $jreq->{id}
 		or return('ERR_ARGNO_ID');
 
-	$error = check_parent($db, $jreq);
+	# 修改时不必要求父母参数
+	check_parent($db, $jreq);
 
 	my $fieldvals = {};
 	$fieldvals->{F_name} = $jreq->{name} if $jreq->{name};
-	$fieldvals->{F_sex} = $jreq->{sex} if $jreq->{sex};
+	if (defined($jreq->{sex}) && ($jreq->{sex} == 1 || $jreq->{sex} == 0)) {
+		$fieldvals->{F_sex} = $jreq->{sex};
+	}
 	$fieldvals->{F_father} = $jreq->{father} if $jreq->{father};
 	$fieldvals->{F_mother} = $jreq->{mother} if $jreq->{mother};
 	$fieldvals->{F_birthday} = $jreq->{birthday} if $jreq->{birthday};
@@ -325,7 +330,7 @@ sub check_parent
 		if ((scalar @$records) < 1) {
 			return 'ERR_MEMBER_LACKED';
 		}
-		$jreq->{F_father} = $jreq->{father_id};
+		$jreq->{father} = $jreq->{father_id};
 		$father_level = $records->[0]->{F_level};
 	}
 	elsif ($jreq->{father_name}) {
@@ -336,7 +341,7 @@ sub check_parent
 		elsif ((scalar @$records) > 1) {
 			return 'ERR_NAME_DUPED';
 		}
-		$jreq->{F_father} = $records->[0]->{F_id};
+		$jreq->{father} = $records->[0]->{F_id};
 		$father_level = $records->[0]->{F_level};
 	}
 
@@ -347,7 +352,7 @@ sub check_parent
 		if ((scalar @$records) < 1) {
 			return 'ERR_MEMBER_LACKED';
 		}
-		$jreq->{F_mother} = $jreq->{mother_id};
+		$jreq->{mother} = $jreq->{mother_id};
 		$mother_level = abs($records->[0]->{F_level});
 	}
 	elsif ($jreq->{mother_name}) {
@@ -358,7 +363,7 @@ sub check_parent
 		elsif ((scalar @$records) > 1) {
 			return 'ERR_NAME_DUPED';
 		}
-		$jreq->{F_mother} = $jreq->{mother_id};
+		$jreq->{mother} = $records->[0]->{F_id};
 		$mother_level = abs($records->[0]->{F_level});
 	}
 
@@ -380,7 +385,7 @@ sub check_parent
 		$level = $father_level;
 	}
 
-	$jreq->{level} = $level;
+	$jreq->{level} = $level + 1;
 	return $error;
 }
 

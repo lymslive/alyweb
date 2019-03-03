@@ -14,24 +14,27 @@ use Encode;
 
 # 先取出 id=>name 映射，能读入全表时无误
 my $mapid = {};
-my $DEBUG = 1;
+my $DEBUG = 0;
 my $QUICK = shift // 0;
+my $REG_ID = qr/^\d+$/;
 
 ##-- MAIN --##
 sub main
 {
 	my @argv = @_;
 	my $param = input_param(@argv);
+	my $debug = $param->{debug} // $DEBUG;
+	HTPL::show_operate($debug);
 
 	# 当前需要操作的行
 	my $hot_row = {};
-	if ($param && $param->{operate} eq 'remove') {
+	if ($param->{operate} && $param->{operate} eq 'remove') {
 		$hot_row->{remove} = remove_row($param);
 	}
-	if ($param && $param->{operate} eq 'modify') {
+	if ($param->{operate} && $param->{operate} eq 'modify') {
 		$hot_row->{modify} = modify_row($param);
 	}
-	if ($param && $param->{operate} eq 'create') {
+	if ($param->{operate} && $param->{operate} eq 'create') {
 		$hot_row->{create} = create_row($param);
 	}
 
@@ -41,9 +44,8 @@ sub main
 	return if $QUICK;
 	my $Table = inner_table($hot_row, $param);
 	my $Body = HTPL::body($BodyH1, $Table);
-	# if ($ENV{REMOTE_ADDR} && ($DEBUG || $param->{debug})) {
-	if ($DEBUG || $param->{debug}) {
-		$Body .= "\n" . debug_log();
+	if ($debug) {
+		$Body .= "\n" . debug_log($debug);
 	}
 
 	return HTPL::response($Title, $Body);
@@ -120,6 +122,9 @@ sub inner_table
 		push @html, HTPL::table_row($row_data, 1);
 	}
 
+	my $count = scalar(@$data);
+	push @html, HTPL::table_sumary($count);
+
 	if ($hot_row) {
 		if ($hot_row->{remove}) {
 			push @html, $hot_row->{remove};
@@ -159,7 +164,7 @@ sub unpack_row
 	my $level = $row->{F_level} // $null;
 	my $father = $row->{F_father} ? id2name($row->{F_father}) : $null;
 	my $mother = $row->{F_mother} ? id2name($row->{F_mother}) : $null;
-	my $partner = $row->{F_partner} ? id2name($row->{F_parther}) : $null;
+	my $partner = $row->{F_partner} ? id2name($row->{F_partner}) : $null;
 	my $birthday = $row->{F_birthday} // $null;
 	my $deathday = $row->{F_deathday} // $null;
 
@@ -181,6 +186,10 @@ sub remove_row
 
 	$req = { api => "remove", data => { id => $id}};
 	$res = FamilyAPI::handle_request($req);
+	if ($res->{error} || !$res->{data}) {
+		wlog('删除数据失败：' . $res->{errmsg});
+		return HTPL::operate_error('删除数据失败：' . $res->{errmsg});
+	}
 
 	my $html = <<EndOfHTML;
 <tr>
@@ -197,15 +206,15 @@ sub modify_row
 	my ($param) = @_;
 	my $req_data = param2api($param);
 	if (!$req_data->{id}) {
-		wlog('需要输入要修改成员的id');
-		return '';
+		wlog('需要输入被修改成员的id');
+		return HTPL::operate_error('需要输入被修改成员的编号id');
 	}
 
 	my $req = { api => "modify", data => $req_data};
 	my $res = FamilyAPI::handle_request($req);
 	if ($res->{error} || !$res->{data}) {
 		wlog('修改数据失败：' . $res->{errmsg});
-		return '';
+		return HTPL::operate_error('修改数据失败：' . $res->{errmsg});
 	}
 
 	my $id = $req_data->{id};
@@ -218,7 +227,7 @@ sub modify_row
 
 	my $html = <<EndOfHTML;
 <tr>
-	<td colspan="9">刚修改的行</td>
+	<td colspan="9">刚修改的行：</td>
 </tr>
 EndOfHTML
 	$html .= HTPL::table_row($row_data, 0);
@@ -232,7 +241,7 @@ sub create_row
 	my $req_data = param2api($param);
 	if (!$req_data->{name}) {
 		wlog('需要输入新成员的姓名');
-		return '';
+		return HTPL::operate_error('需要输入新成员的姓名');
 	}
 
 	wlog("插入新数据");
@@ -240,7 +249,7 @@ sub create_row
 	my $res = FamilyAPI::handle_request($req);
 	if ($res->{error} || !$res->{data}) {
 		wlog('插入数据失败：' . $res->{errmsg});
-		return '';
+		return HTPL::operate_error('插入数据失败：' . $res->{errmsg});
 	}
 
 	wlog("重新检索插入数据");
@@ -254,7 +263,7 @@ sub create_row
 
 	my $html = <<EndOfHTML;
 <tr>
-	<td colspan="9">刚添加的行</td>
+	<td colspan="9">刚添加的行：</td>
 </tr>
 EndOfHTML
 	$html .= HTPL::table_row($row_data, 0);
@@ -263,11 +272,12 @@ EndOfHTML
 
 sub debug_log
 {
-	my ($var) = @_;
+	my ($debug) = @_;
+	my $display = ($debug > 0) ? 'inline' : 'none';
 	my $log = WebLog::buff_as_web();
 	# $log = decode('utf8', $log);
 	my $html = <<EndOfHTML;
-<div id="debug_log">
+<div id="debug_log" style="display:$display">
 	<hr>
 	$log
 </div>
@@ -283,31 +293,28 @@ sub param2api
 	my $data = {};
 	$data->{id} = $param->{mine_id} if $param->{mine_id};
 	$data->{name} = $param->{mine_name} if $param->{mine_name};
-	$data->{sex} = $param->{sex} if $param->{sex};
+	$data->{sex} = $param->{sex} if defined($param->{sex});
 	$data->{birthday} = $param->{birthday} if $param->{birthday};
 	$data->{deathday} = $param->{deathday} if $param->{deathday};
 	if ($param->{father}) {
-		my $id = 0 + $param->{father};
-		if ($id > 0) {
-			$data->{father_id} = $id;
+		if ($param->{father} =~ $REG_ID) {
+			$data->{father_id} = $param->{father};
 		}
 		else {
 			$data->{father_name} = $param->{father};
 		}
 	}
 	if ($param->{mother}) {
-		my $id = 0 + $param->{mother};
-		if ($id > 0) {
-			$data->{mother_id} = $id;
+		if ($param->{mother} =~ $REG_ID) {
+			$data->{mother_id} = $param->{mother};
 		}
 		else {
 			$data->{mother_name} = $param->{mother};
 		}
 	}
 	if ($param->{partner}) {
-		my $id = 0 + $param->{partner};
-		if ($id > 0) {
-			$data->{partner_id} = $id;
+		if ($param->{partner} =~ $REG_ID) {
+			$data->{partner_id} = $param->{partner};
 		}
 		else {
 			$data->{partner_name} = $param->{partner};
