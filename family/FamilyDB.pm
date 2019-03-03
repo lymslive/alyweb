@@ -95,7 +95,7 @@ sub Query
 		$stmt .= " LIMIT $limit";
 	}
 
-	wlog($stmt);
+	wlog("$stmt; ?= @bind");
 	$self->Error();
 	my $sth = $dbh->prepare($stmt) 
 		or return $self->Error([], "Fail to prepater");
@@ -118,7 +118,7 @@ sub Create
 	my $sql = SQL::Abstract->new;
 	my($stmt, @bind) = $sql->insert($TABLE_MEMBER, $fieldvals);
 
-	wlog($stmt);
+	wlog("$stmt; ?= @bind");
 	$self->Error();
 	my $sth = $dbh->prepare($stmt) 
 		or return $self->Error([], "Fail to prepater");
@@ -149,7 +149,7 @@ sub Modify
 	my $sql = SQL::Abstract->new;
 	my($stmt, @bind) = $sql->update($TABLE_MEMBER, $fieldvals, $where);
 
-	wlog($stmt);
+	wlog("$stmt; ?= @bind");
 	$self->Error();
 	my $sth = $dbh->prepare($stmt) 
 		or return $self->Error([], "Fail to prepater");

@@ -6,15 +6,13 @@ use FindBin qw($Bin);
 use lib "$Bin";
 use WebLog;
 use FamilyAPI;
-require 'tpl/view_detial.pl';
+require 'tpl/view_detail.pl';
 
 use URI::Escape;
 use Encode;
 
 my $DEBUG = 0;
-my $QUICK = shift // 0;
 my $REG_ID = qr/^\d+$/;
-my $sex_mark = qw(♀ ♂);
 
 ##-- MAIN --##
 sub main
@@ -22,20 +20,22 @@ sub main
 	my @argv = @_;
 	my $param = input_param(@argv);
 	my $debug = $param->{debug} // $DEBUG;
-	HTPL::show_operate($debug);
 
 	# 当前需要操作的行
+	my $operate_result = '';
 	if ($param->{operate} && $param->{operate} eq 'modify') {
-		my $modify_suc = modify_row($param);
+		my $operate_result = modify_row($param);
 	}
 
-	my $id = $param->{id};
+	my $id = $param->{mine_id};
 	my $detail = query_detail($id);
+	$detail->{operate_result} = $operate_result;
+	my $Body = HTPL::generate($detail);
 	if ($debug) {
 		$Body .= "\n" . debug_log($debug);
 	}
 
-	return HTPL::response($Title, $Body);
+	return HTPL::response('', $Body);
 }
 
 ##-- SUBS --##
@@ -78,8 +78,8 @@ sub query_detail
 	my $detail = {};
 	my $req = { api => "query", data => { filter => { id => $id}}};
 	my $res = FamilyAPI::handle_request($req);
-	my $data = $res->{data} or return '';
-	my $row = $data->[0] or return '';
+	my $data = $res->{data} or return {};
+	my $row = $data->[0] or return {};
 
 	$detail->{id} = $id;
 	$detail->{name} = $row->{F_name};
@@ -98,7 +98,7 @@ sub query_detail
 	if ($row->{F_father}) {
 		my $parent = query_base($row->{F_father});
 		$detail->{father} = $parent->{name};
-		if ($parent->{F_level} > 0) {
+		if ($parent->{level} > 0) {
 			push(@$root, {id => $row->{F_father}, name => $parent->{name}, sex => 1});
 			$root_id = $row->{F_father};
 		}
@@ -106,7 +106,7 @@ sub query_detail
 	if ($row->{F_mother}) {
 		my $parent = query_base($row->{F_mother});
 		$detail->{mother} = $parent->{name};
-		if ($parent->{F_level} > 0) {
+		if ($parent->{level} > 0) {
 			push(@$root, {id => $row->{F_mother}, name => $parent->{name}, sex => 0});
 			$root_id = $row->{F_mother};
 		}
@@ -119,6 +119,7 @@ sub query_detail
 
 	# 继续往上查祖父……
 	for (my $level = $row->{F_level} - 1; $level > 1; $level--) {
+		wlog("query root_id: $root_id; level $level");
 		my $parent = select_parent($root_id);
 		last unless %$parent;
 		push(@$root, $parent);
@@ -166,13 +167,13 @@ sub select_parent
 	my $row = $data->[0] or return {};
 	if ($row->{F_father}) {
 		my $parent = query_base($row->{F_father});
-		if ($parent->{F_level} > 0) {
+		if ($parent->{level} > 0) {
 			return {id => $row->{F_father}, name => $parent->{name}, sex => 1};
 		}
 	}
 	elsif ($row->{F_mother}) {
 		my $parent = query_base($row->{F_mother});
-		if ($parent->{F_level} > 0) {
+		if ($parent->{level} > 0) {
 			return {id => $row->{F_mother}, name => $parent->{name}, sex => 0};
 		}
 	}
@@ -192,10 +193,13 @@ sub select_child
 	my @fields = qw[F_id F_name F_sex];
 	my $filter = {};
 	if ($sex == 1) {
-		$filter->{F_father} = $id;
+		$filter->{father} = $id;
 	}
 	elsif ($sex == 0) {
-		$filter->{F_mother} = $id;
+		$filter->{mother} = $id;
+	}
+	else {
+		wlog("unkown sex: $sex");
 	}
 
 	my $req = { api => "query", data => { filter => $filter, fields => \@fields}};
@@ -211,43 +215,27 @@ sub select_child
 	return \@child;
 }
 
-sub unpack_row
-{
-	my ($row) = @_;
-	
-	my $null = '--';
-	my $id = $row->{F_id} // $null;
-	my $name = $row->{F_name} // $null;
-	my $sex = $row->{F_sex} // $null;
-	$sex = ($sex == 1 ? '男' : '女');
-	my $level = $row->{F_level} // $null;
-	my $father = $row->{F_father} ? id2name($row->{F_father}) : $null;
-	my $mother = $row->{F_mother} ? id2name($row->{F_mother}) : $null;
-	my $partner = $row->{F_partner} ? id2name($row->{F_partner}) : $null;
-	my $birthday = $row->{F_birthday} // $null;
-	my $deathday = $row->{F_deathday} // $null;
-
-	return [$id, $name, $sex, $level, $father, $mother, $partner, $birthday, $deathday];
-}
-
 sub modify_row
 {
 	wlog("Enter ...");
 	my ($param) = @_;
+	my $msg = '修改成功';
 	my $req_data = param2api($param);
 	if (!$req_data->{id}) {
-		wlog('需要输入被修改成员的id');
-		return 0;
+		$msg = '需要输入被修改成员的id';
+		wlog($msg);
+		return $msg;
 	}
 
 	my $req = { api => "modify", data => $req_data};
 	my $res = FamilyAPI::handle_request($req);
 	if ($res->{error} || !$res->{data}) {
-		wlog('修改数据失败：' . $res->{errmsg});
-		return 0;
+		$msg = '修改数据失败：' . $res->{errmsg};
+		wlog($msg);
+		return $msg;
 	}
 
-	return 1;
+	return $msg;
 }
 
 sub debug_log
@@ -306,7 +294,7 @@ sub param2api
 ##-- END --##
 &main(@ARGV) unless defined caller;
 
-if ($QUICK && !$ENV{REMOTE_ADDR}) {
+if (!$ENV{REMOTE_ADDR}) {
 	my $log = WebLog::buff_as_web();
 	print $log . "\n";
 

@@ -4,6 +4,8 @@ use utf8;
 use strict;
 use warnings;
 
+my @sex_mark = qw(♀ ♂);
+
 sub response
 {
 	my ($Title, $Body) = @_;
@@ -59,6 +61,32 @@ EndOfHTML
 	return $Body;
 }
 
+sub generate
+{
+	my ($data) = @_;
+	my $null = '--';
+	my $id = $data->{id};
+	my $name = $data->{name};
+	my $sex = $data->{sex};
+	my $level = $data->{level};
+	my $father = $data->{father} // $null;
+	my $mother = $data->{mother} // $null;
+	my $partner = $data->{partner} // $null;
+	my $birthday = $data->{birthday} // $null;
+	my $deathday = $data->{deathday} // $null;
+	
+	my $MemberHeader = member_header($id, $name, $level);
+
+	my $root = $data->{root};
+	my $child = $data->{child};
+	my $MemberRelation = member_relation($root, $child);
+
+	my $OperateResult = $data->{operate_result};
+	my $TableForm = table_form([$id, $name, $sex, $level, $father, $mother, $partner, $birthday, $deathday]);
+
+	return body('', $MemberHeader, $MemberRelation, $OperateResult, $TableForm);
+}
+
 # eg.
 # 10025 | 谭水龙 | 第 4 代
 sub member_header
@@ -72,20 +100,32 @@ sub member_header
 	}
 }
 
-# 提供：三个数组列表
+# 生成上下级关系
 sub member_relation
 {
-	my ($root, $son, $daughter) = @_;
-	my $chain = join(' / ', @$root);
-	my $html = qq{<p>承袭：$chain</p\n};
-	if ($son && scalar(@$son) > 0) {
-		my $child = join(' / ', @$son);
-		$html .= qq{<p>儿子：$child</p\n};
+	my ($root, $child) = @_;
+	my @root_name = ();
+	foreach my $parent (@$root) {
+		my $name = $parent->{name};
+		my $sex = $parent->{sex};
+		$name .= $sex_mark[$sex];
+		push(@root_name, $name);
 	}
-	if ($daughter && scalar(@$daughter) > 0) {
-		my $child = join(' / ', @$daughter);
-		$html .= qq{<p>儿子：$child</p\n};
+	
+	my $root_name = join(' / ', @root_name);
+	my $html = qq{<p>先人：$root_name</p>\n};
+
+	my @child_name = ();
+	foreach my $kid (@$child) {
+		my $name = $kid->{name};
+		my $sex = $kid->{sex};
+		$name .= $sex_mark[$sex];
+		push(@child_name, $name);
 	}
+	
+	my $child_name = join(' / ', @child_name);
+	$html .= qq{<p>后人：$child_name</p>\n};
+
 	return $html;
 }
 

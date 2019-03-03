@@ -89,6 +89,8 @@ sub response
 #   id => 单个 id 或 [多个 id 列表]
 #   sex => 性别 1/0
 #   level => 代际
+#   father => 父亲
+#   mother => 母亲
 #   age => [年龄区间，两个数字]
 #   only_tan => 只包含本姓
 #   out_xing => 外姓
@@ -128,6 +130,8 @@ sub handle_query
 		$where->{F_id} = $filter->{id} if $filter->{id};
 		$where->{F_sex} = $filter->{sex} if $filter->{sex};
 		$where->{F_level} = $filter->{level} if $filter->{level};
+		$where->{F_father} = $filter->{father} if $filter->{father};
+		$where->{F_mother} = $filter->{mother} if $filter->{mother};
 		# todo 支持更多条件
 	}
 
