@@ -6,24 +6,40 @@ use warnings;
 
 my @sex_mark = qw(♀ ♂);
 
+sub new
+{
+	my ($class) = @_;
+	my $self = {};
+	$self->{title} = '谭氏家谱-成员详情';
+	$self->{body} = '';
+	$self->{H1} = '谭氏年浪翁家谱成员细览';
+	bless $self, $class;
+	return $self;
+}
+
+sub runout
+{
+	my ($self, $data, $LOG) = @_;
+	$self->generate($data, $LOG);
+	return $self->response();
+}
+
 sub response
 {
-	my ($Title, $Body) = @_;
-	$Title ||= '谭氏家谱-成员详情';
-	# http header
+	my ($self) = @_;
 	print "Content-type:text/html\n\n";
 
-	# http content
 	print <<EndOfHTML;
 <!DOCTYPE html>
 <html>
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width" />
-		<title> $Title </title>
+		<script src="js/ctuil.js"></script>
+		<title> $self->{title} </title>
 	</head>
 	<body>
-		$Body
+		$self->{body}
 	</body>
 </html>
 EndOfHTML
@@ -33,11 +49,10 @@ EndOfHTML
 
 sub body
 {
-	my ($H1, $MemberHeader, $MemberRelation, $OperateResult, $TableForm) = @_;
-	$H1 ||= '谭氏年浪翁家谱成员细览';
+	my ($self, $MemberHeader, $MemberRelation, $OperateResult, $TableForm) = @_;
 
 	my $Body = <<EndOfHTML;
-<h1>$H1</h1>
+<h1>$self->{H1}</h1>
 <div id="member-header">
 	$MemberHeader
 </div>
@@ -63,9 +78,9 @@ EndOfHTML
 
 sub generate
 {
-	my ($data) = @_;
+	my ($self, $data, $LOG) = @_;
 	if (!$data || $data->{error}) {
-		return '查询成员详情失败';
+		return on_error('查询成员详情失败');
 	}
 
 	my $null = '--';
@@ -73,27 +88,54 @@ sub generate
 	my $name = $data->{name};
 	my $sex = $data->{sex};
 	my $level = $data->{level};
-	my $father = $data->{father} // $null;
-	my $mother = $data->{mother} // $null;
-	my $partner = $data->{partner} // $null;
+	my $father = $data->{father};
+	my $mother = $data->{mother};
+	my $partner = $data->{partner};
 	my $birthday = $data->{birthday} // $null;
 	my $deathday = $data->{deathday} // $null;
 	
-	my $MemberHeader = member_header($id, $name, $level);
+	my $MemberHeader = s_member_header($id, $name, $level);
 
 	my $root = $data->{root};
 	my $child = $data->{child};
-	my $MemberRelation = member_relation($root, $child, $level);
+	my $MemberRelation = s_member_relation($root, $child, $level);
 
 	my $OperateResult = $data->{operate_result};
-	my $TableForm = table_form([$id, $name, $sex, $level, $father, $mother, $partner, $birthday, $deathday]);
+	my $TableForm = s_table_form([$id, $name, $sex, $level, $father, $mother, $partner, $birthday, $deathday]);
 
-	return body('', $MemberHeader, $MemberRelation, $OperateResult, $TableForm);
+	$self->{body} = $self->body($MemberHeader, $MemberRelation, $OperateResult, $TableForm);
+	if ($LOG->{debug}) {
+		$self->{body} .= s_debug_log($LOG);
+	}
+
+	return 0;
+}
+
+sub on_error
+{
+	my ($self, $msg) = @_;
+	$self->{body} = $msg;
+	return -1;
+}
+
+sub s_debug_log
+{
+	my ($LOG) = @_;
+	my $display = ($LOG->{debug} > 0) ? 'inline' : 'none';
+	my $log = $LOG->to_webline();
+	my $html = <<EndOfHTML;
+	<hr>
+	<div><a href="javascript:void(0);" onclick="DivHide()">网页日志</a></div>
+<div id="debug_log" style="display:$display">
+	$log
+</div>
+EndOfHTML
+	return $html;
 }
 
 # eg.
 # 10025 | 谭水龙 | 第 4 代
-sub member_header
+sub s_member_header
 {
 	my ($id, $name, $level) = @_;
 	my $left = '';
@@ -107,8 +149,17 @@ sub member_header
 	return "$left -- ($right)";
 }
 
+sub s_link_to
+{
+	my ($member) = @_;
+	if ($member && $member->{id} && $member->{name}) {
+		return qq{<a href="?mine_id=$member->{id}">$member->{name}</a>};
+	}
+	return '';
+}
+
 # 生成上下级关系
-sub member_relation
+sub s_member_relation
 {
 	my ($root, $child, $level) = @_;
 	my $html = '';
@@ -119,10 +170,10 @@ sub member_relation
 		elsif ($root && @$root) {
 			my @root_name = ();
 			foreach my $parent (@$root) {
-				my $name = $parent->{name};
+				my $html = s_link_to($parent);
 				my $sex = $parent->{sex};
-				$name .= $sex_mark[$sex];
-				push(@root_name, $name);
+				$html .= $sex_mark[$sex];
+				push(@root_name, $html);
 			}
 			
 			my $root_name = join(' / ', @root_name);
@@ -139,10 +190,10 @@ sub member_relation
 	if ($child && @$child) {
 		my @child_name = ();
 		foreach my $kid (@$child) {
-			my $name = $kid->{name};
+			my $html = s_link_to($kid);
 			my $sex = $kid->{sex};
-			$name .= $sex_mark[$sex];
-			push(@child_name, $name);
+			$html .= $sex_mark[$sex];
+			push(@child_name, $html);
 		}
 		
 		my $child_name = join(' 、 ', @child_name);
@@ -152,10 +203,14 @@ sub member_relation
 	return $html;
 }
 
-sub table_form
+sub s_table_form
 {
 	my ($row) = @_;
-	my ($id, $name, $sex, $level, $father, $mother, $partner, $birthday, $deathday) = @$row;
+	my ($id, $name, $sex, $level, $father_ref, $mother_ref, $partner_ref, $birthday, $deathday) = @$row;
+
+	my $father = s_link_to($father_ref);
+	my $mother = s_link_to($mother_ref);
+	my $partner = s_link_to($partner_ref);
 
 	my ($sex_str, $man, $woman);
 	if ($sex == 1) {

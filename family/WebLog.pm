@@ -19,7 +19,88 @@ sub init
 	@in_buff = ();
 }
 
-sub wlog(@)
+## Class API
+sub new
+{
+	my ($class) = @_;
+	my $self = {};
+	
+	$self->{buff} = [];
+	$self->{kuff} = {};
+
+	bless $self, $class;
+	return $self;
+}
+
+sub open
+{
+	my ($class, $file) = @_;
+	my $self = new($class);
+	unless (open($self->{FH}, '>>', $file)) {
+		warn "cannot open $file $!";
+		$self->{FH} = undef;
+	}
+	
+	return $self;
+}
+
+sub close
+{
+	my ($self) = @_;
+	if ($self->{FH}) {
+		close($self->{FH});
+	}
+	$self->{buff} = [];
+	$self->{kuff} = {};
+}
+
+my $INSTANCE;
+sub instance
+{
+	my ($var) = @_;
+	if (!$INSTANCE) {
+		$INSTANCE = __PACKAGE__->new();
+	}
+	return $INSTANCE;
+}
+
+sub addlog
+{
+	my ($self, $msg) = @_;
+	push(@{$self->{buff}}, $msg) unless $self->{nobuff};
+	if ($self->{to_std}) {
+		print STDERR "$msg\n";
+	}
+	if ($self->{FH}) {
+		my $fh = $self->{FH};
+		print $fh "$msg\n";
+	}
+}
+
+sub output_std
+{
+	my ($self) = @_;
+	foreach my $logstr (@{$self->{buff}}) {
+		print STDERR "$logstr\n";
+	}
+}
+
+sub to_string
+{
+	my ($self, $br) = @_;
+	$br //= '';
+	return join($br, @{$self->{buff}});
+}
+
+sub to_webline
+{
+	my ($self) = @_;
+	return $self->to_string("<br>\n");
+}
+
+## Function API
+
+sub wlog
 {
 	return 1 if $disable;
 
@@ -34,33 +115,15 @@ sub wlog(@)
 	$subroutine =~ s/^.*:://g;
 	my $logstr = "[$filename:$line] ($subroutine) | $msg";
 
+	instance()->addlog($logstr);
+	return 1;
+
 	if ($to_std) {
 		print STDERR "$logstr\n";
 	}
 
 	push @in_buff, $logstr;
 	1; # always true
-}
-
-sub buff_to_std
-{
-	my ($var) = @_;
-	foreach my $logstr (@in_buff) {
-		print STDERR "$logstr\n";
-	}
-	
-}
-
-sub buff_to_str
-{
-	my ($br) = @_;
-	$br //= '';
-	return join($br, @in_buff);
-}
-
-sub buff_as_web
-{
-	return buff_to_str("<br>\n");
 }
 
 1;

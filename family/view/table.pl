@@ -12,23 +12,40 @@ sub show_operate
 	$OPERATE = $show;
 }
 
+sub new
+{
+	my ($class) = @_;
+	my $self = {};
+	$self->{title} = '谭氏家谱网-成员列表';
+	$self->{body} = '';
+	$self->{H1} = '谭氏年浪翁子嗣家谱表';
+	bless $self, $class;
+	return $self;
+}
+
+sub runout
+{
+	my ($self, $data, $LOG) = @_;
+	$self->generate($data, $LOG);
+	return $self->response();
+}
+
 sub response
 {
-	my ($Title, $Body) = @_;
-	# http header
+	my ($self) = @_;
 	print "Content-type:text/html\n\n";
 
-	# http content
 	print <<EndOfHTML;
 <!DOCTYPE html>
 <html>
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width" />
-		<title> $Title </title>
+		<script src="js/ctuil.js"></script>
+		<title> $self->{title} </title>
 	</head>
 	<body>
-		$Body
+		$self->{body}
 	</body>
 </html>
 EndOfHTML
@@ -38,10 +55,10 @@ EndOfHTML
 
 sub body
 {
-	my ($H1, $TableRows) = @_;
+	my ($self, $TableRows) = @_;
 
 	my $Body = <<EndOfHTML;
-<h1>$H1</h1>
+<h1>$self->{H1}</h1>
 <div id="family_table">
 	<table border="1">
 	$TableRows
@@ -63,7 +80,93 @@ EndOfHTML
 	return $Body;
 }
 
-sub table_head
+sub generate
+{
+	my ($self, $data, $LOG) = @_;
+	if (!$data || $data->{error}) {
+		return on_error('查询成员详情失败');
+	}
+
+	show_operate($LOG->{debug});
+
+	my $TableRows = s_table($data);
+	$self->{body} = $self->body($TableRows);
+	if ($LOG->{debug}) {
+		$self->{body} .= s_debug_log($LOG);
+	}
+
+	return 0;
+}
+
+sub on_error
+{
+	my ($self, $msg) = @_;
+	$self->{body} = $msg;
+	return -1;
+}
+
+
+sub s_debug_log
+{
+	my ($LOG) = @_;
+	my $display = ($LOG->{debug} > 0) ? 'inline' : 'none';
+	my $log = $LOG->to_webline();
+	my $html = <<EndOfHTML;
+	<hr>
+	<div><a href="javascript:void(0);" onclick="DivHide()">网页日志</a></div>
+<div id="debug_log" style="display:$display">
+	$log
+</div>
+EndOfHTML
+	return $html;
+}
+
+sub s_table
+{
+	my ($data) = @_;
+	
+	my $th = s_table_head();
+	my @html = ($th);
+	foreach my $row (@{$data->{rows}}) {
+		push @html, s_table_row($row, 1);
+	}
+
+	my $count = scalar(@{$data->{rows}});
+	push @html, s_table_sumary($count);
+
+	my ($hot_row, $hot_msg);
+	if ($data->{removed}) {
+		$hot_row = $data->{removed};
+		$hot_msg = '刚删除的行：';
+	}
+	elsif ($data->{modified}) {
+		$hot_row = $data->{modified};
+		$hot_msg = '刚修改的行：';
+	}
+	elsif ($data->{created}) {
+		$hot_row = $data->{created};
+		$hot_msg = '刚增加的行：';
+	}
+
+	if ($hot_row) {
+		if ($hot_row->{error}) {
+			my $hot_html = s_operate_msg("操作失败：" . $hot_row->{error});
+			push @html, $hot_html;
+		}
+		else {
+			my $hot_html = s_operate_msg("操作成功，" . $hot_msg);
+			$hot_html .= s_table_row($hot_row);
+			push @html, $hot_html;
+		}
+	}
+
+	push @html, s_table_form();
+	push @html, $th;
+
+	return join("\n", @html);
+}
+
+sub s_table_head
 {
 	my ($var) = @_;
 	
@@ -86,14 +189,31 @@ EndOfHTML
 	return $html;
 }
 
-sub table_row
+sub s_detail_link
+{
+	my ($id, $text) = @_;
+	my $html = qq{<a href="view_detail.cgi?mine_id=$id">$text<a>};
+	return $html;
+}
+
+sub s_table_row
 {
 	my ($row, $link) = @_;
-	my ($id, $name, $sex, $level, $father, $mother, $partner, $birthday, $deathday) = @$row;
+	my $null = '--';
+	my $id = $row->{F_id} // $null;
+	my $name = $row->{F_name} // $null;
+	my $sex = $row->{F_sex} // $null;
+	$sex = ($sex == 1 ? '男' : '女');
+	my $level = $row->{F_level} // $null;
+	my $father = $row->{F_father} // $null;
+	my $mother = $row->{F_mother} // $null;
+	my $partner = $row->{F_partner} // $null;
+	my $birthday = $row->{F_birthday} // $null;
+	my $deathday = $row->{F_deathday} // $null;
 
 	my $row_tail = '';
 	if ($link) {
-		my $modify = qq{<a href="view_detail.cgi?mine_id=$id">修改</a>};
+		my $modify = qq{<a href="view_detail.cgi?mine_id=$id">详情</a>};
 		my $remove = qq{<a href="javascript:void(0)">删除</a>};
 		if ($OPERATE) {
 			$remove = qq{<a href="?operate=remove&id=$id">删除</a>};
@@ -108,6 +228,19 @@ sub table_row
 
 	if ($level > 0) {
 		$level = "+$level";
+	}
+
+	# 转换链接
+	$id = s_detail_link($id, $id);
+	$name = s_detail_link($id, $name);
+	if ($row->{F_father} && $row->{father_name}) {
+		$father = s_detail_link($row->{F_father}, $row->{father_name});
+	}
+	if ($row->{F_mother} && $row->{mother_name}) {
+		$mother = s_detail_link($row->{F_mother}, $row->{mother_name});
+	}
+	if ($row->{F_partner} && $row->{partner_name}) {
+		$partner = s_detail_link($row->{F_partner}, $row->{partner_name});
 	}
 
 	my $html = <<EndOfHTML;
@@ -127,7 +260,7 @@ EndOfHTML
 	return $html;
 }
 
-sub table_sumary
+sub s_table_sumary
 {
 	my ($count) = @_;
 	
@@ -143,18 +276,18 @@ EndOfHTML
 }
 
 # 操作失败提示
-sub operate_error
+sub s_operate_msg
 {
 	my ($msg) = @_;
 	my $html = <<EndOfHTML;
 <tr>
-	<td colspan="9">提示：$msg</td>
+	<td colspan="9">$msg</td>
 </tr>
 EndOfHTML
 	return $html;
 }
 
-sub table_form
+sub s_table_form
 {
 	my ($var) = @_;
 	

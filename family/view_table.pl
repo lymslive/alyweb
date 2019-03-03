@@ -6,86 +6,171 @@ use warnings;
 use FindBin qw($Bin);
 use lib "$Bin";
 use WebLog;
+use ForkCGI;
 use FamilyAPI;
+use FamilyUtil;
 require 'view/table.pl';
 
-use URI::Escape;
-use Encode;
-
-# 先取出 id=>name 映射，能读入全表时无误
-my $mapid = {};
-my $DEBUG = 0;
-my $QUICK = shift // 0;
-my $REG_ID = qr/^\d+$/;
+my $DEBUG = 1;
+my $LOG = WebLog::instance();
 
 ##-- MAIN --##
 sub main
 {
 	my @argv = @_;
-	my $param = input_param(@argv);
+	my $param = ForkCGI::Param(@argv);
 	my $debug = $param->{debug} // $DEBUG;
-	HTPL::show_operate($debug);
+	$LOG->{debug} = $debug;
+
+	my $data = deal($param);
+	my $html = HTPL->new();
+	return $html->runout($data, $LOG);
+}
+
+=item deal
+	准备数据
+返回：hashref{}
+	error => 数据处理出错信息，抑制剩余字段
+	rows => 检索的数据行
+	removed, modified, created => 增删改操作结构
+		error => 操作出错信息
+		id => 
+		queried => 操作前后重新检索过
+		row => 被操作的行
+=cut
+sub deal
+{
+	my ($param) = @_;
+	my $data = {};
 
 	# 当前需要操作的行
-	my $hot_row = {};
 	if ($param->{operate} && $param->{operate} eq 'remove') {
-		$hot_row->{remove} = remove_row($param);
+		$data->{removed} = remove_row($param);
 	}
 	if ($param->{operate} && $param->{operate} eq 'modify') {
-		$hot_row->{modify} = modify_row($param);
+		$data->{modified} = modify_row($param);
 	}
 	if ($param->{operate} && $param->{operate} eq 'create') {
-		$hot_row->{create} = create_row($param);
+		$data->{created} = create_row($param);
 	}
 
-	my $Title = '谭氏家谱网';
-	my $BodyH1 = '谭氏年浪翁子嗣家谱表（测试版）';
+	my $req = { api => 'query', data => { all => 1} };
+	my $res = FamilyAPI::handle_request($req);
+	if (!$res || $res->{error}) {
+		return {error => "查询数据失败：$res->{error}"};
+	}
+	my $res_data = $res->{data};
 
-	return if $QUICK;
-	my $Table = inner_table($hot_row, $param);
-	my $Body = HTPL::body($BodyH1, $Table);
-	if ($debug) {
-		$Body .= "\n" . debug_log($debug);
+	# id=>name 映射
+	my $mapid = {};
+	wlog('顺便缓存 id=>name 映射表');
+	foreach my $row (@$res_data) {
+		$mapid->{$row->{F_id}} = $row->{F_name};
 	}
 
-	return HTPL::response($Title, $Body);
+	$data->{rows} = $res_data;
+	foreach my $row (@$res_data) {
+		# 加工检索行，原位添加父母配偶的名字
+		append_name($mapid, $row);
+
+		# 匹配刚修改的行
+		if ($data->{modified}
+			&& $data->{modified}->{id}
+			&& $data->{modified}->{id} == $row->{F_id}) {
+			$data->{modified}->{row} = $row;
+			$data->{modified}->{queried} = 1;
+		}
+		if ($data->{created}
+			&& $data->{created}->{id}
+			&& $data->{created}->{id} == $row->{F_id}) {
+			$data->{created}->{row} = $row;
+			$data->{created}->{queried} = 1;
+		}
+	}
+
+	# 未匹配刚修改的行
+	if ($data->{modified}
+		&& $data->{modified}->{id}
+		&& !$data->{modified}->{queried}) {
+		my $row = query_single($data->{modified}->{id});
+		if (!$row->{error}) {
+			append_name($mapid, $row);
+			$data->{modified}->{row} = $row;
+			$data->{modified}->{queried} = 1;
+		}
+		else {
+			$data->{modified}->{error} = $row->{error};
+		}
+	}
+	if ($data->{created}
+		&& $data->{created}->{id}
+		&& !$data->{created}->{queried}) {
+		my $row = query_single($data->{created}->{id});
+		if (!$row->{error}) {
+			append_name($mapid, $row);
+			$data->{created}->{row} = $row;
+			$data->{created}->{queried} = 1;
+		}
+		else {
+			$data->{created}->{error} = $row->{error};
+		}
+	}
+
+	return $data;
 }
 
-##-- SUBS --##
-# 获取 GET 与 POST 参数，转为 hash ，保留空值
-# 返回 hashref
-sub input_param
+sub append_name
 {
-	# 在终端测试时，可提供命令行参数
-	# 模拟 web cgi 时，GET 从环境变量获取，POST 从标准输入获取
-	my ($var) = @_;
+	my ($mapid, $row) = @_;
 	
-	my ($query, %query, $post, %post);
-	$query = $ENV{QUERY_STRING} // '';
-	{
-		local $/ = undef;
-		$post = <>;
+	if ($row->{F_father}) {
+		if ($mapid->{$row->{F_father}}) {
+			$row->{father_name} = $mapid->{$row->{F_father}};
+		}
+		else {
+			$row->{father_name} = update_mapid($mapid, $row->{F_father});
+		}
 	}
-	wlog("query: $query");
-	wlog("post: $post");
-	# %query = map {$1 => uri_unescape($2) if /(\w+)=(\S*)/} split(/&/, $query) if $query;
-	# %post = map {$1 => uri_unescape($2) if /(\w+)=(\S*)/} split(/&/, $post) if $post;
-	%query = map { /(\w+)=(\S+)/ ? ($1 => uri_unescape($2)) : ()} split(/&/, $query) if $query;
-	%post = map { /(\w+)=(\S+)/ ? ($1 => uri_unescape($2)) : ()} split(/&/, $post) if $post;
-
-	# 统一合并为 param 
-	my %param = (%query, %post);
-	foreach my $key (sort keys %param) {
-		$param{$key} = decode('utf8', $param{$key});
-		wlog("请求参数 param: $key=" . $param{$key});
+	if ($row->{F_mother}) {
+		if ($mapid->{$row->{F_mother}}) {
+			$row->{mother_name} = $mapid->{$row->{F_mother}};
+		}
+		else {
+			$row->{mother_name} = update_mapid($mapid, $row->{F_mother});
+		}
 	}
-
-	return \%param;
+	if ($row->{F_partner}) {
+		if ($mapid->{$row->{F_partner}}) {
+			$row->{partner_name} = $mapid->{$row->{F_partner}};
+		}
+		else {
+			$row->{partner_name} = update_mapid($row->{F_partner});
+		}
+	}
 }
 
+# 更新 mapid 缓存，添加一个 id, 返回对应的 name
+sub update_mapid
+{
+	my ($mapid, $id) = @_;
+	
+	my $req_data = { filter => {id => $id}, fields => ['F_id', 'F_name']};
+	my $req = { api => 'query', data => $req_data};
+	my $res = FamilyAPI::handle_request($req);
+	if ($res->{error}) {
+		wlog("检索 $id 失败：$res->{error}");
+		return '';
+	}
+	my $first = $res->{data}->[0];
+	$mapid->{$first->{F_id}} = $first->{F_name};
+	wlog("更新缓存：$id => $first->{F_name}");
+	return $first->{F_name};
+}
+
+# 缓存所有 id=>name ，暂未用了
 sub cache_mapid
 {
-	my ($var) = @_;
+	my ($mapid) = @_;
 	my $req_data = { all => 1, fields => ['F_id', 'F_name']};
 	my $req = { api => 'query', data => $req_data};
 	my $res = FamilyAPI::handle_request($req);
@@ -96,152 +181,89 @@ sub cache_mapid
 	}
 	wlog('预缓存 id=>name 映射表');
 }
-
-sub inner_table
-{
-	my ($hot_row, $post) = @_;
-	my $req = { api => 'query', data => { all => 1} };
-	my $res = FamilyAPI::handle_request($req);
-	if (!$res || $res->{error}) {
-		return '';
-	}
-	my $data = $res->{data};
-
-	# 未缓存id-name映射时
-	if (scalar(%$mapid) < 1) {
-		wlog('顺便缓存 id=>name 映射表');
-		foreach my $row (@$data) {
-			$mapid->{$row->{F_id}} = $row->{F_name};
-		}
-	}
-
-	my $th = HTPL::table_head();
-	my @html = ($th);
-	foreach my $row (@$data) {
-		my $row_data = unpack_row($row);
-		push @html, HTPL::table_row($row_data, 1);
-	}
-
-	my $count = scalar(@$data);
-	push @html, HTPL::table_sumary($count);
-
-	if ($hot_row) {
-		if ($hot_row->{remove}) {
-			push @html, $hot_row->{remove};
-		}
-		if ($hot_row->{modify}) {
-			push @html, $hot_row->{modify};
-		}
-		if ($hot_row->{create}) {
-			push @html, $hot_row->{create};
-		}
-	}
-
-	push @html, HTPL::table_form();
-	push @html, $th;
-
-	return join("\n", @html);
-}
-
 sub id2name
 {
-	my ($id) = @_;
+	my ($mapid, $id) = @_;
 	return $id unless $id > 0;
 	return $mapid->{$id} if defined($mapid->{$id});
 	cache_mapid();
 	return $mapid->{$id};
 }
 
-sub unpack_row
+# 查询一行数据，返回 {F_字段}，如果出错，返回 {error}
+sub query_single
 {
-	my ($row) = @_;
+	my ($id) = @_;
 	
-	my $null = '--';
-	my $id = $row->{F_id} // $null;
-	my $name = $row->{F_name} // $null;
-	my $sex = $row->{F_sex} // $null;
-	$sex = ($sex == 1 ? '男' : '女');
-	my $level = $row->{F_level} // $null;
-	my $father = $row->{F_father} ? id2name($row->{F_father}) : $null;
-	my $mother = $row->{F_mother} ? id2name($row->{F_mother}) : $null;
-	my $partner = $row->{F_partner} ? id2name($row->{F_partner}) : $null;
-	my $birthday = $row->{F_birthday} // $null;
-	my $deathday = $row->{F_deathday} // $null;
+	my $req = { api => "query", data => { filter => { id => $id}}};
+	my $res = FamilyAPI::handle_request($req);
 
-	return [$id, $name, $sex, $level, $father, $mother, $partner, $birthday, $deathday];
+	if (!$res || $res->{error} || !$res->{data}) {
+		my $msg = "检索 $id 失败：$res->{error}";
+		wlog($msg);
+		return {error => $msg};
+	}
+
+	my $row = $res->{data}->[0] or return {error => "检索 $id 失败"};
+	return $row;
 }
 
+# 增删改操作，返回 {} 字段如下：
+# error => 操作出错，不再有其他字段
+# id =>
+# queried => 已检索过
+# row => 数据行
 sub remove_row
 {
 	wlog("Enter ...");
 	my ($param) = @_;
-	my $id = $param->{id} or return '';
-
-	my $req = { api => "query", data => { filter => { id => $id}}};
-	my $res = FamilyAPI::handle_request($req);
-
-	my $data = $res->{data} or return '';
-	my $row = $data->[0] or return '';
-	my $row_data = unpack_row($row);
-
-	$req = { api => "remove", data => { id => $id}};
-	$res = FamilyAPI::handle_request($req);
-	if ($res->{error} || !$res->{data}) {
-		wlog('删除数据失败：' . $res->{errmsg});
-		return HTPL::operate_error('删除数据失败：' . $res->{errmsg});
+	my $id = $param->{id} or return {error => '未指定删除 id'};
+	my $row = query_single($id);
+	if ($row->{error}) {
+		return $row;
 	}
 
-	my $html = <<EndOfHTML;
-<tr>
-	<td colspan="9">刚删除的行</td>
-</tr>
-EndOfHTML
-	$html .= HTPL::table_row($row_data, 0);
-	return $html;
+	my $removed = {row => $row, queried => 1, id => $id};
+
+	my $req = { api => "remove", data => { id => $id}};
+	my $res = FamilyAPI::handle_request($req);
+	if ($res->{error} || !$res->{data}) {
+		my $msg = '删除数据失败：' . $res->{errmsg};
+		wlog($msg);
+		return {error => $msg};
+	}
+
+	return $removed;
 }
 
 sub modify_row
 {
 	wlog("Enter ...");
 	my ($param) = @_;
-	my $req_data = param2api($param);
+	my $req_data = FamilyUtil::Param2api($param);
 	if (!$req_data->{id}) {
 		wlog('需要输入被修改成员的id');
-		return HTPL::operate_error('需要输入被修改成员的编号id');
+		return {error => '需要输入被修改成员的编号id'};
 	}
 
 	my $req = { api => "modify", data => $req_data};
 	my $res = FamilyAPI::handle_request($req);
 	if ($res->{error} || !$res->{data}) {
 		wlog('修改数据失败：' . $res->{errmsg});
-		return HTPL::operate_error('修改数据失败：' . $res->{errmsg});
+		return { error => '修改数据失败：' . $res->{errmsg}};
 	}
 
-	my $id = $req_data->{id};
-	$req = { api => "query", data => { filter => { id => $id}}};
-	$res = FamilyAPI::handle_request($req);
-
-	my $data = $res->{data} or return '';
-	my $row = $data->[0] or return '';
-	my $row_data = unpack_row($row);
-
-	my $html = <<EndOfHTML;
-<tr>
-	<td colspan="9">刚修改的行：</td>
-</tr>
-EndOfHTML
-	$html .= HTPL::table_row($row_data, 0);
-	return $html;
+	return {queried => 0, id => $req_data->{id}};
 }
 
 sub create_row
 {
 	wlog("Enter ...");
 	my ($param) = @_;
-	my $req_data = param2api($param);
+	my $req_data = FamilyUtil::Param2api($param);
 	if (!$req_data->{name}) {
 		wlog('需要输入新成员的姓名');
-		return HTPL::operate_error('需要输入新成员的姓名');
+		return {error => '需要输入新成员的姓名'};
 	}
 
 	wlog("插入新数据");
@@ -249,88 +271,17 @@ sub create_row
 	my $res = FamilyAPI::handle_request($req);
 	if ($res->{error} || !$res->{data}) {
 		wlog('插入数据失败：' . $res->{errmsg});
-		return HTPL::operate_error('插入数据失败：' . $res->{errmsg});
+		return {error => '插入数据失败：' . $res->{errmsg}};
 	}
 
-	wlog("重新检索插入数据");
-	my $new_id = $res->{data}->{id};
-	$req = { api => "query", data => { filter => { id => $new_id}}};
-	$res = FamilyAPI::handle_request($req);
-
-	my $res_data = $res->{data} or return '';
-	my $row = $res_data->[0] or return '';
-	my $row_data = unpack_row($row);
-
-	my $html = <<EndOfHTML;
-<tr>
-	<td colspan="9">刚添加的行：</td>
-</tr>
-EndOfHTML
-	$html .= HTPL::table_row($row_data, 0);
-	return $html;
-}
-
-sub debug_log
-{
-	my ($debug) = @_;
-	my $display = ($debug > 0) ? 'inline' : 'none';
-	my $log = WebLog::buff_as_web();
-	# $log = decode('utf8', $log);
-	my $html = <<EndOfHTML;
-<div id="debug_log" style="display:$display">
-	<hr>
-	$log
-</div>
-EndOfHTML
-	return $html;
-}
-
-# 将网络参数转为 api 参数
-sub param2api
-{
-	my ($param) = @_;
-	
-	my $data = {};
-	$data->{id} = $param->{mine_id} if $param->{mine_id};
-	$data->{name} = $param->{mine_name} if $param->{mine_name};
-	$data->{sex} = $param->{sex} if defined($param->{sex});
-	$data->{birthday} = $param->{birthday} if $param->{birthday};
-	$data->{deathday} = $param->{deathday} if $param->{deathday};
-	if ($param->{father}) {
-		if ($param->{father} =~ $REG_ID) {
-			$data->{father_id} = $param->{father};
-		}
-		else {
-			$data->{father_name} = $param->{father};
-		}
-	}
-	if ($param->{mother}) {
-		if ($param->{mother} =~ $REG_ID) {
-			$data->{mother_id} = $param->{mother};
-		}
-		else {
-			$data->{mother_name} = $param->{mother};
-		}
-	}
-	if ($param->{partner}) {
-		if ($param->{partner} =~ $REG_ID) {
-			$data->{partner_id} = $param->{partner};
-		}
-		else {
-			$data->{partner_name} = $param->{partner};
-		}
-	}
-
-	return $data;
+	return {queried => 0, id => $req_data->{id}};
 }
 
 ##-- END --##
 &main(@ARGV) unless defined caller;
 
-if ($QUICK && !$ENV{REMOTE_ADDR}) {
-	my $log = WebLog::buff_as_web();
-	print $log . "\n";
-
+if (ForkCGI::TermTest()) {
+	$LOG->output_std();
 }
 
 1;
