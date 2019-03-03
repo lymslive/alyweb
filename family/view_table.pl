@@ -7,7 +7,7 @@ use FindBin qw($Bin);
 use lib "$Bin";
 use WebLog;
 use FamilyAPI;
-require 'tpl/view_table.pl';
+require 'view/table.pl';
 
 use URI::Escape;
 use Encode;

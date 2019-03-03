@@ -64,6 +64,10 @@ EndOfHTML
 sub generate
 {
 	my ($data) = @_;
+	if (!$data || $data->{error}) {
+		return '查询成员详情失败';
+	}
+
 	my $null = '--';
 	my $id = $data->{id};
 	my $name = $data->{name};
@@ -79,7 +83,7 @@ sub generate
 
 	my $root = $data->{root};
 	my $child = $data->{child};
-	my $MemberRelation = member_relation($root, $child);
+	my $MemberRelation = member_relation($root, $child, $level);
 
 	my $OperateResult = $data->{operate_result};
 	my $TableForm = table_form([$id, $name, $sex, $level, $father, $mother, $partner, $birthday, $deathday]);
@@ -92,39 +96,58 @@ sub generate
 sub member_header
 {
 	my ($id, $name, $level) = @_;
+	my $left = '';
 	if ($level > 0) {
-		return "$id | $name | 第 $level 直系";
+		$left = "$id | $name | 第 +$level 代直系";
 	}
 	else {
-		return "$id | $name | 第 $level 旁系";
+		$left = "$id | $name | 第 $level 代旁系";
 	}
+	my $right = qq{<a href="view_table.cgi">回列表</a>};
+	return "$left -- ($right)";
 }
 
 # 生成上下级关系
 sub member_relation
 {
-	my ($root, $child) = @_;
-	my @root_name = ();
-	foreach my $parent (@$root) {
-		my $name = $parent->{name};
-		my $sex = $parent->{sex};
-		$name .= $sex_mark[$sex];
-		push(@root_name, $name);
+	my ($root, $child, $level) = @_;
+	my $html = '';
+	if ($level > 0) {
+		if ($level == 1) {
+			$html .= qq{<p>先人：（本支祖先）</p>\n};
+		}
+		elsif ($root && @$root) {
+			my @root_name = ();
+			foreach my $parent (@$root) {
+				my $name = $parent->{name};
+				my $sex = $parent->{sex};
+				$name .= $sex_mark[$sex];
+				push(@root_name, $name);
+			}
+			
+			my $root_name = join(' / ', @root_name);
+			$html .= qq{<p>先人：$root_name</p>\n};
+		}
+		else {
+			$html .= qq{<p>先人：（数据错误缺失）</p>\n};
+		}
 	}
-	
-	my $root_name = join(' / ', @root_name);
-	my $html = qq{<p>先人：$root_name</p>\n};
+	else {
+		$html .= qq{<p>先人：（旁系配偶不记录）</p>\n};
+	}
 
-	my @child_name = ();
-	foreach my $kid (@$child) {
-		my $name = $kid->{name};
-		my $sex = $kid->{sex};
-		$name .= $sex_mark[$sex];
-		push(@child_name, $name);
+	if ($child && @$child) {
+		my @child_name = ();
+		foreach my $kid (@$child) {
+			my $name = $kid->{name};
+			my $sex = $kid->{sex};
+			$name .= $sex_mark[$sex];
+			push(@child_name, $name);
+		}
+		
+		my $child_name = join(' 、 ', @child_name);
+		$html .= qq{<p>后人：$child_name</p>\n};
 	}
-	
-	my $child_name = join(' / ', @child_name);
-	$html .= qq{<p>后人：$child_name</p>\n};
 
 	return $html;
 }
@@ -145,6 +168,7 @@ sub table_form
 		$man = '';
 		$woman = 'selected';
 	}
+	$sex_str .= $sex_mark[$sex];
 
 	my $html = <<EndOfHTML;
 <form action="?operate=modify&mine_id=$id" method="post">
@@ -163,8 +187,9 @@ sub table_form
 			<td>$sex_str</td>
 			<td>
 				<select name="sex">
-					<option value="1" selected="$man">男</option>
-					<option value="0" selected="$woman">女</option>
+					<option value="">请选择</option>
+					<option value="1">男</option>
+					<option value="0">女</option>
 				</select>
 			</td>
 		</tr>

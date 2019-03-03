@@ -6,12 +6,12 @@ use FindBin qw($Bin);
 use lib "$Bin";
 use WebLog;
 use FamilyAPI;
-require 'tpl/view_detail.pl';
+require 'view/detail.pl';
 
 use URI::Escape;
 use Encode;
 
-my $DEBUG = 0;
+my $DEBUG = 1;
 my $REG_ID = qr/^\d+$/;
 
 ##-- MAIN --##
@@ -24,7 +24,7 @@ sub main
 	# 当前需要操作的行
 	my $operate_result = '';
 	if ($param->{operate} && $param->{operate} eq 'modify') {
-		my $operate_result = modify_row($param);
+		$operate_result = modify_row($param);
 	}
 
 	my $id = $param->{mine_id};
@@ -93,40 +93,43 @@ sub query_detail
 		$detail->{partner} = $partner->{name};
 	}
 
-	my $root = [];
-	my $root_id = 0;
-	if ($row->{F_father}) {
-		my $parent = query_base($row->{F_father});
-		$detail->{father} = $parent->{name};
-		if ($parent->{level} > 0) {
-			push(@$root, {id => $row->{F_father}, name => $parent->{name}, sex => 1});
-			$root_id = $row->{F_father};
+	# 直系后代须查父母
+	if ($detail->{level} > 1) {
+		my $root = [];
+		my $root_id = 0;
+		if ($row->{F_father}) {
+			my $parent = query_base($row->{F_father});
+			$detail->{father} = $parent->{name};
+			if ($parent->{level} > 0) {
+				push(@$root, {id => $row->{F_father}, name => $parent->{name}, sex => 1});
+				$root_id = $row->{F_father};
+			}
 		}
-	}
-	if ($row->{F_mother}) {
-		my $parent = query_base($row->{F_mother});
-		$detail->{mother} = $parent->{name};
-		if ($parent->{level} > 0) {
-			push(@$root, {id => $row->{F_mother}, name => $parent->{name}, sex => 0});
-			$root_id = $row->{F_mother};
+		if ($row->{F_mother}) {
+			my $parent = query_base($row->{F_mother});
+			$detail->{mother} = $parent->{name};
+			if ($parent->{level} > 0) {
+				push(@$root, {id => $row->{F_mother}, name => $parent->{name}, sex => 0});
+				$root_id = $row->{F_mother};
+			}
 		}
-	}
 
-	if (!$root_id) {
-		wlog("查询父/母失败");
-		return {};
-	}
+		if (!$root_id) {
+			wlog("查询父/母失败");
+			return {error => "查询父/母失败"};
+		}
 
-	# 继续往上查祖父……
-	for (my $level = $row->{F_level} - 1; $level > 1; $level--) {
-		wlog("query root_id: $root_id; level $level");
-		my $parent = select_parent($root_id);
-		last unless %$parent;
-		push(@$root, $parent);
-		$root_id = $parent->{id};
+		# 继续往上查祖父……
+		for (my $level = $row->{F_level} - 1; $level > 1; $level--) {
+			wlog("query root_id: $root_id; level $level");
+			my $parent = select_parent($root_id);
+			last unless %$parent;
+			push(@$root, $parent);
+			$root_id = $parent->{id};
+		}
+
+		$detail->{root} = $root;
 	}
-	
-	$detail->{root} = $root;
 
 	# 查询子女
 	$detail->{child} = select_child($detail->{id}, $detail->{sex});
@@ -188,6 +191,7 @@ sub select_parent
 sub select_child
 {
 	my ($id, $sex) = @_;
+	wlog("id: $id; sex: $sex");
 	return [] unless $id;
 	
 	my @fields = qw[F_id F_name F_sex];
@@ -199,7 +203,7 @@ sub select_child
 		$filter->{mother} = $id;
 	}
 	else {
-		wlog("unkown sex: $sex");
+		return [];
 	}
 
 	my $req = { api => "query", data => { filter => $filter, fields => \@fields}};

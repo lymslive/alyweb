@@ -53,7 +53,7 @@ sub body
 		<li> 收录同一祖先以下的子嗣血脉。祖先设为第 1 代，后续递增。也可收录配偶，代际前加一短横（取负数）以区别。
 		<li> 原则上不分男女，都可收录，甚至女儿的后代也算血脉延续。有更多数据后可按需要再筛选。
 		<li> 在表的末行可添加新成员。至少要填写所依的父亲或母亲，可填 ID 或姓名（不存在重名时）。
-		<li> 新成员可先入库基本信息（姓名与父/母依存关系），后面再修改补充其他信息。修改须指定编号。
+		<li> 新成员可先入库基本信息（姓名与父/母依存关系），再去修改详情页修改。本页快捷修改须指定编号。
 		<li> 删除数据须谨慎。本页地址暂不要外传，操作修改尚未作登陆验证。
 		<li> 该页面主要为初步测试服务端 api ，有懂前端会做网页的兄弟可联系我优化与重设计网页。
 	</ul>
@@ -93,7 +93,7 @@ sub table_row
 
 	my $row_tail = '';
 	if ($link) {
-		my $modify = qq{<a href="#operate-form">修改</a>};
+		my $modify = qq{<a href="view_detail.cgi?mine_id=$id">修改</a>};
 		my $remove = qq{<a href="javascript:void(0)">删除</a>};
 		if ($OPERATE) {
 			$remove = qq{<a href="?operate=remove&id=$id">删除</a>};
@@ -104,6 +104,10 @@ sub table_row
 	else {
 		$row_tail .= qq{	<td>--</td>\n};
 		$row_tail .= qq{	<td>--</td>\n};
+	}
+
+	if ($level > 0) {
+		$level = "+$level";
 	}
 
 	my $html = <<EndOfHTML;
