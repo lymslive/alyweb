@@ -8,7 +8,7 @@ use WebLog;
 use ForkCGI;
 use FamilyAPI;
 use FamilyUtil;
-require 'view/detail.pl';
+use view::detail;
 
 my $DEBUG = 0;
 $DEBUG = 1 if $ENV{SCRIPT_NAME} =~ m/\.pl$/;
@@ -31,14 +31,23 @@ sub main
 		$operate_result = modify_row($param);
 	}
 
-	my $id = $param->{mine_id};
-	my $detail = query_detail($id);
-	$detail->{operate_result} = $operate_result;
+	my $uid;
+	my $cookie;
 	if ($ENV{HTTP_COOKIE}) {
-		$dateil->{COOKIE} = ForkCGI::Cookie();
+		$cookie = ForkCGI::Cookie();
+		if ($cookie->{uid} && $cookie->{uid} =~ /^(\d+)-/) {
+			$uid = $1;
+		}
 	}
 
-	my $html = HTPL->new();
+	my $id = $param->{mine_id} // $uid;
+	my $detail = query_detail($id, $param);
+	$detail->{operate_result} = $operate_result;
+	if ($ENV{HTTP_COOKIE}) {
+		$detail->{COOKIE} = $cookie;
+	}
+
+	my $html = view::detail->new();
 	return $html->runout($detail, $LOG);
 }
 
@@ -49,8 +58,12 @@ sub main
 # 输出：{} ，除了本行记录，再联表查询祖先继承关系与所有子女
 sub query_detail
 {
-	my ($id) = @_;
+	my ($id, $param) = @_;
 	
+	if (!$id) {
+		return {error => '未提供ID，请登陆'};
+	}
+
 	my $detail = {};
 	my $req = { api => "query", data => { filter => { id => $id}}};
 	my $res = FamilyAPI::handle_request($req);
@@ -105,6 +118,12 @@ sub query_detail
 		}
 
 		$detail->{root} = $root;
+	}
+
+	# 快捷增加子女
+	if ($param->{operate} && $param->{operate} eq 'modify'
+		&& $param->{child_name} && defined($param->{child_sex})) {
+		create_child($detail, $param);
 	}
 
 	# 查询子女
@@ -216,6 +235,43 @@ sub modify_row
 	}
 
 	return $msg;
+}
+
+sub create_child
+{
+	my ($detail, $param) = @_;
+	
+	my $req_data = {
+		name => $param->{child_name},
+		sex  => $param->{child_sex},
+	};
+
+	if ($detail->{sex} == 1) {
+		$req_data->{father_id} = $detail->{id};
+	}
+	elsif ($detail->{sex} == 0) {
+		$req_data->{mother_id} = $detail->{id};
+	}
+	else {
+		wlog('非法性别');
+		return {error => '非法性别'};
+	}
+
+	if ($param->{child_birthday}) {
+		$req_data->{birthday} = $param->{child_birthday};
+	}
+	if ($param->{child_deathday}) {
+		$req_data->{deathday} = $param->{child_deathday};
+	}
+
+	my $req = { api => "create", data => $req_data};
+	my $res = FamilyAPI::handle_request($req);
+	if ($res->{error} || !$res->{data}) {
+		wlog('插入数据失败：' . $res->{errmsg});
+		return {error => '插入数据失败：' . $res->{errmsg}};
+	}
+
+	return 0;
 }
 
 ##-- END --##

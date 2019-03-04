@@ -70,7 +70,9 @@ sub Cookie
 	my ($var) = @_;
 	my $cookie = $ENV{HTTP_COOKIE};
 	return {} unless $cookie;
-	my %cookie = map { $_ =~ $REG_KV ? ($1 => uri_unescape($2)) : ()} split(/;\s*/, $cookie);
+	my %cookie = map {
+		$_ =~ $REG_KV ? ($1 => decode('utf8', uri_unescape($2))) : ()
+	} split(/;\s*/, $cookie);
 	return \%cookie;
 }
 

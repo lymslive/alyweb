@@ -192,7 +192,7 @@ sub gen_head
 
 	# 标题
 	my $title = $self->{title} // '';
-	push(@head, qq{<title> $title </title>});
+	push(@head, qq{\t\t<title> $title </title>});
 
 	return join("\n", @head);
 }
@@ -250,14 +250,23 @@ sub HTML
 		$html = qq{<$label $attr/>};
 	}
 	else {
-		if (length($text) > 16) {
-			$text = "\n$text\n";
+		if ($attr) {
+			$html = qq{<$label $attr>$text</$label>};
 		}
-		$html = qq{<$label $attr>$text</$label>};
+		else {
+			$html = qq{<$label>$text</$label>};
+		}
 	}
 
 	return $html;
 }
+
+sub H1
+{
+	my ($text) = @_;
+	return "\t\t" . HTML("H1", $text) . "\n";
+}
+
 ##-- TEST MAIN --##
 sub main
 {

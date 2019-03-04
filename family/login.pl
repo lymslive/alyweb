@@ -55,7 +55,7 @@ sub check_login
 		wlog('查询数据失败：' . $res->{errmsg});
 		return {error => '查询数据失败：' . $res->{errmsg}};
 	}
-	my $row = $data->[0] or return {error => '不存在登陆名'};
+	my $row = $res->{data}->[0] or return {error => '不存在登陆名'};
 
 	$uid = $row->{F_id};
 	my $uname = $row->{F_name};
