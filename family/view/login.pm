@@ -30,7 +30,7 @@ sub generate
 		my $uname = $data->{uname};
 		$self->set_cookie("uid=$uid-$uname; path=/family");
 
-		my $refresh = qq{<meta http-equiv="refresh" content="0; URL=view_detail.cgi?mine_id=$uid">};
+		my $refresh = qq{<meta http-equiv="refresh" content="0; URL=detail.cgi?mine_id=$uid">};
 		$self->{head} = $self->gen_head() . "\n$refresh";
 		$self->{body} = '登陆成功';
 		return 0;
@@ -49,7 +49,7 @@ sub s_login_form
 	<div id="login-form">
 		<form method="post">
 			ID/姓名：
-			<input type="text" />
+			<input type="text" name="uid"/>
 			<input type="submit" value="登陆"/>
 		</form>
 	</div>

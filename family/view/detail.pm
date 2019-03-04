@@ -61,6 +61,10 @@ sub generate
 	my $child = $data->{child};
 
 	my $OperateResult = $data->{operate_result};
+	if (!$OperateResult) {
+		$OperateResult = '（请核对修改）';
+	}
+
 	my $TableForm = s_table_form([$id, $name, $sex, $level, $father, $mother, $partner, $birthday, $deathday]);
 
 	$self->{body} = s_login_bar($data);
@@ -70,41 +74,29 @@ sub generate
 	$self->{body} .= $self->body($OperateResult, $TableForm);
 
 	if ($LOG->{debug}) {
-		$self->{body} .= s_debug_log($LOG);
+		$self->{body} .= HTPL::LOG($LOG);
 	}
 
 	return 0;
-}
-
-sub s_debug_log
-{
-	my ($LOG) = @_;
-	my $display = ($LOG->{debug} > 0) ? 'inline' : 'none';
-	my $log = $LOG->to_webline();
-	my $html = <<EndOfHTML;
-	<hr>
-	<div><a href="javascript:void(0);" onclick="DivHide('debug_log')">网页日志</a></div>
-<div id="debug_log" style="display:$display">
-	$log
-</div>
-EndOfHTML
-	return $html;
 }
 
 sub s_login_bar
 {
 	my ($data) = @_;
 	
-	my $login = '未登陆';
+	my $login = '';
 	if ($data->{COOKIE} && $data->{COOKIE}->{uid}) {
 		my $cookie = $data->{COOKIE}->{uid};
-		$login = "已登陆：$cookie";
+		$login = qq{已登陆：<a href="?">$cookie</a>};
+	}
+	else {
+		$login = qq{<a href="login.cgi">未登陆：</a>};
 	}
 
 	my $right = qq{<a href="view_table.cgi">回列表</a>};
 	my $html = <<EndOfHTML;
 	<div id="login-bar">
-		<span>$login<span>--$right
+		<span>$login<span>：$right
 	</div>
 EndOfHTML
 
@@ -208,14 +200,14 @@ sub s_table_form
 	}
 	$sex_str .= $sex_mark[$sex];
 
-	# 旁系成员不展示父母
+	# 旁系成员（及顶级）不展示父母
 	my $parent_row = '';
-	if ($level > 0) {
+	if ($level > 1) {
 		$parent_row = <<EndOfHTML;
 		<tr>
 			<td>父亲：</td>
 			<td>$father</td>
-			<td><input size="5" type="text" name="father"</td>
+			<td><input size="5" type="text" name="father"/></td>
 		</tr>
 		<tr>
 			<td>母亲：</td>
@@ -232,14 +224,14 @@ EndOfHTML
 	<div>
 	<a href="javascript:void(0);" onclick="DivHide('add-child-inform')">扩展：增加子女</a>
 	</div>
-	<div id="add-child-inform">
-		姓名：<input size="5" type="text" name="child_name" />
+	<div id="add-child-inform" style="display:none">
+		姓名：<input size="5" type="text" name="child_name"/>
 		<select name="child_sex">
-			<option value="1">男</option>
-			<option value="0">女</option>
+			<option value="1">儿子</option>
+			<option value="0">女儿</option>
 		</select><br>
 		生于：<input size="5" type="date" name="child_birthday"/> --
-		<input size="5" type="date" name="child_deathday"/>
+		<input size="5" type="date" name="child_deathday"/><br>
 		<textarea name="child_desc" rows="10" cols="30" >（暂不保存，敬请期待）</textarea><br/>
 	</div>
 EOF
@@ -293,9 +285,10 @@ $parent_row
 	<div>
 	<a href="javascript:void(0);" onclick="DivHide('mine-desc-inform')">扩展：我的简介</a>
 	</div>
-	<div id="mine-desc-inform">
+	<div id="mine-desc-inform" style="display:inline">
 		<textarea name="desc" rows="10" cols="30" >（暂不保存，敬请期待）</textarea><br/>
 	</div>
+$add_child
 </form>
 EndOfHTML
 }

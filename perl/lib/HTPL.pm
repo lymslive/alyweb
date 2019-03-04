@@ -170,7 +170,7 @@ sub gen_head
 	if ($self->{js}) {
 		if (ref($self->{js}) eq "ARRAY") {
 			foreach my $js (@{$self->{js}}) {
-				push(@head, qq{\t\t<script src="$js" />});
+				push(@head, qq{\t\t<script src="$js"></script>});
 			}
 		}
 		else {
@@ -265,6 +265,24 @@ sub H1
 {
 	my ($text) = @_;
 	return "\t\t" . HTML("H1", $text) . "\n";
+}
+
+=sub LOG
+  生成日志片断，一般附加在网页末尾，记录 CGI 页面生成的过程。
+  依赖 WebLog.pm 模块。网页最好提供 DivHide() js 函数用于隐藏该日志。
+=cut
+sub LOG
+{
+	my ($LOG) = @_;
+	my $display = ($LOG->{debug} > 0) ? 'inline' : 'none';
+	my $log = $LOG->to_webline();
+	return <<EndOfHTML;
+	<hr>
+	<div><a href="javascript:void(0);" onclick="DivHide('debug-log')">CGI Web LOG</a></div>
+	<div id="debug-log" style="display:$display">
+		$log
+	</div>
+EndOfHTML
 }
 
 ##-- TEST MAIN --##
