@@ -41,7 +41,7 @@ sub response
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width" />
-		<script src="js/ctuil.js"></script>
+		<script src="js/cutil.js"></script>
 		<title> $self->{title} </title>
 	</head>
 	<body>
@@ -70,9 +70,9 @@ sub body
 		<li> 收录同一祖先以下的子嗣血脉。祖先设为第 1 代，后续递增。也可收录配偶，代际前加一短横（取负数）以区别。
 		<li> 原则上不分男女，都可收录，甚至女儿的后代也算血脉延续。有更多数据后可按需要再筛选。
 		<li> 在表的末行可添加新成员。至少要填写所依的父亲或母亲，可填 ID 或姓名（不存在重名时）。
-		<li> 新成员可先入库基本信息（姓名与父/母依存关系），再去修改详情页修改。本页快捷修改须指定编号。
-		<li> 删除数据须谨慎。本页地址暂不要外传，操作修改尚未作登陆验证。
-		<li> 该页面主要为初步测试服务端 api ，有懂前端会做网页的兄弟可联系我优化与重设计网页。
+		<li> 新成员可先入库基本信息（姓名与父/母依存关系），再去详情页修改。本页快捷修改须指定编号。
+		<li> 删除数据须谨慎。本页地址暂不要外传，为方便前期录入数据，操作修改尚未作登陆验证。
+		<li> 我目前侧重该电子家谱系统的服务端开发与优化，有懂前端会做网页(html+css+js)的兄弟姐妹可联系我。
 	</ul>
 </div>
 EndOfHTML
@@ -113,7 +113,7 @@ sub s_debug_log
 	my $log = $LOG->to_webline();
 	my $html = <<EndOfHTML;
 	<hr>
-	<div><a href="javascript:void(0);" onclick="DivHide()">网页日志</a></div>
+	<div><a href="javascript:void(0);" onclick="DivHide('debug_log')">网页日志</a></div>
 <div id="debug_log" style="display:$display">
 	$log
 </div>
@@ -136,15 +136,15 @@ sub s_table
 
 	my ($hot_row, $hot_msg);
 	if ($data->{removed}) {
-		$hot_row = $data->{removed};
+		$hot_row = $data->{removed}->{row};
 		$hot_msg = '刚删除的行：';
 	}
 	elsif ($data->{modified}) {
-		$hot_row = $data->{modified};
+		$hot_row = $data->{modified}->{row};
 		$hot_msg = '刚修改的行：';
 	}
 	elsif ($data->{created}) {
-		$hot_row = $data->{created};
+		$hot_row = $data->{created}->{row};
 		$hot_msg = '刚增加的行：';
 	}
 
@@ -181,8 +181,6 @@ sub s_table_head
 	<td>元配</td>
 	<td>生日</td>
 	<td>忌日</td>
-	<td>&nbsp;</td>
-	<td>&nbsp;</td>
 </tr>
 EndOfHTML
 
@@ -221,17 +219,13 @@ sub s_table_row
 		$row_tail .= qq{	<td>$modify</td>\n};
 		$row_tail .= qq{	<td>$remove</td>\n};
 	}
-	else {
-		$row_tail .= qq{	<td>--</td>\n};
-		$row_tail .= qq{	<td>--</td>\n};
-	}
 
 	if ($level > 0) {
 		$level = "+$level";
 	}
 
 	# 转换链接
-	$id = s_detail_link($id, $id);
+	my $id_link = s_detail_link($id, $id);
 	$name = s_detail_link($id, $name);
 	if ($row->{F_father} && $row->{father_name}) {
 		$father = s_detail_link($row->{F_father}, $row->{father_name});
@@ -245,7 +239,7 @@ sub s_table_row
 
 	my $html = <<EndOfHTML;
 <tr>
-	<td>$id</td>
+	<td>$id_link</td>
 	<td>$name</td>
 	<td>$sex</td>
 	<td>$level</td>

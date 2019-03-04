@@ -10,7 +10,8 @@ use FamilyAPI;
 use FamilyUtil;
 require 'view/detail.pl';
 
-my $DEBUG = 1;
+my $DEBUG = 0;
+$DEBUG = 1 if $ENV{SCRIPT_NAME} =~ m/\.pl$/;
 my $LOG = WebLog::instance();
 
 ##-- MAIN --##

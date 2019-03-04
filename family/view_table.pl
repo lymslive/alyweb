@@ -11,8 +11,10 @@ use FamilyAPI;
 use FamilyUtil;
 require 'view/table.pl';
 
-my $DEBUG = 1;
+my $DEBUG = 0;
 my $LOG = WebLog::instance();
+wlog("SCRIPT_NAME: $ENV{SCRIPT_NAME}");
+$DEBUG = 1 if $ENV{SCRIPT_NAME} =~ m/\.pl$/;
 
 ##-- MAIN --##
 sub main
@@ -77,12 +79,14 @@ sub deal
 		if ($data->{modified}
 			&& $data->{modified}->{id}
 			&& $data->{modified}->{id} == $row->{F_id}) {
+			wlog("匹配到修改行：" . $data->{modified}->{id});
 			$data->{modified}->{row} = $row;
 			$data->{modified}->{queried} = 1;
 		}
 		if ($data->{created}
 			&& $data->{created}->{id}
 			&& $data->{created}->{id} == $row->{F_id}) {
+			wlog("匹配到增加行：" . $data->{created}->{id});
 			$data->{created}->{row} = $row;
 			$data->{created}->{queried} = 1;
 		}
@@ -274,7 +278,9 @@ sub create_row
 		return {error => '插入数据失败：' . $res->{errmsg}};
 	}
 
-	return {queried => 0, id => $req_data->{id}};
+	my $newid = $res->{data}->{id};
+	wlog("新增成员ID: $newid");
+	return {queried => 0, id => $newid};
 }
 
 ##-- END --##
