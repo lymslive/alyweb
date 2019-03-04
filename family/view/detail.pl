@@ -125,7 +125,7 @@ sub s_debug_log
 	my $log = $LOG->to_webline();
 	my $html = <<EndOfHTML;
 	<hr>
-	<div><a href="javascript:void(0);" onclick="DivHide()">网页日志</a></div>
+	<div><a href="javascript:void(0);" onclick="DivHide('debug_log')">网页日志</a></div>
 <div id="debug_log" style="display:$display">
 	$log
 </div>
