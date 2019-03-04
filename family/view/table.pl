@@ -41,7 +41,7 @@ sub response
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width" />
-		<script src="js/ctuil.js"></script>
+		<script src="js/cutil.js"></script>
 		<title> $self->{title} </title>
 	</head>
 	<body>
