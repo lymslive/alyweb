@@ -87,6 +87,7 @@ sub response
 #   perpage => 每页几条记录
 #   filter => { 筛选条件
 #   id => 单个 id 或 [多个 id 列表]
+#   name => 姓名
 #   sex => 性别 1/0
 #   level => 代际
 #   father => 父亲
@@ -128,6 +129,7 @@ sub handle_query
 	if (!$jreq->{all} && $jreq->{filter}) {
 		my $filter = $jreq->{filter};
 		$where->{F_id} = $filter->{id} if $filter->{id};
+		$where->{F_name} = $filter->{name} if $filter->{name};
 		$where->{F_sex} = $filter->{sex} if $filter->{sex};
 		$where->{F_level} = $filter->{level} if $filter->{level};
 		$where->{F_father} = $filter->{father} if $filter->{father};
@@ -335,7 +337,7 @@ sub check_parent
 			return 'ERR_MEMBER_LACKED';
 		}
 		$jreq->{father} = $jreq->{father_id};
-		$father_level = $records->[0]->{F_level};
+		$father_level = abs($records->[0]->{F_level});
 	}
 	elsif ($jreq->{father_name}) {
 		my $records = $db->Query(['F_id, F_level'], {F_name => $jreq->{father_name}});
@@ -346,7 +348,7 @@ sub check_parent
 			return 'ERR_NAME_DUPED';
 		}
 		$jreq->{father} = $records->[0]->{F_id};
-		$father_level = $records->[0]->{F_level};
+		$father_level = abs($records->[0]->{F_level});
 	}
 
 	# 母亲关系

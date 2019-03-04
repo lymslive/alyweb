@@ -22,6 +22,9 @@ sub main
 	my $debug = $param->{debug} // $DEBUG;
 	$LOG->{debug} = $debug;
 
+	wlog("ENV{HTTP_COOKIE}: $ENV{HTTP_COOKIE }");
+	wlog("param{HTTP_COOKIE}: $param->{HTTP_COOKIE}");
+
 	# 当前需要操作的行
 	my $operate_result = '';
 	if ($param->{operate} && $param->{operate} eq 'modify') {
