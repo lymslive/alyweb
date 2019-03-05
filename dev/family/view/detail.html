@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width" />
+		<title> 谭氏家谱 </title>
+	</head>
+	<body>
+		<h1>谭氏年浪翁家谱成员细览</h1>
+		<div id="member-header">
+			10025 | 谭水龙 | 第 4 代
+		</div>
+		<hr>
+		<div id="member-relation">
+			<p> 承袭：谭七月生 / 谭芳宸 / 谭年浪</p>
+			<p> 儿子：<p>
+			<p> 女儿：</p>
+		</div>
+		<div id="operate-form">
+			<p> 资料：</p>
+			<form action="" method="post">
+				<table>
+					<tr>
+						<td>编号：</td>
+						<td>10025</td>
+					</tr>
+					<tr>
+						<td>姓名：</td>
+						<td>谭水龙</td>
+						<td><input size="3" type="text" name="mine_name" /></td>
+					</tr>
+					<tr>
+						<td>性别：</td>
+						<td>男</td>
+						<td>
+							<select name="sex">
+								<option value="1" selected = "selected">男</option>
+								<option value="0">女</option>
+							</select>
+						</td>
+					</tr>
+					<tr>
+						<td>父亲：</td>
+						<td>谭七月生</td>
+						<td><input size="3" type="text" name="father"</td>
+					</tr>
+					<tr>
+						<td>母亲：</td>
+						<td>曾正秀</td>
+						<td><input size="3" type="text" name="mother"/></td>
+					</tr>
+					<tr>
+						<td>配偶：</td>
+						<td>肖斐</td>
+						<td><input size="3" type="text" name="partner"/></td>
+					</tr>
+					<tr>
+						<td>生日：</td>
+						<td>1985/03/03</td>
+						<td><input size="5" type="date" name="birthday"/></td>
+					</tr>
+					<tr>
+						<td>忌日：</td>
+						<td></td>
+						<td><input size="5" type="date" name="deathday"/></td>
+					</tr>
+					<tr>
+						<td></td>
+						<td><input type="reset" value="不必修改" /></td>
+						<td><input type="submit" value="修改资料" /></td>
+					</tr>
+				</table>
+				简介：<br/>
+				<textarea name="desc" rows="10" cols="30" >（暂不保存，敬请期待）</textarea><br/>
+			</form>
+		</div>
+
+		<div id = "form_tips">
+			<h2>修改说明：</h2>
+			<ul>
+				<li> 成员 ID 已固定，可以修改其他资料
+				<li> 父亲、母亲、配偶三项可填姓名，除非有重名必须填 ID
+			</ul>
+		</div>
+	</body>
+</html>
