@@ -14,7 +14,7 @@ sub new
 	$self->{title} = '谭氏家谱-成员详情';
 	$self->{body} = '';
 	$self->{H1} = '谭氏年浪翁家谱成员细览';
-	$self->{js} = ['js/cutil.js'];
+	$self->{js} = ['js/cutil.js', 'js/detail.js'];
 	bless $self, $class;
 	return $self;
 }
@@ -43,7 +43,7 @@ sub generate
 {
 	my ($self, $data, $LOG) = @_;
 	if (!$data || $data->{error}) {
-		return on_error($data->{error});
+		return $self->on_error($data->{error});
 	}
 
 	my $null = '--';
@@ -85,17 +85,19 @@ sub s_login_bar
 	my ($data) = @_;
 	
 	my $login = '';
+	my $login_id = 'login-bar';
 	if ($data->{COOKIE} && $data->{COOKIE}->{uid}) {
 		my $cookie = $data->{COOKIE}->{uid};
 		$login = qq{已登陆：<a href="detail.cgi">$cookie</a>};
 	}
 	else {
-		$login = qq{<a href="login.cgi">未登陆：</a>};
+		$login = qq{<a href="login.cgi">未登陆</a>};
+		$login_id = 'login-foo';
 	}
 
 	my $right = qq{<a href="table.cgi">回列表</a>};
 	return <<EndOfHTML;
-	<div id="login-bar">
+	<div id="$login_id">
 		<span>$login<span>：$right
 	</div>
 EndOfHTML
@@ -116,7 +118,11 @@ sub s_member_header
 
 	return <<EndOfHTML;
 	<div id="member-header">
-		$left
+		<form method="get">
+			$left | 
+			<input type="submit" value="查找其他"/>
+			<input size="5" type="text" name="mine" required="required"/>
+		</form>
 	</div>
 	<hr>
 EndOfHTML
@@ -126,7 +132,7 @@ sub s_link_to
 {
 	my ($member) = @_;
 	if ($member && $member->{id} && $member->{name}) {
-		return qq{<a href="?mine_id=$member->{id}">$member->{name}</a>};
+		return qq{<a href="?mine=$member->{id}">$member->{name}</a>};
 	}
 	return '';
 }
@@ -219,24 +225,31 @@ EndOfHTML
 	my $add_child = '';
 	if ($partner) {
 		$add_child = <<EOF
-	<div>
-	<a href="javascript:void(0);" onclick="DivHide('add-child-inform')">扩展：增加子女</a>
-	</div>
-	<div id="add-child-inform" style="display:none">
-		姓名：<input size="5" type="text" name="child_name"/>
-		<select name="child_sex">
+<div>
+	<a href="javascript:void(0);" onclick="DivHide('add-child-form')">扩展：增加子女</a>
+</div>
+<div id="add-child-form" style="display:none">
+	<form name="add-child" action="?mine_id=$id" method="post" onsubmit="return ValidateCreateChild()">
+		姓名：<input size="5" type="text" name="child_name" required="required"/>
+		<select name="child_sex" required="required">
 			<option value="1">儿子</option>
 			<option value="0">女儿</option>
 		</select><br>
 		生于：<input size="5" type="date" name="child_birthday"/> --
 		<input size="5" type="date" name="child_deathday"/><br>
-		<textarea name="child_desc" rows="10" cols="30" >（暂不保存，敬请期待）</textarea><br/>
-	</div>
+		<input type="hidden" name="operate" value="create"/>
+		<input type="reset" value="放弃" />
+		<input type="submit" value="提交" />
+		口令：<input size="6" type="password" name="operkey" value="123456"/>
+		<input type="hidden" name="oper_key" value=""/><br>
+		<textarea name="child_desc" rows="10" cols="30" >（简介暂未支持）</textarea><br/>
+	</form>
+</div>
 EOF
 	}
 
 	return <<EndOfHTML;
-<form action="?operate=modify&mine_id=$id" method="post">
+<form name="modify-mine" action="?mine_id=$id" method="post" onsubmit="return ValidateModifyForm()">
 	<table>
 		<tr>
 			<td>编号：</td>
@@ -275,7 +288,12 @@ $parent_row
 			<td><input size="5" type="date" name="deathday"/></td>
 		</tr>
 		<tr>
-			<td></td>
+			<td><input type="hidden" name="oper_key" value="" /></td>
+			<td>操作口令</td>
+			<td><input size="6" type="password" name="operkey" value="123456" /></td>
+		</tr>
+		<tr>
+			<td><input type="hidden" name="operate" value="modify"/></td>
 			<td><input type="reset" value="不必修改" /></td>
 			<td><input type="submit" value="修改资料" /></td>
 		</tr>
@@ -284,10 +302,10 @@ $parent_row
 	<a href="javascript:void(0);" onclick="DivHide('mine-desc-inform')">扩展：我的简介</a>
 	</div>
 	<div id="mine-desc-inform" style="display:inline">
-		<textarea name="desc" rows="10" cols="30" >（暂不保存，敬请期待）</textarea><br/>
+		<textarea name="desc" rows="10" cols="30" >（简介暂未支持）</textarea><br/>
 	</div>
-$add_child
 </form>
+$add_child
 EndOfHTML
 }
 

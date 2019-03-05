@@ -15,7 +15,7 @@ sub new
 	$self->{title} = '谭氏家谱网-成员列表';
 	$self->{body} = '';
 	$self->{H1} = '谭氏年浪翁子嗣家谱表';
-	$self->{js} = ['js/cutil.js'];
+	$self->{js} = ['js/cutil.js', 'js/table.js'];
 	bless $self, $class;
 	return $self;
 }
@@ -49,7 +49,7 @@ sub generate
 {
 	my ($self, $data, $LOG) = @_;
 	if (!$data || $data->{error}) {
-		return on_error('查询成员详情失败');
+		return $self->on_error('查询成员详情失败');
 	}
 
 	$DEL_LINK = $LOG->{debug};
@@ -99,15 +99,15 @@ sub s_table
 
 	my ($hot_row, $hot_msg);
 	if ($data->{removed}) {
-		$hot_row = $data->{removed}->{row};
+		$hot_row = $data->{removed};
 		$hot_msg = '刚删除的行：';
 	}
 	elsif ($data->{modified}) {
-		$hot_row = $data->{modified}->{row};
+		$hot_row = $data->{modified};
 		$hot_msg = '刚修改的行：';
 	}
 	elsif ($data->{created}) {
-		$hot_row = $data->{created}->{row};
+		$hot_row = $data->{created};
 		$hot_msg = '刚增加的行：';
 	}
 
@@ -118,7 +118,7 @@ sub s_table
 		}
 		else {
 			my $hot_html = s_operate_msg("操作成功，" . $hot_msg);
-			$hot_html .= s_table_row($hot_row);
+			$hot_html .= s_table_row($hot_row->{row});
 			push @html, $hot_html;
 		}
 	}
@@ -151,7 +151,7 @@ EndOfHTML
 sub s_detail_link
 {
 	my ($id, $text) = @_;
-	my $html = qq{<a href="detail.cgi?mine_id=$id">$text<a>};
+	my $html = qq{<a href="detail.cgi?mine=$id">$text<a>};
 	return $html;
 }
 
@@ -172,7 +172,7 @@ sub s_table_row
 
 	my $row_tail = '';
 	if ($link) {
-		my $modify = HTPL::LINK('详情', "detail.cgi?mine_id=$id");
+		my $modify = HTPL::LINK('详情', "detail.cgi?mine=$id");
 		my $remove = $DEL_LINK
 			? HTPL::LINK('删除', "?operate=remove&id=$id")
 			: HTPL::LINK('删除', 0);
@@ -244,17 +244,20 @@ sub s_table_form
 	my ($var) = @_;
 	
 	return <<EndOfHTML;
-<form action="#table-sumary" method="post">
+<form name='operate-form' action="#table-sumary" method="post" onsubmit="return ValidateForm()">
 	<tr>
-		<td colspan="9"><span id="operate-form">操作：</span>
+		<td colspan="9"><span>操作：</span>
 			新增<input type="radio" name="operate" value="create" checked="checked"/>，
 			修改<input type="radio" name="operate" value="modify"/>
+			操作口令：<input size="6" type="password" name="operkey" value="123456"/>
+			<input type="hidden" name="oper_key" value=""/>
 		</td>
 	</tr>
 	<tr>
 		<td><input size="3" type="text" name="mine_id"/></td>
 		<td><input size="3" type="text" name="mine_name"/></td>
 		<td><select name="sex">
+				<option value="">--</option>
 				<option value="1">男</option>
 				<option value="0">女</option>
 			</select></td>

@@ -170,7 +170,7 @@ sub gen_head
 	if ($self->{js}) {
 		if (ref($self->{js}) eq "ARRAY") {
 			foreach my $js (@{$self->{js}}) {
-				push(@head, qq{\t\t<script src="$js"></script>});
+				push(@head, qq{\t\t<script type="text/javascript" src="$js"></script>});
 			}
 		}
 		else {

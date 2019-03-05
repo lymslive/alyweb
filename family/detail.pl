@@ -40,7 +40,7 @@ sub main
 		}
 	}
 
-	my $id = $param->{mine_id} // $uid;
+	my $id = $param->{mine} // $param->{mine_id} // $uid;
 	my $detail = query_detail($id, $param);
 	$detail->{operate_result} = $operate_result;
 	if ($ENV{HTTP_COOKIE}) {
@@ -54,7 +54,7 @@ sub main
 ##-- SUBS --##
 
 # 查询详情
-# 输入：id
+# 输入：id/name
 # 输出：{} ，除了本行记录，再联表查询祖先继承关系与所有子女
 sub query_detail
 {
@@ -64,13 +64,23 @@ sub query_detail
 		return {error => '未提供ID，请登陆'};
 	}
 
-	my $detail = {};
-	my $req = { api => "query", data => { filter => { id => $id}}};
-	my $res = FamilyAPI::handle_request($req);
-	my $data = $res->{data} or return {};
-	my $row = $data->[0] or return {};
+	my $filter = {};
+	if ($id =~ /^\d+$/) {
+		$filter->{id} = $id;
+	}
+	else {
+		$filter->{name} = $id;
+	}
 
-	$detail->{id} = $id;
+	my $detail = {};
+	my $req = { api => "query", data => { filter => $filter}};
+	my $res = FamilyAPI::handle_request($req);
+	if ($res->{error} || !$res->{data}) {
+		return ewlog('查询数据失败：' . $res->{errmsg});
+	}
+	my $row = $res->{data}->[0] or return elog("不存在id/name: $id");
+
+	$detail->{id} = $row->{F_id};
 	$detail->{name} = $row->{F_name};
 	$detail->{sex} = $row->{F_sex};
 	$detail->{level} = $row->{F_level};
@@ -121,7 +131,7 @@ sub query_detail
 	}
 
 	# 快捷增加子女
-	if ($param->{operate} && $param->{operate} eq 'modify'
+	if ($param->{operate} && $param->{operate} eq 'create'
 		&& $param->{child_name} && defined($param->{child_sex})) {
 		create_child($detail, $param);
 	}
@@ -224,6 +234,10 @@ sub modify_row
 		$msg = '需要输入被修改成员的id';
 		wlog($msg);
 		return $msg;
+	}
+
+	if (scalar(keys %$req_data) <= 1) {
+		return "未指定任何修改字段";
 	}
 
 	my $req = { api => "modify", data => $req_data};

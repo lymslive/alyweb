@@ -250,6 +250,10 @@ sub modify_row
 		return {error => '需要输入被修改成员的编号id'};
 	}
 
+	if (scalar(keys %$req_data) <= 1) {
+		return elog("未指定任何修改字段");
+	}
+
 	my $req = { api => "modify", data => $req_data};
 	my $res = FamilyAPI::handle_request($req);
 	if ($res->{error} || !$res->{data}) {
