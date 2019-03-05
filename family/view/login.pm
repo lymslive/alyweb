@@ -13,7 +13,7 @@ sub new
 	my $self = {};
 	$self->{title} = '谭氏家谱网-登陆';
 	$self->{body} = '';
-	$self->{H1} = '登陆';
+	$self->{H1} = '谭氏家谱';
 	bless $self, $class;
 	return $self;
 }
@@ -45,7 +45,7 @@ sub generate
 sub s_login_form
 {
 	my ($var) = @_;
-	my $html = <<EndOfHTML;
+	return <<EndOfHTML;
 	<div id="login-form">
 		<form method="post">
 			ID/姓名：
@@ -54,15 +54,13 @@ sub s_login_form
 		</form>
 	</div>
 EndOfHTML
-
-	return $html;
 }
 
 sub s_login_tips
 {
 	my ($var) = @_;
 	
-	my $html = <<EndOfHTML;
+	return <<EndOfHTML;
 	<div id="login-tips">
 		<ul>
 			<li> 凡入库家谱的名字即可免密登陆，有重名时须用 ID 登陆。
@@ -71,16 +69,8 @@ sub s_login_tips
 		</ul>
 	</div>
 EndOfHTML
-
-	return $html;
-}
-##-- TEST MAIN --##
-sub main
-{
-	my @argv = @_;
 }
 
-##-- END --##
 &main(@ARGV) unless defined caller;
 1;
 __END__

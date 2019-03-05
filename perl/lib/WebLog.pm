@@ -3,7 +3,7 @@ use utf8;
 package WebLog;
 
 use Exporter 'import';
-@EXPORT = qw(wlog);
+@EXPORT = qw(wlog elog);
 
 use strict;
 use warnings;
@@ -104,11 +104,16 @@ sub wlog
 {
 	return 1 if $disable;
 
-	my $msg = join(" ", @_);
+	my ($msg, $cfg) = @_;
+
+	my $deep = 0;
+	if ($cfg && $cfg->{deep}) {
+		$deep += $cfg->{deep};
+	}
 
 	# 获取函数名要多退一层栈
-	my ($package, $filename, $line, $subroutine_) = caller(0);
-	my ($package_, $filename_, $line_, $subroutine) = caller(1);
+	my ($package, $filename, $line, $subroutine_) = caller($deep);
+	my ($package_, $filename_, $line_, $subroutine) = caller($deep + 1);
 
 	$filename = basename($filename);
 	# caller 获取的函数名含包名前缀，去掉
@@ -126,4 +131,13 @@ sub wlog
 	1; # always true
 }
 
+=sub elog()
+  记录日志，并返回 {error => $msg}
+=cut
+sub elog
+{
+	my ($msg) = @_;
+	wlog($msg, {deep => 1});
+	return {error => $msg};
+}
 1;

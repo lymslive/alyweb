@@ -87,20 +87,18 @@ sub s_login_bar
 	my $login = '';
 	if ($data->{COOKIE} && $data->{COOKIE}->{uid}) {
 		my $cookie = $data->{COOKIE}->{uid};
-		$login = qq{已登陆：<a href="?">$cookie</a>};
+		$login = qq{已登陆：<a href="detail.cgi">$cookie</a>};
 	}
 	else {
 		$login = qq{<a href="login.cgi">未登陆：</a>};
 	}
 
-	my $right = qq{<a href="view_table.cgi">回列表</a>};
-	my $html = <<EndOfHTML;
+	my $right = qq{<a href="table.cgi">回列表</a>};
+	return <<EndOfHTML;
 	<div id="login-bar">
 		<span>$login<span>：$right
 	</div>
 EndOfHTML
-
-	return $html;
 }
 
 # eg.

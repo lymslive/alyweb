@@ -9,12 +9,11 @@ use WebLog;
 use ForkCGI;
 use FamilyAPI;
 use FamilyUtil;
-require 'view/table.pl';
+use view::table;
 
 my $DEBUG = 0;
 my $LOG = WebLog::instance();
-wlog("SCRIPT_NAME: $ENV{SCRIPT_NAME}");
-$DEBUG = 1 if $ENV{SCRIPT_NAME} =~ m/\.pl$/;
+$DEBUG = 1 if $ENV{SCRIPT_NAME} && $ENV{SCRIPT_NAME} =~ m/\.pl$/;
 
 ##-- MAIN --##
 sub main
@@ -25,7 +24,8 @@ sub main
 	$LOG->{debug} = $debug;
 
 	my $data = deal($param);
-	my $html = HTPL->new();
+	$data->{COOKIE} = ForkCGI::Cookie() if $ENV{HTTP_COOKIE};
+	my $html = view::table->new();
 	return $html->runout($data, $LOG);
 }
 

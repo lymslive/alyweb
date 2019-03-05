@@ -246,11 +246,14 @@ sub create_child
 		sex  => $param->{child_sex},
 	};
 
+	my $partner_id = $detail->{partner}->{id} if $detail->{partner};
 	if ($detail->{sex} == 1) {
 		$req_data->{father_id} = $detail->{id};
+		$req_data->{mother_id} = $partner_id if $partner_id;
 	}
 	elsif ($detail->{sex} == 0) {
 		$req_data->{mother_id} = $detail->{id};
+		$req_data->{father_id} = $partner_id if $partner_id;
 	}
 	else {
 		wlog('非法性别');

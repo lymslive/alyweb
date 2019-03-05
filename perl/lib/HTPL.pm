@@ -204,32 +204,32 @@ sub gen_body
 	return join("\n", @body);
 }
 
-# 设置 key=val 型 cookie ，自动添加一些安全选项
+# 添加 cookie ，默认附加一些安全选项，第二参数传 1 抑制额外附加
 # 默认未设过期时间，为浏览器会话级
 sub set_cookie
 {
-	my ($self, $cookie) = @_;
-	if (ref($cookie)) {
-		foreach my $key (keys %{$cookie}) {
-			my $cookstr = "$key=$cookie->{$key}";
-			set_cookie($cookstr);
-		}
+	my ($self, $cookie, $full) = @_;
+	my $default = "; SameSite=strict; HttpOnly";
+	my $cookstr = "Set-Cookie: $cookie";
+	$cookstr .= $default if !$full;
+	if (!$self->{SetCookie}) {
+		$self->{SetCookie} = [$cookstr];
 	}
 	else {
-		my $cookstr = "Set-Cookie: $cookie; SameSite=strict; HttpOnly";
-		if (!$self->{SetCookie}) {
-			$self->{SetCookie} = [$cookstr];
-		}
-		else {
-			push(@{$self->{SetCookie}}, $cookstr);
-		}
+		push(@{$self->{SetCookie}}, $cookstr);
 	}
 }
 
 =pod
-=h1 HTML Fragment Function
+=head1 HTML Fragment Function
+都按大写方法名
 =cut
 
+=markdown HTML($label, $text, $attr_ref)
+生成 html 标签文本：<$label $attr_str>$text</$label>
+如果 $text 是 undef ，则生成自闭标签如 <br/> <img/>
+$attr_ref 是属性表
+=cut
 sub HTML
 {
 	my ($label, $text, $attr_ref) = @_;
@@ -237,34 +237,38 @@ sub HTML
 
 	my $attr = '';
 	if ($attr_ref && ref($attr_ref) eq 'HASH') {
-		my @attr = ();
 		foreach my $key (keys %{$attr_ref}) {
 			my $val = $attr_ref->{$key};
-			push(@attr, qq{$key="$val"});
+			$attr .=  qq{ $key="$val"};
 		}
-		@attr = join(" ", @attr);
 	}
 
-	my $html = '';
-	if (!defined($text)) {
-		$html = qq{<$label $attr/>};
-	}
-	else {
-		if ($attr) {
-			$html = qq{<$label $attr>$text</$label>};
-		}
-		else {
-			$html = qq{<$label>$text</$label>};
-		}
-	}
+	my $html = defined($text)
+		? qq{<$label$attr>$text</$label>}
+		: qq{<$label$attr/>};
 
 	return $html;
 }
 
+=markdown LINK($msg, $href)
+生成 <a href=""></a> 链接文件
+$href 是链接地址，或详细的 hashref 属性，链接为空时用 void(0)
+=cut
+sub LINK
+{
+	my ($msg, $href) = @_;
+	$href = {href => $href} unless ref($href);
+	$href->{href} = "javascript:void(0)" unless $href->{href};
+	return HTML("a", $msg, $href);
+}
+
+=markdown H1()
+生成标题 1，默认添加换行。
+=cut
 sub H1
 {
 	my ($text) = @_;
-	return "\t\t" . HTML("H1", $text) . "\n";
+	return HTML("H1", $text) . "\n";
 }
 
 =sub LOG
