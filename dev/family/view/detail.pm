@@ -229,7 +229,7 @@ EndOfHTML
 	<a href="javascript:void(0);" onclick="DivHide('add-child-form')">扩展：增加子女</a>
 </div>
 <div id="add-child-form" style="display:none">
-	<form name="add-child" action="?mine_id=$id" method="post" onsubmit="return ValidateCreateChild()">
+	<form name="add-child" action="?mine_id=$id" method="post">
 		姓名：<input size="5" type="text" name="child_name" required="required"/>
 		<select name="child_sex" required="required">
 			<option value="1">儿子</option>
@@ -249,7 +249,7 @@ EOF
 	}
 
 	return <<EndOfHTML;
-<form name="modify-mine" action="?mine_id=$id" method="post" onsubmit="return ValidateModifyForm()">
+<form name="modify-mine" action="?mine_id=$id" method="post">
 	<table>
 		<tr>
 			<td>编号：</td>

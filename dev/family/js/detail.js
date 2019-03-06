@@ -1,3 +1,12 @@
+window.onload = init;
+
+function init() {
+	document.forms["modify-mine"].onsubmit = ValidateModifyForm;
+	if (document.forms["add-child"]) {
+		document.forms["add-child"].onsubmit = ValidateCreateChild;
+	}
+}
+
 // 验证修改资料表单
 function ValidateModifyForm()
 {

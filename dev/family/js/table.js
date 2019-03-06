@@ -1,3 +1,9 @@
+window.onload = init;
+
+function init() {
+	document.forms["operate-form"].onsubmit = ValidateForm;
+}
+
 // 验证修改资料表单
 function ValidateForm()
 {

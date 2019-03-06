@@ -244,7 +244,7 @@ sub s_table_form
 	my ($var) = @_;
 	
 	return <<EndOfHTML;
-<form name='operate-form' action="#table-sumary" method="post" onsubmit="return ValidateForm()">
+<form name='operate-form' action="#table-sumary" method="post">
 	<tr>
 		<td colspan="9"><span>操作：</span>
 			新增<input type="radio" name="operate" value="create" checked="checked"/>，
