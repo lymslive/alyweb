@@ -1,7 +1,7 @@
 #!/usr/local/bin/perl
 
 print "Content-type:text/html\n";
-print "Set-Cookie: zzu=tansl\n";
+# print "Set-Cookie: zzu=tansl\n";
 print "\n";
 print <<EndOfHTML;
 <html><head><title>Perl Environment Variables</title></head>
