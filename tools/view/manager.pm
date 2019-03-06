@@ -1,9 +1,9 @@
 #! /usr/bin/env perl
 package view::manager;
+use parent qw(HTPL);
 use utf8;
 use strict;
 use warnings;
-use parent qw(HTPL);
 
 sub new
 {
@@ -16,23 +16,23 @@ sub new
 	return $self;
 }
 
-
 sub generate
 {
-	my ($self, $st, $LOG) = @_;
-	if (!$st || $st->{error}) {
-		return $self->on_error($st->{error});
+	my ($self, $cgi) = @_;
+	if (!$cgi || $cgi->{error}) {
+		return $self->on_error($cgi->{error});
 	}
 
 	$self->{body} = HTPL::H1($self->{H1});
 
-	if (!$st->{logined}) {
+	if (!$cgi->{logined}) {
 		$self->{body} .= s_login_form();
 	}
 	else {
-		$self->{body} .= s_list_tool($st);
+		$self->{body} .= s_list_tool($cgi);
 	}
 
+	my $LOG = $cgi->{LOG};
 	if ($LOG->{debug}) {
 		$self->{body} .= HTPL::LOG($LOG);
 	}
@@ -42,23 +42,22 @@ sub generate
 
 sub s_login_form
 {
-	my ($var) = @_;
-	return <<EndOfHTML;
-	<div id="login-form">
-		<form method="get">
-			ID： <input type="text" name="uid" required="required"/><br>
-			PW： <input type="password" name="key" required="required"/><br>
-			<input type="submit" value="登陆"/>
-		</form>
-	</div>
-EndOfHTML
+	return <<HTML;
+<div id="login-form">
+	<form method="get">
+		ID： <input type="text" name="uid" required="required"/><br>
+		PW： <input type="password" name="key" required="required"/><br>
+		<input type="submit" value="登陆"/>
+	</form>
+</div>
+HTML
 }
 
 sub s_list_tool
 {
-	my ($st) = @_;
+	my ($cgi) = @_;
 	my $list = '';
-	foreach my $tool (values %{$st->{list}}) {
+	foreach my $tool (values %{$cgi->{list}}) {
 		my $desc = $tool->{desc};
 		my $cgi = $tool->{cgi};
 		my $li = <<HTML;

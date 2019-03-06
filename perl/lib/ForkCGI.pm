@@ -10,6 +10,54 @@ use WebLog;
 # key=val 正则表达式
 my $REG_KV = qr/(\w+)=(\S+)/;
 
+=head1 面向对象定义
+=cut
+
+# 标准 new 方法
+sub new
+{
+	my $class = shift;
+	my $self = {};
+	bless $self, $class;
+	return $self->ctor(@_);
+}
+
+=sub ctor()
+	构造函数，初始设置以下只读字段
+	* PARAM => POST 或 GET 参数
+	* COOKIE => key=val 型 cookie
+	* LOG => 默认的 WebLog 实例
+=cut
+sub ctor
+{
+	my $self = shift;
+	$self->{PARAM} = Param();
+	$self->{COOKIE} = Cookie();
+	$self->{LOG} = WebLog::instance();
+	return $self;
+}
+
+=sub error($msg)
+	设置或获取处理错误，并记录日志，返回 $self
+	* 检查错误：$self->error 或 $self->error() 或 $self->error(undef)
+	* 设置错误：$self->error($msg)
+	* 清除错误：$self->error(0)
+=cut
+sub error
+{
+	my $self = shift;
+	my ($msg) = @_;
+	if (!defined($msg)) {
+		return $self->{error};
+	}
+	$self->{error} = $msg;
+	wlog($msg, {deep => 2}) if $msg;
+	return $self;
+}
+
+=head1 面向过程函数
+=cut
+
 =item Param
 	获取 GET 与 POST 以及命令行参数，转为 hash 
 输入：

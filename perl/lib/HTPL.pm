@@ -19,8 +19,9 @@ sub new
 
 sub runout
 {
-	my ($self, $data, $LOG) = @_;
-	$self->generate($data, $LOG);
+	my ($self, $cgi, $LOG) = @_;
+	$self->{CGI} = $cgi;
+	$self->generate($cgi, $LOG);
 	return $self->response();
 }
 
@@ -50,7 +51,7 @@ EndOfHTML
 
 sub generate
 {
-	my ($self, $data, $LOG) = @_;
+	my ($self, $cgi, $LOG) = @_;
 	$self->{body} = '生成内容';
 
 	return 0;
@@ -226,9 +227,9 @@ sub set_cookie
 =cut
 
 =markdown HTML($label, $text, $attr_ref)
-生成 html 标签文本：<$label $attr_str>$text</$label>
-如果 $text 是 undef ，则生成自闭标签如 <br/> <img/>
-$attr_ref 是属性表
+	生成 html 标签文本：<$label $attr_str>$text</$label>
+	如果 $text 是 undef ，则生成自闭标签如 <br/> <img/>
+	$attr_ref 是属性表
 =cut
 sub HTML
 {
@@ -251,8 +252,8 @@ sub HTML
 }
 
 =markdown LINK($msg, $href)
-生成 <a href=""></a> 链接文件
-$href 是链接地址，或详细的 hashref 属性，链接为空时用 void(0)
+	生成 <a href=""></a> 链接文件
+	$href 是链接地址，或详细的 hashref 属性，链接为空时用 void(0)
 =cut
 sub LINK
 {
@@ -263,7 +264,7 @@ sub LINK
 }
 
 =markdown H1()
-生成标题 1，默认添加换行。
+	生成标题 1，默认添加换行。
 =cut
 sub H1
 {

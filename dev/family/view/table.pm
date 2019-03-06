@@ -254,7 +254,7 @@ sub s_table_form
 		</td>
 	</tr>
 	<tr>
-		<td><input size="3" type="text" name="mine_id"/></td>
+		<td><input size="3" type="number" name="mine_id"/></td>
 		<td><input size="3" type="text" name="mine_name"/></td>
 		<td><select name="sex">
 				<option value="">--</option>

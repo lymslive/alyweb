@@ -1,37 +1,37 @@
 #! /usr/bin/env perl
+package AppCGI;
+use parent 'ForkCGI';
+
 use utf8;
 use strict;
 use warnings;
 use FindBin qw($Bin);
 use lib "$Bin";
 use WebLog;
-use ForkCGI;
 use view::manager;
 
 my $USER = 'lymslive';
 my $PASS = '190405';
 
-my $LOG = WebLog::instance();
-##-- MAIN --##
-sub main
+sub new
 {
-	my @argv = @_;
-
-	my $st = {};
-	$st->{PARAM} = ForkCGI::Param();
-	$st->{COOKIE} = ForkCGI::Cookie();
-	check_login($st);
-	tool_list($st);
-	my $html = view::manager->new();
-	return $html->runout($st, $LOG);
+	my $class = shift;
+	return $class->SUPER::new(@_);
 }
 
-##-- SUBS --##
+##-- METHOD --##
+
+sub work
+{
+	my $self = shift;
+	$self->check_login();
+	$self->tool_list();
+}
 
 sub tool_list
 {
-	my ($st) = @_;
-	$st->{list} = {
+	my $self = shift;
+	$self->{list} = {
 		PullNotebook => {
 			desc => '更新日记本',
 			cgi => 'gitpull.cgi?path=notebook',
@@ -45,23 +45,36 @@ sub tool_list
 			cgi=>'gitpull.cgi',
 		},
 	};
+	return $self;
 }
 
 sub check_login
 {
-	my ($st) = @_;
-	my $param = $st->{PARAM};
+	my $self = shift;
+	my $param = $self->{PARAM};
 	my $user = $param->{uid};
 	my $pass = $param->{key};
 
 	if (!$user || $user ne $USER) {
-		return elog('用户名不对');
+		return $self->error('用户名不对');
 	}
 	if (!$pass || $pass ne $PASS) {
-		return elog('密码不对');
+		return $self->error('密码不对');
 	}
 
-	$st->{logined} = 1;
+	$self->{logined} = 1;
+	return $self;
+}
+
+##-- MAIN --##
+sub main
+{
+	my @argv = @_;
+
+	my $cgi = __PACKAGE__->new();
+	$cgi->work();
+	my $html = view::manager->new();
+	return $html->runout($cgi);
 }
 
 ##-- END --##
