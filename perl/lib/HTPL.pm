@@ -284,7 +284,9 @@ sub LOG
 	return <<EndOfHTML;
 <hr>
 <div class="folder">
-	<a href="javascript:void(0);" onclick="DivHide('debug-log')" class="fold">CGI Web LOG</a>
+	<div>
+		<a href="javascript:void(0);" onclick="DivHide('debug-log')" class="fold">CGI Web LOG</a>
+	</div>
 	<div id="debug-log" style="display:$display" class="foldOff">
 $log
 	</div>

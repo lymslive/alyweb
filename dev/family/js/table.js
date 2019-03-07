@@ -46,3 +46,24 @@ function ValidateForm()
 	return true;
 }
 
+// 参考 js9 教程
+$(document).ready(function() {
+	$("tr").mouseover(function() {
+		$(this).addClass("over");
+	});
+
+	$("tr").mouseout(function() {
+		$(this).removeClass("over");
+	});
+
+	$("tr:even").addClass("even");
+
+	/*
+	$("#memTable").tablesorter({
+		sortList:[[0,0]],
+		cssAsc: "sortUp",
+		cssDesc: "sortDown",
+		widgets: ["zebra"]
+	});
+	*/
+});

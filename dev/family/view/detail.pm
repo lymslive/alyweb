@@ -229,7 +229,9 @@ EndOfHTML
 	if ($partner) {
 		$add_child = <<EOF
 <div class="folder">
-	<a href="javascript:void(0);" onclick="DivHide('add-child-form')" class="fold">扩展：增加子女</a>
+	<div>
+		<a href="javascript:void(0);" onclick="DivHide('add-child-form')" class="fold">扩展：增加子女</a>
+	</div>
 	<div id="add-child-form" style="display:none" class="foldOn">
 		<form name="add-child" action="?mine_id=$id" method="post">
 			姓名：<input size="5" type="text" name="child_name" required="required"/>
@@ -302,7 +304,9 @@ $parent_row
 		</tr>
 	</table>
 	<div class="folder">
-	<a href="javascript:void(0);" onclick="DivHide('mine-desc-inform')" class="fold">扩展：我的简介</a>
+		<div>
+			<a href="javascript:void(0);" onclick="DivHide('mine-desc-inform')" class="fold">扩展：我的简介</a>
+		</div>
 		<div id="mine-desc-inform" style="display:inline" class="foldOff">
 			<textarea name="desc" rows="10" cols="30" >（简介暂未支持）</textarea><br/>
 		</div>

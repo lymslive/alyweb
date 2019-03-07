@@ -15,7 +15,8 @@ sub new
 	$self->{title} = '谭氏家谱网-成员列表';
 	$self->{body} = '';
 	$self->{H1} = '谭氏年浪翁子嗣家谱表';
-	$self->{js} = ['js/cutil.js', 'js/table.js'];
+	$self->{js} = ['http://code.jquery.com/jquery-2.1.0.js', 'jquery/jquery.tablesorter.js', 'js/cutil.js', 'js/table.js'];
+	$self->{css} = ['css/table.css'];
 	bless $self, $class;
 	return $self;
 }
@@ -27,7 +28,7 @@ sub body
 	return <<EndOfHTML;
 <h1>$self->{H1}</h1>
 <div id="family_table">
-	<table border="1">
+	<table id="memTable">
 $TableRows
 	</table>
 </div>
@@ -93,6 +94,10 @@ sub s_table
 		push @html, s_table_row($row, 1);
 	}
 
+	# 在小计前拆表，关闭表格，开启另一个表格
+	# push @html, "</table>";
+	# push @html, "<table>";
+
 	my $count = scalar(@{$data->{rows}});
 	push @html, s_table_sumary($count);
 
@@ -134,15 +139,15 @@ sub s_table_head
 	
 	return <<EndOfHTML;
 <tr>
-	<td>编号</td>
-	<td>姓名</td>
-	<td>性别</td>
-	<td>代际</td>
-	<td>父亲</td>
-	<td>母亲</td>
-	<td>元配</td>
-	<td>生日</td>
-	<td>忌日</td>
+	<th>编号</th>
+	<th>姓名</th>
+	<th>性别</th>
+	<th>代际</th>
+	<th>父亲</th>
+	<th>母亲</th>
+	<th>元配</th>
+	<th>生日</th>
+	<th>忌日</th>
 </tr>
 EndOfHTML
 }
@@ -253,7 +258,7 @@ sub s_table_form
 		</td>
 	</tr>
 	<tr>
-		<td><input size="3" type="number" name="mine_id"/></td>
+		<td><input size="3" type="text" name="mine_id"/></td>
 		<td><input size="3" type="text" name="mine_name"/></td>
 		<td><select name="sex">
 				<option value="">--</option>
