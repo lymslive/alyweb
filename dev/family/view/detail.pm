@@ -29,11 +29,14 @@ sub body
 	$TableForm
 </div>
 <div id = "form_tips">
-	<h2>修改说明：</h2>
+	<h2>本页说明：</h2>
 	<ul>
-		<li> 成员 ID 已固定，可以修改其他资料
+		<li> 成员资料右侧输入框可对照着修改，不用改的项目不需管
 		<li> 父亲、母亲、配偶三项可填姓名，除非有重名必须填 ID
-		<li> 旁系配偶不记录父母等其他关系了
+		<li> 旁系配偶不能再录入父母等其他关系
+		<li> 提交配偶资料后，在下方点击“扩展：增加子女”可快捷录入后代
+		<li> 同一脉的女儿的后代也可入库
+		<li> 点击有关系的名字链接，可进入相应的资料页，或在上方直接输入姓名/编号查找
 	</ul>
 </div>
 EndOfHTML
@@ -225,25 +228,25 @@ EndOfHTML
 	my $add_child = '';
 	if ($partner) {
 		$add_child = <<EOF
-<div>
-	<a href="javascript:void(0);" onclick="DivHide('add-child-form')">扩展：增加子女</a>
-</div>
-<div id="add-child-form" style="display:none">
-	<form name="add-child" action="?mine_id=$id" method="post">
-		姓名：<input size="5" type="text" name="child_name" required="required"/>
-		<select name="child_sex" required="required">
-			<option value="1">儿子</option>
-			<option value="0">女儿</option>
-		</select><br>
-		生于：<input size="5" type="date" name="child_birthday"/> --
-		<input size="5" type="date" name="child_deathday"/><br>
-		<input type="hidden" name="operate" value="create"/>
-		<input type="reset" value="放弃" />
-		<input type="submit" value="提交" />
-		口令：<input size="6" type="password" name="operkey" value="123456"/>
-		<input type="hidden" name="oper_key" value=""/><br>
-		<textarea name="child_desc" rows="10" cols="30" >（简介暂未支持）</textarea><br/>
-	</form>
+<div class="folder">
+	<a href="javascript:void(0);" onclick="DivHide('add-child-form')" class="fold">扩展：增加子女</a>
+	<div id="add-child-form" style="display:none" class="foldOn">
+		<form name="add-child" action="?mine_id=$id" method="post">
+			姓名：<input size="5" type="text" name="child_name" required="required"/>
+			<select name="child_sex" required="required">
+				<option value="1">儿子</option>
+				<option value="0">女儿</option>
+			</select><br>
+			生于：<input size="5" type="date" name="child_birthday"/> --
+			<input size="5" type="date" name="child_deathday"/><br>
+			<input type="hidden" name="operate" value="create"/>
+			<input type="reset" value="放弃" />
+			<input type="submit" value="提交" />
+			口令：<input size="6" type="password" name="operkey" value="123456"/>
+			<input type="hidden" name="oper_key" value=""/><br>
+			<textarea name="child_desc" rows="10" cols="30" >（简介暂未支持）</textarea><br/>
+		</form>
+	</div>
 </div>
 EOF
 	}
@@ -298,11 +301,11 @@ $parent_row
 			<td><input type="submit" value="修改资料" /></td>
 		</tr>
 	</table>
-	<div>
-	<a href="javascript:void(0);" onclick="DivHide('mine-desc-inform')">扩展：我的简介</a>
-	</div>
-	<div id="mine-desc-inform" style="display:inline">
-		<textarea name="desc" rows="10" cols="30" >（简介暂未支持）</textarea><br/>
+	<div class="folder">
+	<a href="javascript:void(0);" onclick="DivHide('mine-desc-inform')" class="fold">扩展：我的简介</a>
+		<div id="mine-desc-inform" style="display:inline" class="foldOff">
+			<textarea name="desc" rows="10" cols="30" >（简介暂未支持）</textarea><br/>
+		</div>
 	</div>
 </form>
 $add_child

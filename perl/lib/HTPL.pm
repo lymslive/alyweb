@@ -282,11 +282,13 @@ sub LOG
 	my $display = ($LOG->{debug} > 0) ? 'inline' : 'none';
 	my $log = $LOG->to_webline();
 	return <<EndOfHTML;
-	<hr>
-	<div><a href="javascript:void(0);" onclick="DivHide('debug-log')">CGI Web LOG</a></div>
-	<div id="debug-log" style="display:$display">
-		$log
+<hr>
+<div class="folder">
+	<a href="javascript:void(0);" onclick="DivHide('debug-log')" class="fold">CGI Web LOG</a>
+	<div id="debug-log" style="display:$display" class="foldOff">
+$log
 	</div>
+</div>
 EndOfHTML
 }
 

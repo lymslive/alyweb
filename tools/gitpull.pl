@@ -37,6 +37,8 @@ print "</pre>\n";
 $cmd = '/usr/bin/git pull 2>&1';
 print "\$ $cmd<br>\n";
 $output = qx($cmd);
+print "<pre>\n";
 print "$output<br>\n";
+print "</pre>\n";
 
 print "</body></html>";
