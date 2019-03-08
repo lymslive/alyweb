@@ -8,6 +8,34 @@ var $DOC = {VIEW:{}, DATA:{}};
 function INIT()
 {
 	$DOC.DATA.mapid = {};
+	$DOC.DATA.row = function(id) {
+		return this.Table.Hash[id];
+	};
+
+	$DOC.DATA.Table = {
+		List: [],
+		Hash: {},
+
+		// 重新加载全表数据
+		load: function(resData) {
+			this.List = resData;
+			for (var i = 0; i < resData.length; ++i) {
+				var id = resData[i].F_id;
+				var name = resData[i].F_name;
+				$DOC.DATA.mapid[id] = name;
+				this.Hash[id] = resData[i];
+			}
+		},
+
+		hash: function() {
+		},
+
+		LAST_PRETECT: 0
+	};
+
+	$DOC.VIEW.Table = {
+		LAST_PRETECT: 0
+	};
 
 	// 操作表单在某行数据行下展开
 	$DOC.VIEW.Operate = {
@@ -23,16 +51,22 @@ function INIT()
 				var rid = 'r' + this.refid;
 				row = $('#' + rid);
 			}
+			else {
+				// 在不同行上点击，关闭原来行下的表单
+				var rid = row.attr('id');
+				if (this.refid && this.refid != rid.substring(1)) {
+					this.fold(0);
+				}
+			}
 
 			if (this.refid) {
-				$('#divOperate').hide();
+				$('#divOperate div.operate-tips').hide();
 				$('#oper-detail').hide();
-				$('#tip-modify').hide();
-				$('#tip-append').hide();
-				$('#tip-remove').hide();
-				$('#formOperate input:radio[name=operate]').attr('checked',false);
+				$('#divOperate').hide();
 				$('#formOperate input:radio[name=sex]').attr('checked',false);
+				$('#formOperate input:radio[name=operate]').attr('checked',false);
 				$('#formOperate input:radio[name=operate]').parent('label').removeClass('radio-checked');
+				$('#oper-error').html('');
 				this.refid = 0;
 
 				// 隐藏表单并移至末尾
@@ -168,7 +202,163 @@ function INIT()
 			$input.attr('readonly', false);
 			// $input.parent().removeClass('input-lock');
 			$input.removeClass('input-lock');
-		}
+		},
+
+		submit: function(evt) {
+			if (!this.refid) {
+				console.log('逻辑错误：不在参照行下展开表单？');
+				return false;
+			}
+
+			var $form = $('#formOperate');
+			var op = $form.find('input:radio[name=operate]:checked').val();
+			var operkey = $form.find('input[name=operkey]').val();
+			var mine_id = $form.find('input[name=mine_id]').val();
+			var mine_name = $form.find('input[name=mine_name]').val();
+			var sex = $form.find('input:radio[name=sex]:checked').val();
+			var father = $form.find('input[name=father]').val();
+			var mother = $form.find('input[name=mother]').val();
+			var partner = $form.find('input[name=partner]').val();
+			var birthday = $form.find('input[name=birthday]').val();
+			var deathday = $form.find('input[name=deathday]').val();
+
+			var reqData = {};
+			var req = {};
+			var jold = $DOC.DATA.members[this.refid];
+			var $error = $('#oper-error');
+			if (op == 'modify') {
+				if (!mine_id || mine_id != this.refid) {
+					console.log('id 不匹配');
+					$error.html('id 不匹配');
+					return false;
+				}
+				reqData.id = mine_id;
+				if (mine_name && jold.F_name != mine_name) {
+					reqData.name = mine_name;
+				}
+				if (sex && sex != jold.F_sex) {
+					reqData.sex = sex;
+				}
+				if (!jold.F_father && father) {
+					var father_id = parseInt(father);
+					if (isNaN(father_id)) {
+						reqData.father_name = father;
+					}
+					else {
+						reqData.father_id = father_id;
+					}
+				}
+				if (!jold.F_mother && mother) {
+					var mother_id = parseInt(mother);
+					if (isNaN(mother_id)) {
+						reqData.mother_name = mother;
+					}
+					else {
+						reqData.mother_id = mother_id;
+					}
+				}
+				// 配偶允许多个
+				if (partner) {
+					var partner_id = parseInt(partner);
+					if (isNaN(partner_id)) {
+						reqData.partner_name = partner;
+					}
+					else {
+						if (jold.F_partner != partner_id) {
+							reqData.partner_id = partner_id;
+						}
+					}
+				}
+				if (birthday) {
+					reqData.birthday = birthday;
+				}
+				if (deathday) {
+					reqData.deathday = deathday;
+				}
+
+				if (Object.keys(reqData).length <= 1) {
+					console.log('没有更新任何资料 keys');
+					$error.html('没有更新任何资料 keys');
+					return false;
+				}
+
+				req.api = 'modify';
+				req.data = reqData;
+				console.log(req);
+			}
+			else if (op == 'append') {
+				if (mine_name) {
+					reqData.name = mine_name;
+				}
+				else {
+					console.log('新增后代必须填姓名');
+					$error.html('新增后代必须填姓名');
+					return false;
+				}
+				if (sex) {
+					reqData.sex = sex;
+				}
+				else {
+					console.log('新增后代必须选性别');
+					$error.html('新增后代必须选性别');
+					return false;
+				}
+
+				if (father) {
+					var father_id = parseInt(father);
+					if (isNaN(father_id)) {
+						reqData.father_name = father;
+					}
+					else {
+						reqData.father_id = father_id;
+					}
+				}
+				if (mother) {
+					var mother_id = parseInt(mother);
+					if (isNaN(mother_id)) {
+						reqData.mother_name = mother;
+					}
+					else {
+						reqData.mother_id = mother_id;
+					}
+				}
+				if (!father && !mother) {
+					console.log('新增后代必须指定父母之一');
+					$error.html('新增后代必须指定父母之一');
+					return false;
+				}
+
+				if (partner) {
+					var partner_id = parseInt(partner);
+					if (isNaN(partner_id)) {
+						reqData.partner_name = partner;
+					}
+					else {
+						reqData.partner_id = partner_id;
+					}
+				}
+				if (birthday) {
+					reqData.birthday = birthday;
+				}
+				if (deathday) {
+					reqData.deathday = deathday;
+				}
+
+				req.api = 'create';
+				req.data = reqData;
+				console.log(req);
+			}
+			else {
+				console.log('只有修改或增加后代需提交数据');
+			}
+
+			// 检测成功
+			$error.html('');
+			return false;// 测试不提交
+		},
+
+		// 避免最后一个逗号
+		LAST_PRETECT: 0
 	};
 }
 
@@ -180,33 +370,28 @@ $(document).ready(function() {
 
 function regEvent()
 {
-	$('#to-modify').click(
-		function(){
-			$DOC.VIEW.Operate.tip('modify');
-		}
-	);
-	$('#to-append').click(
-		function(){
-			$DOC.VIEW.Operate.tip('append');
-		}
-	);
-	$('#to-remove').click(
-		function(){
-			$DOC.VIEW.Operate.tip('remove');
-		}
-	);
+	$('#to-modify').click(function() {
+		$DOC.VIEW.Operate.tip('modify');
+	});
+	$('#to-append').click(function() {
+		$DOC.VIEW.Operate.tip('append');
+	});
+	$('#to-remove').click( function() {
+		$DOC.VIEW.Operate.tip('remove');
+	});
 
-	$('#oper-close').click(
-		function(){
-			$DOC.VIEW.Operate.fold();
-		}
-	);
+	$('#oper-close').click(function() {
+		$DOC.VIEW.Operate.fold(0);
+	});
 
-	$('#test-toggle').click(
-		function(){
-			// $DOC.VIEW.Operate.fold();
-		}
-	);
+	$('#formOperate').submit(function(evt) {
+		evt.preventDefault();
+		return $DOC.VIEW.Operate.submit(evt);
+	});
+
+	$('#test-toggle').click(function() {
+		// $DOC.VIEW.Operate.fold();
+	});
 
 	// 自动查询折叠链接
 	$('div a.fold').click(function(evt) {
@@ -241,7 +426,7 @@ function loadPage()
 		// data: req // 会发送 api=query& 而不是 json 串
 	};
 
-	jqxhr = $.ajax(API_URL, opt)
+	$DOC.AJAX = $.ajax(API_URL, opt)
 		.done(resDone)
 		.fail(resFail)
 		.always(resAlways);
@@ -252,8 +437,8 @@ function resDone(res)
 	// $('#debug-log').append("<p>" + res + "</p>");
 
 	// 记录日志
-	var str = JSON.stringify(res);
-	$('#debug-log').append("<p>" + str + "</p>");
+	// var str = JSON.stringify(res);
+	// $('#debug-log').append("<p>" + str + "</p>");
 
 	// 添加表行
 	// $('#tabMember').append(formatRow(res.data[0]));
