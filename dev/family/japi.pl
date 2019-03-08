@@ -38,7 +38,7 @@ sub main
 
 	# 输出响应
 	wlog("Response json: " . $string_res);
-	print "Content-type:text/json\n\n";
+	print "Content-type:application/json\n\n";
 	print $string_res;
 
 	# 不是从网页 CGI ，认为从终端运行
@@ -54,8 +54,10 @@ sub err_output
 {
 	my ($errmsg) = @_;
 	wlog($errmsg);
-	print "Content-type:text/json\n\n";
-	print qq/{"error":-1,"errmsg":$errmsg}/;
+	my $json_res = {error => -1, errmsg => $errmsg};
+	my $string_res = encode_json($json_res);
+	print "Content-type:application/json\n\n";
+	print $string_res;
 }
 
 # 额外向终端输出日志

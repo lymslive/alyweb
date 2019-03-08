@@ -3,25 +3,81 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width" />
+		<link rel="stylesheet" href="css/table.css"/>
 		<script src="http://code.jquery.com/jquery-2.1.0.js"></script>
+		<script src="jquery/jquery.tablesorter.js"></script>
+		<script src="js/jtable.js"></script>
 		<title> 谭氏家谱 </title>
 	</head>
 	<body>
 		<h1>谭氏年浪翁家谱表</h1>
 		<div id="family_table">
-			<table id="tabMember" border="1">
-				<tr>
-					<td>编号</td>
-					<td>姓名</td>
-					<td>性别</td>
-					<td>代际</td>
-					<td>父亲</td>
-					<td>母亲</td>
-					<td>配偶</td>
-					<td>生日</td>
-					<td>忌日</td>
+			<table id="tabMember">
+				<tr id="topTH">
+					<th>编号</th>
+					<th>姓名</th>
+					<th>性别</th>
+					<th>代际</th>
+					<th>父亲</th>
+					<th>母亲</th>
+					<th>配偶</th>
+					<th>生日</th>
+					<th>忌日</th>
 				</tr>
 			</table>
+			<a href="#tabMember">返回首行</a>
+		</div>
+
+		<div id="divOperate" class="foldOff">
+			<form id="formOperate">
+				<label>修改资料<input type="radio" name="operate" value="modify" id="to-modify"/></label>
+				<label>添加子女<input type="radio" name="operate" value="append" id="to-append"/></label>
+				<label>删除记录<input type="radio" name="operate" value="remove" id="to-remove"/></label>
+				<label>操作口令<input type="password" name="operkey" value="123456"/></label>
+				<div id="oper-detail" class="foldOff">
+					<label>编号<input type="text" name="mine_id" value=""/></label>
+					<label>姓名<input type="text" name="mine_name" value=""/></label>
+					<label>男<input type="radio" name="sex" value="1"/></label>
+					<label>女<input type="radio" name="sex" value="0"/></label><br>
+					<label>父亲<input type="text" name="father" value=""/></label>
+					<label>母亲<input type="text" name="mother" value=""/></label><br>
+					<label>配偶<input type="text" name="partner" value=""/></label>
+					<a href="#" id="remarry">（增加配偶）</a><br>
+					<label>生日<input type="date" name="birthday" value=""/></label>
+					<label>忌日<input type="date" name="deathday" value=""/></label><br>
+					<input type="submit" value="提交操作"/>
+					<input type="button" value="取消操作" id="oper-close"/>
+				</div>
+			</form>
+			<div id="tip-modify" class="foldOff operate-tips">
+				<ul>
+					<li>根据唯一编号修改资料，可以改姓名、性别与缺失的资料</li>
+					<li>父母、配偶若要修改时，可填编号或姓名（不重名时）</li>
+					<li>已确立的父母不可修改，若要修改父母的姓名应该修改父母的资料</li>
+					<li>代际根据父母关系确定，如果父母代际关系完全错乱，只能删除重新录入</li>
+					<li>录入配偶时，将自动为配偶增加记录，并设为旁系（代际用负数区分）</li>
+					<li>为旁系配偶修改资料时，不再录入其父母关系</li>
+					<li>除非确有再婚情况，已录入配偶信息的，不能再修改配偶</li>
+				</ul>
+			</div>
+			<div id="tip-append" class="foldOff operate-tips">
+				<ul>
+					<li>添加子女后时，编号由系统自动分配，作为唯一标志</li>
+					<li>一般只要填入姓名、性别即可录入后代，其他资料后续修改</li>
+					<li>已自动填入父或母的依托关系</li>
+					<li>未自动填入的某方父母，可手动填入，前提是只有依赖已入库的成员</li>
+				</ul>
+			</div>
+			<div id="tip-remove" class="foldOff operate-tips">
+				<div class="operate-warn">
+					注意：如果只是名字错误，可通过修改资料。<br/>
+					请只在无法修改正确的情况下删除再重录，或者删除重复记录。
+				</div>
+				<div>
+					确定删除<span id="mine-id-name">id/name</span>的记录吗？
+					<input type="button" value="确定删除" id="do-remove"/>
+				</div>
+			</div>
 		</div>
 
 		<div id="table_instruction">
@@ -34,7 +90,14 @@
 			</ul>
 		</div>
 
-		<div id='debug-log'>
+		<div id="divTest" class="foldOff">
+			<input type="button" value="展开/隐藏" id="test-toggle"/>
+		</div>
+
+		<div class="folder">
+			<a href="javascript:void(0);" class="fold">调试日志</a>
+			<div id='debug-log' class="foldOff">
+			</div>
 		</div>
 	</body>
 </html>

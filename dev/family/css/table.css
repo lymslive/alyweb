@@ -30,3 +30,36 @@ th.sortUp {
 th.sortDown {
 	background: #626975 url(jquery/images/desc.png) no-repeat right center;
 }
+
+/* 折叠设置 */
+.foldOff {
+	display: none;
+}
+
+.foldOut {
+	display: block;
+}
+
+.foldOn {
+	display: inline;
+}
+
+/* 操作提示文字 */
+.operate-tips {
+	font-size: smaller;
+}
+.operate-warn {
+	color:red;
+}
+
+.radio-checked {
+	font-weight: bold;
+	color: #FFF;
+	padding-right: 2px;
+	padding-left: 2px;
+	background-color: #626975;
+}
+
+.input-lock {
+	background-color: #8797B7;
+}
