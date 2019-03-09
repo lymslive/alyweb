@@ -1,44 +1,192 @@
-let API_URL = '/dev/family/japi.cgi';
-let SEX = ['女♀', '男♂'];
-let NULL = '';
+// 数据
+var $DD = {
+	// 常量
+	API_URL: '/dev/family/japi.cgi',
+	SEX: ['女♀', '男♂'],
+	NULL: '',
 
-// 全局对象
-var $DOC = {VIEW:{}, DATA:{}};
-
-function INIT()
-{
-	$DOC.DATA.mapid = {};
-	$DOC.DATA.row = function(id) {
+	Mapid: {},
+	getName: function(id) {
+		return this.Mapid[id];
+	},
+	getRow: fcuntion(id) {
 		return this.Table.Hash[id];
-	};
+	},
 
-	$DOC.DATA.Table = {
+	Table: {
+		Title: ['编号', '姓名', '性别', '代际', '父亲', '母亲', '配偶', '生日', '忌日'],
 		List: [],
 		Hash: {},
 
 		// 重新加载全表数据
 		load: function(resData) {
 			this.List = resData;
+			this.Hash = {};
 			for (var i = 0; i < resData.length; ++i) {
 				var id = resData[i].F_id;
 				var name = resData[i].F_name;
-				$DOC.DATA.mapid[id] = name;
+				$DD.Mapid[id] = name;
 				this.Hash[id] = resData[i];
 			}
 		},
 
-		hash: function() {
+		modify: function(_resData, _reqData) {
+			var id = _reqData.id;
+			var jold = $DD.getRow(id);
+			if (_reqData.name) {
+				jold.F_name = _reqData.name;
+			}
+			if (_reqData.sex) {
+				jold.F_sex = _reqData.sex;
+			}
+			if (_reqData.father_id) {
+				jold.F_father = _reqData.father_id;
+			}
+			else if (_reqData.father_name) {
+			}
+		}
+
+		LAST_PRETECT: 0
+	},
+
+	LAST_PRETECT: true
+};
+
+// 表观
+var $DV = {
+	// 主表格
+	Table: {
+		domid: '#tabMember',
+		rows: 0,
+		rowcss: 'rowdata',
+
+		// 10 行以上额外加底部标题行
+		but_limit: 10,
+		butid: '#butTH',
+
+		// 创建单元格与行的 jq 对象
+		htd: function(content) {
+			return $('<td></td>').append(content);
+		},
+		htr: function(tds,rid) {
+			var tr = $('<tr></tr>').attr('id', rid);
+			for (var i=0; i < tds.length; i++) {
+				tr.append(tds[i]);
+			}
+			return tr;
+		},
+		hth: function(rid) {
+			var $tr = $('<tr></tr>');
+			if (rid) {
+				$tr.attr('id', rid);
+			}
+			else {
+				$tr.attr('id', this.butid);
+			}
+			var title = $DD.Table.Title;
+			for (var i=0; i<title.length; i++) {
+				var $th = $('<th></th>').html(title[i]);
+				$tr.append($th);
+			}
+			return $th;
 		},
 
-		LAST_PRETECT: 0
-	};
+		empty: function() {
+			if (this.rows <= 0) {
+				return;
+			}
 
-	$DOC.VIEW.Table = {
-		LAST_PRETECT: 0
-	};
+			console.log('将清空表格数据行：' + this.rows);
+			$(this.domid).find('.' + this.rowcss).remove();
+			$(this.butid).remove();
+		},
+
+		fill: function(data) {
+			if (data.length <= 0) {
+				return;
+			}
+			if (this.rows) {
+				empty();
+			}
+			console.log('将填充表格数据行：' + data.length);
+			for (var i=0; i<data.length; i++) {
+				$(this.domid).append(this.formatRow(data[i]));
+			}
+			if (data.length > this.but_limit) {
+				$(this.domid).append(this.hth());
+			}
+		},
+
+		formatRow: function(jrow) {
+			var id = jrow.F_id;
+			var name = jrow.F_name;
+			var sex = $DD.SEX[jrow.F_sex];
+			var level = jrow.F_level > 0 ? '+' + jrow.F_level : '' + jrow.F_level;
+			var father = jrow.F_father || $DD.NULL;
+			var mother = jrow.F_mother || $DD.NULL;
+			var partner = jrow.F_partner || $DD.NULL;
+			var birthday = jrow.F_birthday || $DD.NULL;
+			var deathday = jrow.F_deathday || $DD.NULL;
+
+			if (father && $DD.Mapid[father]) {
+				father = $DD.Mapid[father];
+			}
+			if (mother && $DD.Mapid[mother]) {
+				mother = $DD.Mapid[mother];
+			}
+			if (partner && $DD.Mapid[partner]) {
+				partner = $DD.Mapid[partner];
+			}
+
+			var html = '';
+
+			var $tr = $('<tr></tr>')
+				.attr('id', 'r' + id)
+				.attr('class', this.rowcss)
+			;
+
+			var $td = $('<td></td>')
+				.html(id)
+				.attr('id', 'm' + id)
+				.attr('href', '#r' + id)
+				.attr('class', 'rowid')
+			;
+			$tr.append($td);
+
+			$td = $('<td></td>').html(name);
+			$tr.append($td);
+
+			$td = $('<td></td>').html(sex);
+			$tr.append($td);
+
+			$td = $('<td></td>').html(level);
+			$tr.append($td);
+
+			$td = $('<td></td>').html(father);
+			$tr.append($td);
+
+			$td = $('<td></td>').html(mother);
+			$tr.append($td);
+
+			$td = $('<td></td>').html(partner);
+			$tr.append($td);
+
+			$td = $('<td></td>').html(birthday);
+			$tr.append($td);
+
+			$td = $('<td></td>').html(dearthday);
+			$tr.append($td);
+
+			return $tr;
+		},
+
+		modify: function(_resData, _reqData) {
+			var id = _reqData.id;
+		}
+	},
 
 	// 操作表单在某行数据行下展开
-	$DOC.VIEW.Operate = {
+	Operate: {
 		refid: 0, // 记录上行参照的成员id
 
 		fold: function(row) {
@@ -108,11 +256,11 @@ function INIT()
 
 				// 自动填写部分表单
 				this.lock($('#formOperate input:text[name=mine_id]'), this.refid);
-				var rowdata = $DOC.DATA.members[this.refid];
+				var rowdata = $DD.getRow(this.refid);
 				if (rowdata.F_father) {
 					var father = rowdata.F_father;
-					var id = $DOC.DATA.members[father].F_id;
-					var name = $DOC.DATA.members[father].F_name;
+					var id = $DD.getRow(father).F_id;
+					var name = $DD.getRow(father).F_name;
 					var value = id + '/' + name;
 					this.lock($('#formOperate input:text[name=father]'), value);
 				}
@@ -121,8 +269,8 @@ function INIT()
 				}
 				if (rowdata.F_mother) {
 					var mother = rowdata.F_mother;
-					var id = $DOC.DATA.members[mother].F_id;
-					var name = $DOC.DATA.members[mother].F_name;
+					var id = $DD.getRow(mother).F_id;
+					var name = $DD.getRow(mother).F_name;
 					var value = id + '/' + name;
 					this.lock($('#formOperate input:text[name=mother]'), value);
 				}
@@ -131,8 +279,8 @@ function INIT()
 				}
 				if (rowdata.F_partner) {
 					var partner = rowdata.F_partner;
-					var id = $DOC.DATA.members[partner].F_id;
-					var name = $DOC.DATA.members[partner].F_name;
+					var id = $DD.getRow(partner).F_id;
+					var name = $DD.getRow(partner).F_name;
 					var value = id + '/' + name;
 					this.lock($('#formOperate input:text[name=partner]'), value);
 				}
@@ -147,14 +295,14 @@ function INIT()
 				// 自动填表
 				this.lock($('#formOperate input:text[name=mine_id]'), '');
 
-				var rowdata = $DOC.DATA.members[this.refid];
+				var rowdata = $DD.getRow(this.refid);
 				if (rowdata.F_sex == 1) {
 					var value = this.refid + '/' + rowdata.F_name;
 					this.lock($('#formOperate input:text[name=father]'), value);
 					if (rowdata.F_partner) {
 						var mother = rowdata.F_partner;
-						var id = $DOC.DATA.members[mother].F_id;
-						var name = $DOC.DATA.members[mother].F_name;
+						var id = $DD.getRow(mother).F_id;
+						var name = $DD.getRow(mother).F_name;
 						var value = id + '/' + name;
 						this.lock($('#formOperate input:text[name=mother]'), value);
 					}
@@ -167,8 +315,8 @@ function INIT()
 					this.lock($('#formOperate input:text[name=mother]'), value);
 					if (rowdata.F_partner) {
 						var father = rowdata.F_partner;
-						var id = $DOC.DATA.members[father].F_id;
-						var name = $DOC.DATA.members[father].F_name;
+						var id = $DD.getRow(father).F_id;
+						var name = $DD.getRow(father).F_name;
 						var value = id + '/' + name;
 						this.lock($('#formOperate input:text[name=father]'), value);
 					}
@@ -224,7 +372,6 @@ function INIT()
 
 			var reqData = {};
 			var req = {};
-			var jold = $DOC.DATA.members[this.refid];
 			var $error = $('#oper-error');
 			if (op == 'modify') {
 				if (!mine_id || mine_id != this.refid) {
@@ -233,6 +380,7 @@ function INIT()
 					return false;
 				}
 				reqData.id = mine_id;
+				var jold = $DD.getRow(this.refid);
 				if (mine_name && jold.F_name != mine_name) {
 					reqData.name = mine_name;
 				}
@@ -285,6 +433,8 @@ function INIT()
 				req.api = 'modify';
 				req.data = reqData;
 				console.log(req);
+				$DV.log(req);
+				$DJ.reqModify(req);
 			}
 			else if (op == 'append') {
 				if (mine_name) {
@@ -359,210 +509,170 @@ function INIT()
 
 		// 避免最后一个逗号
 		LAST_PRETECT: 0
-	};
-}
+	},
+
+	log: function(_msg) {
+		if (typeof(_msg) == 'object') {
+			_msg = JSON.stringify(_msg);
+		}
+		$('#debug-log').append("<p>" + _msg + "</p>");
+	},
+	LAST_PRETECT: true
+};
+
+// 事件
+var $DE = {
+	// 加载页面时注册事件
+	onLoad: function() {
+		$('#to-modify').click(function() {
+			$DV.Operate.tip('modify');
+		});
+		$('#to-append').click(function() {
+			$DV.Operate.tip('append');
+		});
+		$('#to-remove').click( function() {
+			$DV.Operate.tip('remove');
+		});
+
+		$('#oper-close').click(function() {
+			$DV.Operate.fold(0);
+		});
+
+		$('#formOperate').submit(function(_evt) {
+			_evt.preventDefault();
+			return $DV.Operate.submit(_evt);
+		});
+
+		$('#test-toggle').click(function() {
+			// $DOC.VIEW.Operate.fold();
+		});
+
+		// 自动查询折叠链接
+		$('div a.fold').click(function(_evt) {
+			var foldin = $(this).next('div');
+			var display = foldin.css('display');
+			if (display == 'none') {
+				foldin.show();
+			}
+			else {
+				foldin.hide();
+			}
+			_evt.preventDefault();
+		});
+
+		$('#remarry').click(function(_evt) {
+			var $partner = $('#formOperate input:text[name=partner]');
+			$DV.Operate.unlock($partner);
+			_evt.preventDefault();
+		});
+	},
+
+	// 填充完表格注册事件
+	onFillTable: function() {
+		$("tr").mouseover(function() {
+			$(this).addClass("over");
+		});
+
+		$("tr").mouseout(function() {
+			$(this).removeClass("over");
+		});
+
+		$("tr:even").addClass("even");
+
+		$('td a.rowid').click(function(_evt) {
+			var $row = $(this).parent().parent();
+			// var aid = $(this).attr('id');
+			$DV.Operate.fold($row);
+			_evt.preventDefault();
+		});
+	},
+
+	onModifyRow: function() {
+		if ($DV.Operate.refid) {
+			$DV.Operate.fold(0);
+		}
+	},
+
+	LAST_PRETECT: true
+};
+
+// ajax 请求
+var $DJ = {
+	// 组装请求参数
+	reqOption: function(reqData) {
+		var opt = {
+			method: "POST",
+			contentType: "application/json",
+			dataType: "json",
+			data: JSON.stringify(reqData)
+			// data: req // 会发送 api=query& 而不是 json 串
+		};
+		return opt;
+	},
+
+	requestAll: function() {
+		var req = {"api":"query","data":{"all":1}};
+		var opt = reqOption(req);
+		this.table = $.ajax($DD.API_URL, opt)
+			.done(function(res, textStatus, jqXHR) {
+				// api 返回的应该是 json
+				if (res.error) {
+					$DV.log(res.error);
+				}
+				else {
+					$DD.Table.load(res.data);
+					$DV.Table.fill(res.data);
+					$DE.onFillTable();
+				}
+			})
+			.fail(this.resFail)
+			.always(this.resAlways);
+	},
+
+	// 请求修改
+	reqModify: function(_req) {
+		if (!_req.api || _req.api != 'modify') {
+			console.log('请求参数不对');
+			return false;
+		}
+		this.modify = $.ajax($DD.API_URL, reqOption(req))
+			.done(function(_res, textStatus, jqXHR) {
+				// api 返回的应该是 json
+				if (_res.error) {
+					$DV.log(_res.error);
+				}
+				else {
+					$DD.Table.modify(_res.data, _req.data);
+					$DV.Table.modify(_res.data, _req.data);
+					$DE.onModifyRow();
+				}
+			})
+			.fail(this.resFail)
+			.always(this.resAlways);
+	},
+
+	resFail: function(jqXHR, textStatus, errorThrown) {
+		alert('ajax fails!'  +  jqXHR.status + textStatus);
+	},
+	resAlways: function(data, textStatus, jqXHR) {
+		console.log('ajax finish with status: ' + textStatus);
+	}
+};
+
+// 全局对象
+var $DOC = {
+	DATA: $DD,
+	VIEW: $DV, 
+	EVENT: $DE,
+	AJAX: $DJ,
+
+	INIT: function() {
+		this.EVENT.onLoad();
+		this.AJAX.requestAll();
+	}
+};
 
 $(document).ready(function() {
-	INIT();
-	regEvent();
-	loadPage();
+	$DOC.INIT();
 });
 
-function regEvent()
-{
-	$('#to-modify').click(function() {
-		$DOC.VIEW.Operate.tip('modify');
-	});
-	$('#to-append').click(function() {
-		$DOC.VIEW.Operate.tip('append');
-	});
-	$('#to-remove').click( function() {
-		$DOC.VIEW.Operate.tip('remove');
-	});
-
-	$('#oper-close').click(function() {
-		$DOC.VIEW.Operate.fold(0);
-	});
-
-	$('#formOperate').submit(function(evt) {
-		evt.preventDefault();
-		return $DOC.VIEW.Operate.submit(evt);
-	});
-
-	$('#test-toggle').click(function() {
-		// $DOC.VIEW.Operate.fold();
-	});
-
-	// 自动查询折叠链接
-	$('div a.fold').click(function(evt) {
-		var foldin = $(this).next('div');
-		var display = foldin.css('display');
-		if (display == 'none') {
-			foldin.show();
-		}
-		else {
-			foldin.hide();
-		}
-		evt.preventDefault();
-	});
-
-	$('#remarry').click(function(evt) {
-		var $partner = $('#formOperate input:text[name=partner]');
-		$DOC.VIEW.Operate.unlock($partner);
-		evt.preventDefault();
-	});
-}
-
-function loadPage()
-{
-	// var req = {"api":"query","data":{"filter":{"id":10025}}};
-	var req = {"api":"query","data":{"all":1}};
-
-	var opt = {
-		method: "POST",
-		contentType: "application/json",
-		dataType: "json",
-		data: JSON.stringify(req)
-		// data: req // 会发送 api=query& 而不是 json 串
-	};
-
-	$DOC.AJAX = $.ajax(API_URL, opt)
-		.done(resDone)
-		.fail(resFail)
-		.always(resAlways);
-}
-
-function resDone(res)
-{
-	// $('#debug-log').append("<p>" + res + "</p>");
-
-	// 记录日志
-	// var str = JSON.stringify(res);
-	// $('#debug-log').append("<p>" + str + "</p>");
-
-	// 添加表行
-	// $('#tabMember').append(formatRow(res.data[0]));
-	if (res.error) {
-		$('#debug-log').append("<p>" + res.error + "</p>");
-	}
-	else {
-		addtoTable(res.data);
-		formatTable();
-	}
-}
-
-function addtoTable(data)
-{
-	// 将数组转为 hash, 用 id 索引一行
-	$DOC.DATA.members = {};
-
-	for (var i = 0; i < data.length; ++i) {
-		var id = data[i].F_id;
-		var name = data[i].F_name;
-		$DOC.DATA.mapid[id] = name;
-		$DOC.DATA.members[id] = data[i];
-	}
-	for (var i = 0; i < data.length; ++i) {
-		$('#tabMember').append(formatRow(data[i]));
-	}
-
-	// 添加底部标题行
-	if (data.length > 10) {
-		var th = `
-		<tr id="butTH">
-			<th>编号</th>
-			<th>姓名</th>
-			<th>性别</th>
-			<th>代际</th>
-			<th>父亲</th>
-			<th>母亲</th>
-			<th>配偶</th>
-			<th>生日</th>
-			<th>忌日</th>
-		</tr>
-		`;
-		$('#tabMember').append(th);
-	}
-}
-
-function formatRow(jrow)
-{
-	var id = jrow.F_id;
-	var name = jrow.F_name;
-	var sex = SEX[jrow.F_sex];
-	var level = jrow.F_level > 0 ? '+' + jrow.F_level : '' + jrow.F_level;
-	var father = jrow.F_father || NULL;
-	var mother = jrow.F_mother || NULL;
-	var partner = jrow.F_partner || NULL;
-	var birthday = jrow.F_birthday || NULL;
-	var deathday = jrow.F_deathday || NULL;
-
-	if (father && $DOC.DATA.mapid[father]) {
-		father = $DOC.DATA.mapid[father];
-	}
-	if (mother && $DOC.DATA.mapid[mother]) {
-		mother = $DOC.DATA.mapid[mother];
-	}
-	if (partner && $DOC.DATA.mapid[partner]) {
-		partner = $DOC.DATA.mapid[partner];
-	}
-
-	var html = '';
-
-	var rid = 'r' + id;
-	var aid = `<a id="m${id}" href="#" class="rowid">${id}</a>`;
-	html += "<td>" + aid + "</td>\n";
-	html += "<td>" + name + "</td>\n";
-	html += "<td>" + sex + "</td>\n";
-	html += "<td>" + level + "</td>\n";
-	html += "<td>" + father + "</td>\n";
-	html += "<td>" + mother + "</td>\n";
-	html += "<td>" + partner + "</td>\n";
-	html += "<td>" + birthday + "</td>\n";
-	html += "<td>" + deathday + "</td>\n";
-
-	return `<tr id="${rid}">\n${html}</tr>\n`;
-}
-
-function resFail(jqXHR, textStatus)
-{
-	alert('ajax fails!'  +  jqXHR.status + textStatus);
-}
-
-function resAlways()
-{
-	// alert('ajax finish!');
-}
-
-function formatTable()
-{
-	$("tr").mouseover(function() {
-		$(this).addClass("over");
-	});
-
-	$("tr").mouseout(function() {
-		$(this).removeClass("over");
-	});
-
-	$("tr:even").addClass("even");
-
-	/* 排序似乎有无效果
-	$("#tabMember").tablesorter({
-		sortList:[[3,0]],
-		cssAsc: "sortUp",
-		cssDesc: "sortDown",
-		widgets: ["zebra"]
-	});
-	*/
-
-	$('td a.rowid').click(function(evt) {
-		var row = $(this).parent().parent();
-		// var aid = $(this).attr('id');
-		$DOC.VIEW.Operate.fold(row);
-		evt.preventDefault();
-	});
-}
-
-/* 笔记
- * 将操作表单移动 $('#divOperate').insertAfter($('#debug-log'))
- * */
