@@ -18,7 +18,7 @@
 			<div class="foldOff">
 				<form id="formLogin">
 					<input type="text" size="10" name="login_id"/>
-					<input type="button" name="登陆"/>
+					<input type="submit" value="登陆"/>
 				</form>
 			</div>
 			<div id="login-msg">
@@ -34,78 +34,44 @@
 			</ul>
 		</div>
 
-		<div id="pg1-table" class="page">
-		<h2>谭氏年浪翁家谱表</h2>
-		<div id="family_table">
-			<table id="tabMember">
-				<tr id="topTH">
-					<th class="fid">编号</th>
-					<th class="fname">姓名</th>
-					<th class="fsex">性别</th>
-					<th class="flevel">代际</th>
-					<th class="fname">父亲</th>
-					<th class="fname">母亲</th>
-					<th class="fname">配偶</th>
-					<th class="fdate">生日</th>
-					<th class="fdate">忌日</th>
-				</tr>
-			</table>
-			<a href="#tabMember">返回首行</a>
-		</div>
+		<!-- 分页设计 -->
 
-		<div id="divOperate" class="foldOff">
-			<form id="formOperate">
-				<label>修改资料<input type="radio" name="operate" value="modify" id="to-modify"/></label>
-				<label>添加子女<input type="radio" name="operate" value="append" id="to-append"/></label>
-				<label>删除记录<input type="radio" name="operate" value="remove" id="to-remove"/></label>
-				<label>操作口令<input type="password" name="operkey" value="123456" size="10"/></label>
-				<div id="oper-detail" class="foldOff">
-					<label>编号<input type="text" name="mine_id" value="" size="10"/></label>
-					<label>姓名<input type="text" name="mine_name" value="" size="10"/></label>
-					<label>男<input type="radio" name="sex" value="1"/></label>
-					<label>女<input type="radio" name="sex" value="0"/></label><br>
-					<label>父亲<input type="text" name="father" value="" size="10"/></label>
-					<label>母亲<input type="text" name="mother" value="" size="10"/></label><br>
-					<label>配偶<input type="text" name="partner" value="" size="10"/></label>
-					<a href="#" id="remarry">（增加配偶）</a><br>
-					<label>生日<input type="date" name="birthday" value=""/></label>
-					<label>忌日<input type="date" name="deathday" value=""/></label><br>
-					<input type="submit" value="提交操作"/>
-					<input type="button" value="取消操作" id="oper-close"/>
-				</div>
-				<div id="oper-error" class="operate-warn">
-				</div>
-			</form>
-			<div id="tip-modify" class="foldOff operate-tips">
-				<ul>
-					<li>根据唯一编号修改资料，可以改姓名、性别与缺失的资料</li>
-					<li>父母、配偶若要修改时，可填编号或姓名（不重名时）</li>
-					<li>已确立的父母不可修改，若要修改父母的姓名应该修改父母的资料</li>
-					<li>代际根据父母关系确定，如果父母代际关系完全错乱，只能删除重新录入</li>
-					<li>录入配偶时，将自动为配偶增加记录，并设为旁系（代际用负数区分）</li>
-					<li>为旁系配偶修改资料时，不再录入其父母关系</li>
-					<li>除非确有再婚情况，已录入配偶信息的，不能再修改配偶</li>
-				</ul>
-			</div>
-			<div id="tip-append" class="foldOff operate-tips">
-				<ul>
-					<li>添加子女后时，编号由系统自动分配，作为唯一标志</li>
-					<li>一般只要填入姓名、性别即可录入后代，其他资料后续修改</li>
-					<li>已自动填入父或母的依托关系</li>
-					<li>未自动填入的某方父母，可手动填入，前提是只有依赖已入库的成员</li>
-				</ul>
-			</div>
-			<div id="tip-remove" class="foldOff operate-tips">
-				<div class="operate-warn">
-					注意：如果只是名字错误，可通过修改资料。<br/>
-					请只在无法修改正确的情况下删除再重录，或者删除重复记录。
-				</div>
-				<div>
-					确定删除<span id="mine-id-name">id/name</span>的记录吗？
-					<input type="button" value="确定删除" id="do-remove"/>
+		<div id="pg1-table" class="page">
+			<h2>谭氏年浪翁家谱表</h2>
+			<div id="family_table">
+				<form id="formFilter">
+					<!-- 勾选时自动对当前表筛选，点按钮时请求服务器刷新 -->
+					筛选：
+					<!-- 默认会收到多值？ vehicle=Bike&vehicle=Car-->
+					<label>父系<input type="checkbox" name="filter" value="tan"/></label>
+					<label>男丁<input type="checkbox" name="filter" value="man"/></label>
+					<label>代际
+						<input type="input" name="levelup" value="1" size="2"/>至
+						<input type="input" name="levelup" value="" size="2"/>
+					</label>
+					<input type="reset" value="撤销"/>
+					<input type="submit" value="刷新"/>
+					<br>
+				</form>
+				<!-- 表格需拉取服务器数据填充，可能覆盖重填 -->
+				<table id="tabMember">
+					<tr id="topTH">
+						<th class="fid">编号</th>
+						<th class="fname">姓名</th>
+						<th class="fsex">性别</th>
+						<th class="flevel">代际</th>
+						<th class="fname">父亲</th>
+						<th class="fname">母亲</th>
+						<th class="fname">配偶</th>
+						<th class="fdate">生日</th>
+						<th class="fdate">忌日</th>
+					</tr>
+				</table>
+				<!-- 多于10行时表底再加一行表头，动态增加的少量行再加于其下 -->
+				<!-- 再给出总计，如果服务器数据太多，可能再加翻页信息 -->
+				<div id="tabSumary" class="foldOff">
 				</div>
 			</div>
-		</div>
 		</div>
 
 		<div id="pg2-detail" class="page">
@@ -118,16 +84,101 @@
 				</form>
 			</div>
 			<hr>
-			<div id="member-relation">
-				<div id="mine-parents">追溯先人：</div>
-				<div id="mine-children">延续后代：</div>
-				<div id="mine-brother">兄弟姐妹：</div>
+			<div>
+				<ul id="member-relation">
+					<li id="mine-parents">追溯先人：<span class="data"></span></li>
+					<li id="mine-children">延续后代：<span class="data"></span></li>
+					<li id="mine-brother">兄弟姐妹：<span class="data"></span></li>
+					<li id="mine-dates">生辰年方：<span class="data"></span></li>
+					<li id="mine-partner">婚配于：<span class="data"></span></li>
+				</ul>
 			</div>
-			<hr>
-			<h3>修改资料</h3>
-			<h3>修改简介</h3>
-			<h3>增加子女</h3>
-		</div>
+			<div>
+				<h3><a href="#member-desc" class="foldClose">生平简介：</a></h3>
+				<div id="member-desc">
+					<p/>
+					<h4><a href="#modify-desc" class="foldClose">修改简介</a></h4>
+					<div id="modify-desc">
+						<form id="formDesc">
+							<textarea name="desc" rows="10" cols="30" >（简介暂未支持）</textarea><br>
+							<input type="submit" value="提交修改"/>
+							<input type="reset" value="取消修改"/>
+						</form>
+					</div>
+				</div>
+			</div>
+			<div>
+				<a href="#">向上扩展<a/>
+				<table id="tabMine">
+					<tr>
+						<th class="fid">编号</th>
+						<th class="fname">姓名</th>
+						<th class="fsex">性别</th>
+						<th class="flevel">代际</th>
+						<th class="fname">父亲</th>
+						<th class="fname">母亲</th>
+						<th class="fname">配偶</th>
+						<th class="fdate">生日</th>
+						<th class="fdate">忌日</th>
+					</tr>
+				</table>
+				<a href="#">向下扩展</a>
+				<h3><a href="#divOperate" class="foldClose">修改资料</a></h3>
+				<div id="divOperate">
+					<form id="formOperate">
+						<label>修改资料<input type="radio" name="operate" value="modify" id="to-modify"/></label>
+						<label>添加子女<input type="radio" name="operate" value="append" id="to-append"/></label>
+						<label>删除记录<input type="radio" name="operate" value="remove" id="to-remove"/></label>
+						<label>操作口令<input type="password" name="operkey" value="123456" size="10"/></label>
+						<div id="oper-detail" class="foldOff">
+							<label>编号<input type="text" name="mine_id" value="" size="10"/></label>
+							<label>姓名<input type="text" name="mine_name" value="" size="10"/></label>
+							<label>男<input type="radio" name="sex" value="1"/></label>
+							<label>女<input type="radio" name="sex" value="0"/></label><br>
+							<label>父亲<input type="text" name="father" value="" size="10"/></label>
+							<label>母亲<input type="text" name="mother" value="" size="10"/></label><br>
+							<label>配偶<input type="text" name="partner" value="" size="10"/></label>
+							<a href="#" id="remarry">（增加配偶）</a><br>
+							<label>生日<input type="date" name="birthday" value=""/></label>
+							<label>忌日<input type="date" name="deathday" value=""/></label><br>
+							<input type="submit" value="提交操作"/>
+							<input type="button" value="取消操作" id="oper-close"/>
+						</div>
+						<div id="oper-error" class="operate-warn">
+						</div>
+					</form>
+					<div id="tip-modify" class="foldOff operate-tips">
+						<ul>
+							<li>根据唯一编号修改资料，可以改姓名、性别与缺失的资料</li>
+							<li>父母、配偶若要修改时，可填编号或姓名（不重名时）</li>
+							<li>已确立的父母不可修改，若要修改父母的姓名应该修改父母的资料</li>
+							<li>代际根据父母关系确定，如果父母代际关系完全错乱，只能删除重新录入</li>
+							<li>录入配偶时，将自动为配偶增加记录，并设为旁系（代际用负数区分）</li>
+							<li>为旁系配偶修改资料时，不再录入其父母关系</li>
+							<li>除非确有再婚情况，已录入配偶信息的，不能再修改配偶</li>
+						</ul>
+					</div>
+					<div id="tip-append" class="foldOff operate-tips">
+						<ul>
+							<li>添加子女后时，编号由系统自动分配，作为唯一标志</li>
+							<li>一般只要填入姓名、性别即可录入后代，其他资料后续修改</li>
+							<li>已自动填入父或母的依托关系</li>
+							<li>未自动填入的某方父母，可手动填入，前提是只有依赖已入库的成员</li>
+						</ul>
+					</div>
+					<div id="tip-remove" class="foldOff operate-tips">
+						<div class="operate-warn">
+							注意：如果只是名字错误，可通过修改资料。<br/>
+							请只在无法修改正确的情况下删除再重录，或者删除重复记录。
+						</div>
+						<div>
+							确定删除<span id="mine-id-name">id/name</span>的记录吗？
+							<input type="button" value="确定删除" id="do-remove"/>
+						</div>
+					</div>
+				</div> <!-- divOperate -->
+			</div>
+		</div> <!-- #pg2-detail -->
 
 		<div id="pg3-help" class="page">
 			<h2>家谱表简单说明：</h2>
@@ -139,13 +190,20 @@
 			</ul>
 		</div>
 
+		<!-- 页底区域 -->
+		<div id="pg-foot">
+			<a href="#menu-bar">回顶部菜单</a>
+		</div>
+
+
 		<div id="divTest" class="foldOff">
 			<input type="button" value="展开/隐藏" id="test-toggle"/>
 		</div>
 
-		<div class="folder">
-			<a href="javascript:void(0);" class="fold">调试日志</a>
-			<div id='debug-log' class="foldOff">
+		<div>
+			<a href="#debug-log" class="foldOpen">调试日志</a>
+			<div id='debug-log'>
+				<p>网页加载完成</p>
 			</div>
 		</div>
 	</body>

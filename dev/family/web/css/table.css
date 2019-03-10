@@ -73,6 +73,25 @@ th {
 	display: inline;
 }
 
+a.foldOpen {
+	color:blue;
+	text-decoration: wavy underline;
+}
+
+a.foldClose {
+	color:blue;
+	text-decoration: underline;
+}
+
+a.foldOpen:hover {
+	background-color: lightgrey;
+	text-decoration: underline;
+}
+a.foldClose:hover {
+	background-color: lightgrey;
+	text-decoration: underline;
+}
+
 /* 操作提示文字 */
 .operate-tips {
 	font-size: smaller;

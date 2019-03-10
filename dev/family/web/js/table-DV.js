@@ -162,72 +162,46 @@ var $DV = {
 	Operate: {
 		refid: 0, // 记录上行参照的成员id
 
-		fold: function(row) {
-			// 不传参时，根据保存的 refid 获取上一行
-			if (!row) {
-				if (!this.refid) {
-					console.log('逻辑错误：只应在某数据行下展开');
-					return;
-				}
-				var rid = 'r' + this.refid;
-				row = $('#' + rid);
-			}
-			else {
-				// 在不同行上点击，关闭原来行下的表单
-				var rid = row.attr('id');
-				if (this.refid && this.refid != rid.substring(1)) {
-					this.fold(0);
-				}
-			}
-
-			if (this.refid) {
-				$('#divOperate div.operate-tips').hide();
-				$('#oper-detail').hide();
-				$('#divOperate').hide();
-				$('#formOperate input:radio[name=sex]').attr('checked',false);
-				$('#formOperate input:radio[name=operate]').attr('checked',false);
-				$('#formOperate input:radio[name=operate]').parent('label').removeClass('radio-checked');
-				$('#oper-error').html('');
-				this.refid = 0;
-
-				// 隐藏表单并移至末尾
-				$('#divOperate').insertAfter($('#debug-log'));
-				row.next().remove();
-			}
-			else {
-				// 在指定行下面呈现表单
-				$('#divOperate').show();
-				var operate = $('#divOperate').detach();
-				var td = $('<td colspan="9"></td>');
-				td.append(operate);
-				var tr = $('<tr id="roperater"></tr>');
-				tr.append(td);
-				tr.insertAfter(row);
-				// 取出 id ，r10025 => 10025
-				var rid = row.attr('id');
-				this.refid = rid.substring(1);
-			}
+		// 关闭所有
+		close: function() {
+			$('#formOperate').trigger('reset');
+			$('#divOperate div.operate-tips').hide();
+			$('#oper-detail').hide();
+			$('#formOperate input:radio[name=operate]').parent('label').removeClass('radio-checked');
+			$('#oper-error').html('');
+			$('a[href=#divOperate]').click();
+			// $('#divOperate').hide();
 		},
 
+		// 单选择发生变化
 		// modify append remove 三个单选按钮，只显示相应的 tips
-		showOnly: function(op) {
+		change: function() {
 			$('#divOperate div.operate-tips').hide();
 			$('#formOperate input:radio[name=operate]').parent('label').removeClass('radio-checked');
+			var op = $('#formOperate input:radio[name=operate]:checked').val();
+			if (!op) {
+				return;
+			}
+			console.log('操作单选发生变化：' + op); // reset 时似乎不会调到
 			var tip = '#tip-' + op;
 			var radio = '#to-' + op;
 			$(tip).show();
 			$(radio).parent('label').addClass('radio-checked');
+			if (op == 'modify' || op == 'append') {
+				$('#oper-detail').show();
+				// this.select(op); // 暂关
+			}
+			else {
+				$('#oper-detail').hide();
+			}
 		},
 
-		tip: function(op) {
-			this.showOnly(op);
+		// 选择操作后自动填写部分表单
+		select: function(op) {
 			$('#formOperate input:text').val('');
-			// $('#formOperate input:date').attr('value', '');
 			if (op == 'modify') {
-				$('#oper-detail').show();
 				$('#formOperate input:submit').attr('value', '修改资料');
 
-				// 自动填写部分表单
 				this.lock($('#formOperate input:text[name=mine_id]'), this.refid);
 				var rowdata = $DD.getRow(this.refid);
 				if (rowdata.F_father) {
@@ -262,7 +236,6 @@ var $DV = {
 				}
 			}
 			else if(op == 'append') {
-				$('#oper-detail').show();
 				$('#formOperate input:submit').attr('value', '添加子女');
 
 				// 自动填表
@@ -304,7 +277,8 @@ var $DV = {
 				this.unlock($('#formOperate input:text[name=partner]'));
 			} 
 			else if(op == 'remove') {
-				$('#oper-detail').hide();
+				console.log('删除操作不该至此');
+				// $('#oper-detail').hide();
 			}
 			else {
 				console.log('未定义操作');
