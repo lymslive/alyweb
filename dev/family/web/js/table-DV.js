@@ -1,59 +1,31 @@
-// 数据
-var $DD = {
-	// 常量
-	API_URL: '/dev/family/japi.cgi',
-	SEX: ['女♀', '男♂'],
-	NULL: '',
+// 表观
+var $DV = {
+	Page: {
+		curid: '',
 
-	Mapid: {},
-	getName: function(id) {
-		return this.Mapid[id];
-	},
-	getRow: fcuntion(id) {
-		return this.Table.Hash[id];
-	},
-
-	Table: {
-		Title: ['编号', '姓名', '性别', '代际', '父亲', '母亲', '配偶', '生日', '忌日'],
-		List: [],
-		Hash: {},
-
-		// 重新加载全表数据
-		load: function(resData) {
-			this.List = resData;
-			this.Hash = {};
-			for (var i = 0; i < resData.length; ++i) {
-				var id = resData[i].F_id;
-				var name = resData[i].F_name;
-				$DD.Mapid[id] = name;
-				this.Hash[id] = resData[i];
+		// 自动选择第一页
+		init: function() {
+			var $curMenu = $('#menu-bar>ul>li').first();
+			$curMenu.addClass('curr-page');
+			// this.curid = '#pg1-table';
+			var curid = $curMenu.find('>a').attr('href');
+			if (curid) {
+				this.see(curid);
 			}
 		},
 
-		modify: function(_resData, _reqData) {
-			var id = _reqData.id;
-			var jold = $DD.getRow(id);
-			if (_reqData.name) {
-				jold.F_name = _reqData.name;
+		// 只看某页，传入 #id
+		see: function(_toid){
+			if (this.curid == _toid) {
+				return false;
 			}
-			if (_reqData.sex) {
-				jold.F_sex = _reqData.sex;
-			}
-			if (_reqData.father_id) {
-				jold.F_father = _reqData.father_id;
-			}
-			else if (_reqData.father_name) {
-			}
+			$('div.page').hide();
+			$(_toid).show();
+			this.curid = _toid;
+			return true;
 		}
-
-		LAST_PRETECT: 0
 	},
 
-	LAST_PRETECT: true
-};
-
-// 表观
-var $DV = {
 	// 主表格
 	Table: {
 		domid: '#tabMember',
@@ -76,7 +48,7 @@ var $DV = {
 			return tr;
 		},
 		hth: function(rid) {
-			var $tr = $('<tr></tr>');
+			var $tr = $("<tr></tr>\n");
 			if (rid) {
 				$tr.attr('id', rid);
 			}
@@ -85,10 +57,10 @@ var $DV = {
 			}
 			var title = $DD.Table.Title;
 			for (var i=0; i<title.length; i++) {
-				var $th = $('<th></th>').html(title[i]);
+				var $th = $("<th></th>\n").html(title[i]);
 				$tr.append($th);
 			}
-			return $th;
+			return $tr;
 		},
 
 		empty: function() {
@@ -140,17 +112,18 @@ var $DV = {
 
 			var html = '';
 
-			var $tr = $('<tr></tr>')
+			var $tr = $("<tr></tr>\n")
 				.attr('id', 'r' + id)
 				.attr('class', this.rowcss)
 			;
 
-			var $td = $('<td></td>')
+			var $td = $("<td></td>\n");
+			var $link = $('<a></a>')
 				.html(id)
 				.attr('id', 'm' + id)
-				.attr('href', '#r' + id)
+				.attr('href', '#')
 				.attr('class', 'rowid')
-			;
+				.appendTo($td);
 			$tr.append($td);
 
 			$td = $('<td></td>').html(name);
@@ -174,7 +147,7 @@ var $DV = {
 			$td = $('<td></td>').html(birthday);
 			$tr.append($td);
 
-			$td = $('<td></td>').html(dearthday);
+			$td = $('<td></td>').html(deathday);
 			$tr.append($td);
 
 			return $tr;
@@ -520,159 +493,4 @@ var $DV = {
 	LAST_PRETECT: true
 };
 
-// 事件
-var $DE = {
-	// 加载页面时注册事件
-	onLoad: function() {
-		$('#to-modify').click(function() {
-			$DV.Operate.tip('modify');
-		});
-		$('#to-append').click(function() {
-			$DV.Operate.tip('append');
-		});
-		$('#to-remove').click( function() {
-			$DV.Operate.tip('remove');
-		});
-
-		$('#oper-close').click(function() {
-			$DV.Operate.fold(0);
-		});
-
-		$('#formOperate').submit(function(_evt) {
-			_evt.preventDefault();
-			return $DV.Operate.submit(_evt);
-		});
-
-		$('#test-toggle').click(function() {
-			// $DOC.VIEW.Operate.fold();
-		});
-
-		// 自动查询折叠链接
-		$('div a.fold').click(function(_evt) {
-			var foldin = $(this).next('div');
-			var display = foldin.css('display');
-			if (display == 'none') {
-				foldin.show();
-			}
-			else {
-				foldin.hide();
-			}
-			_evt.preventDefault();
-		});
-
-		$('#remarry').click(function(_evt) {
-			var $partner = $('#formOperate input:text[name=partner]');
-			$DV.Operate.unlock($partner);
-			_evt.preventDefault();
-		});
-	},
-
-	// 填充完表格注册事件
-	onFillTable: function() {
-		$("tr").mouseover(function() {
-			$(this).addClass("over");
-		});
-
-		$("tr").mouseout(function() {
-			$(this).removeClass("over");
-		});
-
-		$("tr:even").addClass("even");
-
-		$('td a.rowid').click(function(_evt) {
-			var $row = $(this).parent().parent();
-			// var aid = $(this).attr('id');
-			$DV.Operate.fold($row);
-			_evt.preventDefault();
-		});
-	},
-
-	onModifyRow: function() {
-		if ($DV.Operate.refid) {
-			$DV.Operate.fold(0);
-		}
-	},
-
-	LAST_PRETECT: true
-};
-
-// ajax 请求
-var $DJ = {
-	// 组装请求参数
-	reqOption: function(reqData) {
-		var opt = {
-			method: "POST",
-			contentType: "application/json",
-			dataType: "json",
-			data: JSON.stringify(reqData)
-			// data: req // 会发送 api=query& 而不是 json 串
-		};
-		return opt;
-	},
-
-	requestAll: function() {
-		var req = {"api":"query","data":{"all":1}};
-		var opt = reqOption(req);
-		this.table = $.ajax($DD.API_URL, opt)
-			.done(function(res, textStatus, jqXHR) {
-				// api 返回的应该是 json
-				if (res.error) {
-					$DV.log(res.error);
-				}
-				else {
-					$DD.Table.load(res.data);
-					$DV.Table.fill(res.data);
-					$DE.onFillTable();
-				}
-			})
-			.fail(this.resFail)
-			.always(this.resAlways);
-	},
-
-	// 请求修改
-	reqModify: function(_req) {
-		if (!_req.api || _req.api != 'modify') {
-			console.log('请求参数不对');
-			return false;
-		}
-		this.modify = $.ajax($DD.API_URL, reqOption(req))
-			.done(function(_res, textStatus, jqXHR) {
-				// api 返回的应该是 json
-				if (_res.error) {
-					$DV.log(_res.error);
-				}
-				else {
-					$DD.Table.modify(_res.data, _req.data);
-					$DV.Table.modify(_res.data, _req.data);
-					$DE.onModifyRow();
-				}
-			})
-			.fail(this.resFail)
-			.always(this.resAlways);
-	},
-
-	resFail: function(jqXHR, textStatus, errorThrown) {
-		alert('ajax fails!'  +  jqXHR.status + textStatus);
-	},
-	resAlways: function(data, textStatus, jqXHR) {
-		console.log('ajax finish with status: ' + textStatus);
-	}
-};
-
-// 全局对象
-var $DOC = {
-	DATA: $DD,
-	VIEW: $DV, 
-	EVENT: $DE,
-	AJAX: $DJ,
-
-	INIT: function() {
-		this.EVENT.onLoad();
-		this.AJAX.requestAll();
-	}
-};
-
-$(document).ready(function() {
-	$DOC.INIT();
-});
 

@@ -1,3 +1,40 @@
+/* 超链接 */
+a {
+	color: #0069d6; 
+	text-decoration: none;
+}
+
+a:hover {
+	color: #0050a3;
+	text-decoration: underline;
+}
+
+/* 菜单 */
+
+#menu-bar ul{
+	list-style-type: circle;
+	list-style-position: inside;
+	margin: 0em;
+	padding: 0;
+}
+
+li.page-menu {
+	width: 5em;
+	padding-right: 1em;
+	float: left;
+}
+
+li.curr-page {
+	list-style-type: disc;
+	text-decoration: underline;
+}
+
+div.page, h2 {
+	clear:both;
+	margin-top: 2em;
+}
+
+/* 表格 */
 table {
 	border-collapse: collapse;
 }
@@ -21,14 +58,6 @@ th {
 	padding-right: 2px;
 	padding-left: 2px;
 	background-color: #626975;
-}
-
-th.sortUp {
-	background: #626975 url(jquery/images/asc.png) no-repeat right center;
-}
-
-th.sortDown {
-	background: #626975 url(jquery/images/desc.png) no-repeat right center;
 }
 
 /* 折叠设置 */
@@ -62,4 +91,22 @@ th.sortDown {
 
 .input-lock {
 	background-color: #8797B7;
+}
+
+/* 表格设置 */
+
+th.fid {
+	width: 3em;
+}
+th.fname {
+	width: 4em;
+}
+th.fdate {
+	width: 5em;
+}
+th.fsex {
+	width: 3em;
+}
+th.flevel {
+	width: 3em;
 }

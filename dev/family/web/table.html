@@ -5,24 +5,49 @@
 		<meta name="viewport" content="width=device-width" />
 		<link rel="stylesheet" href="css/table.css"/>
 		<script src="http://code.jquery.com/jquery-2.1.0.js"></script>
-		<script src="jquery/jquery.tablesorter.js"></script>
-		<script src="js/jtable.js"></script>
+		<script src="js/table-DD.js"></script>
+		<script src="js/table-DV.js"></script>
+		<script src="js/table-DE.js"></script>
+		<script src="js/table-DJ.js"></script>
 		<title> 谭氏家谱 </title>
 	</head>
 	<body>
-		<h1>谭氏年浪翁家谱表</h1>
+
+		<div id="login-bar">
+			<div><a href="#">未登陆</a></div>
+			<div class="foldOff">
+				<form id="formLogin">
+					<input type="text" size="10" name="login_id"/>
+					<input type="button" name="登陆"/>
+				</form>
+			</div>
+			<div id="login-msg">
+			</div>
+		</div>
+
+		<h1>谭氏家谱电子系统</h1>
+		<div id="menu-bar">
+			<ul>
+				<li class="page-menu"><a href="#pg1-table">家谱纵览</a></li>
+				<li class="page-menu"><a href="#pg2-detail">个人详情</a></li>
+				<li class="page-menu"><a href="#pg3-help">帮助中心</a></li>
+			</ul>
+		</div>
+
+		<div id="pg1-table" class="page">
+		<h2>谭氏年浪翁家谱表</h2>
 		<div id="family_table">
 			<table id="tabMember">
 				<tr id="topTH">
-					<th>编号</th>
-					<th>姓名</th>
-					<th>性别</th>
-					<th>代际</th>
-					<th>父亲</th>
-					<th>母亲</th>
-					<th>配偶</th>
-					<th>生日</th>
-					<th>忌日</th>
+					<th class="fid">编号</th>
+					<th class="fname">姓名</th>
+					<th class="fsex">性别</th>
+					<th class="flevel">代际</th>
+					<th class="fname">父亲</th>
+					<th class="fname">母亲</th>
+					<th class="fname">配偶</th>
+					<th class="fdate">生日</th>
+					<th class="fdate">忌日</th>
 				</tr>
 			</table>
 			<a href="#tabMember">返回首行</a>
@@ -33,15 +58,15 @@
 				<label>修改资料<input type="radio" name="operate" value="modify" id="to-modify"/></label>
 				<label>添加子女<input type="radio" name="operate" value="append" id="to-append"/></label>
 				<label>删除记录<input type="radio" name="operate" value="remove" id="to-remove"/></label>
-				<label>操作口令<input type="password" name="operkey" value="123456"/></label>
+				<label>操作口令<input type="password" name="operkey" value="123456" size="10"/></label>
 				<div id="oper-detail" class="foldOff">
-					<label>编号<input type="text" name="mine_id" value=""/></label>
-					<label>姓名<input type="text" name="mine_name" value=""/></label>
+					<label>编号<input type="text" name="mine_id" value="" size="10"/></label>
+					<label>姓名<input type="text" name="mine_name" value="" size="10"/></label>
 					<label>男<input type="radio" name="sex" value="1"/></label>
 					<label>女<input type="radio" name="sex" value="0"/></label><br>
-					<label>父亲<input type="text" name="father" value=""/></label>
-					<label>母亲<input type="text" name="mother" value=""/></label><br>
-					<label>配偶<input type="text" name="partner" value=""/></label>
+					<label>父亲<input type="text" name="father" value="" size="10"/></label>
+					<label>母亲<input type="text" name="mother" value="" size="10"/></label><br>
+					<label>配偶<input type="text" name="partner" value="" size="10"/></label>
 					<a href="#" id="remarry">（增加配偶）</a><br>
 					<label>生日<input type="date" name="birthday" value=""/></label>
 					<label>忌日<input type="date" name="deathday" value=""/></label><br>
@@ -81,8 +106,30 @@
 				</div>
 			</div>
 		</div>
+		</div>
 
-		<div id="table_instruction">
+		<div id="pg2-detail" class="page">
+			<h2>家谱个人详情</h2>
+			<div id="member-header">
+				<form method="get">
+					<span id="mine-info">编号 | 谭某某 | 第 ? 代直系<span> 
+					<input type="submit" value="查找其他"/>
+					<input size="5" type="text" name="mine" required="required"/>
+				</form>
+			</div>
+			<hr>
+			<div id="member-relation">
+				<div id="mine-parents">追溯先人：</div>
+				<div id="mine-children">延续后代：</div>
+				<div id="mine-brother">兄弟姐妹：</div>
+			</div>
+			<hr>
+			<h3>修改资料</h3>
+			<h3>修改简介</h3>
+			<h3>增加子女</h3>
+		</div>
+
+		<div id="pg3-help" class="page">
 			<h2>家谱表简单说明：</h2>
 			<ul>
 				<li> 收录同一祖先以下的子嗣血脉。祖先设为第 1 代，后续递增。也可收录配偶，代际前加一短横（取负数）以区别。

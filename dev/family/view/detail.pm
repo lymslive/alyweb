@@ -183,7 +183,7 @@ sub s_member_relation
 	}
 
 	return <<EndOfHTML;
-	<div id="member-header">
+	<div id="member-relation">
 		$html
 	</div>
 EndOfHTML
