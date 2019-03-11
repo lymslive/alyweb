@@ -91,11 +91,17 @@ var $DE = {
 		$("tr:even").addClass("even");
 
 		$('td a.rowid').click(function(_evt) {
-			var $row = $(this).parent().parent();
-			// var aid = $(this).attr('id');
-			$DV.Operate.fold($row);
 			_evt.preventDefault();
 		});
+
+		$('#tabSumary').show();
+		$('#table-prev-page').click(function(_evt) {
+			_evt.preventDefault();
+		});
+		$('#table-next-page').click(function(_evt) {
+			_evt.preventDefault();
+		});
+
 	},
 
 	onModifyRow: function() {

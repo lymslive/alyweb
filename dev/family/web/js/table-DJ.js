@@ -23,7 +23,7 @@ var $DJ = {
 				}
 				else {
 					$DD.Table.load(res.data);
-					$DV.Table.fill(res.data);
+					$DV.Table.fill();
 					$DE.onFillTable();
 				}
 			})

@@ -70,6 +70,14 @@
 				<!-- 多于10行时表底再加一行表头，动态增加的少量行再加于其下 -->
 				<!-- 再给出总计，如果服务器数据太多，可能再加翻页信息 -->
 				<div id="tabSumary" class="foldOff">
+					总计 <span class="data"></span> 条记录；
+					当前第 <span class="data"></span> 页，共<span class="data"></span>页。
+					<span id="table-prev-page"><a href="#">
+						◀前一页
+					</a></span>
+					<span id="table-next-page"><a href="#">
+						后一页▶
+					</a></span>
 				</div>
 			</div>
 		</div>
@@ -195,12 +203,7 @@
 			<a href="#menu-bar">回顶部菜单</a>
 		</div>
 
-
-		<div id="divTest" class="foldOff">
-			<input type="button" value="展开/隐藏" id="test-toggle"/>
-		</div>
-
-		<div>
+		<div id="divLog" class="foldOff">
 			<a href="#debug-log" class="foldOpen">调试日志</a>
 			<div id='debug-log'>
 				<p>网页加载完成</p>

@@ -73,7 +73,8 @@ var $DV = {
 			$(this.butid).remove();
 		},
 
-		fill: function(data) {
+		fill: function() {
+			var data = $DD.Table.List;
 			if (data.length <= 0) {
 				return;
 			}
@@ -84,9 +85,15 @@ var $DV = {
 			for (var i=0; i<data.length; i++) {
 				$(this.domid).append(this.formatRow(data[i]));
 			}
+			this.rows = data.length;
 			if (data.length > this.but_limit) {
 				$(this.domid).append(this.hth());
 			}
+
+			var sumary = [$DD.Table.total, $DD.Table.page, Math.ceil($DD.Table.total/$DD.Table.perpage)];
+			$('#tabSumary span.data').each(function(_idx, _ele) {
+				$(this).html(sumary[_idx]);
+			});
 		},
 
 		formatRow: function(jrow) {

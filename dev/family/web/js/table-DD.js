@@ -19,15 +19,28 @@ var $DD = {
 		List: [],
 		Hash: {},
 
+		// 服务器返回的统计信息
+		total: 0,
+		page: 0,
+		perpage: 0,
+		may_more: false,
+
 		// 重新加载全表数据
 		load: function(resData) {
-			this.List = resData;
+			this.List = resData.records;
 			this.Hash = {};
-			for (var i = 0; i < resData.length; ++i) {
-				var id = resData[i].F_id;
-				var name = resData[i].F_name;
+			for (var i = 0; i < this.List.length; ++i) {
+				var id = this.List[i].F_id;
+				var name = this.List[i].F_name;
 				$DD.Mapid[id] = name;
-				this.Hash[id] = resData[i];
+				this.Hash[id] = this.List[i];
+			}
+
+			this.total = resData.total;
+			this.page = resData.page;
+			this.perpage = resData.perpage;
+			if (this.total > this.perpage && this.total > (this.page-1) * this.perpage + this.List.length) {
+				this.may_more = true;
 			}
 		},
 
