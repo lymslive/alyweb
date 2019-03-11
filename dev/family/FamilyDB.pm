@@ -8,6 +8,9 @@ use DBI;
 use SQL::Abstract;
 use WebLog;
 
+=head1 数据库配置
+=cut
+
 my $HOST = '47.106.142.119';
 my $DBNAME = 'db_family';
 
@@ -21,42 +24,25 @@ my $TABLE_MEMBER = 't_family_member';
 my @FIELD_MEMBER = qw(F_id F_name F_sex F_level F_father F_mother F_partner F_birthday F_deathday);
 # my $dbh;
 
-our $error = '';
-
-sub error
-{
-	my ($ret, $msg) = @_;
-	$error = $msg // '';
-	return $ret;
-}
-
-sub set_error
-{
-	my ($msg) = @_;
-	$error = $msg // '';
-}
-
-sub add_error
-{
-	my ($msg) = @_;
-	$error .= "\n$msg" if $msg;
-}
+=head1 对象封装
+=cut
 
 sub new
 {
 	my ($class) = @_;
-	my $dbh = Connect();
-	my $self = {dbh => $dbh, error => ''};
+	my ($dbh, $error) = Connect();
+	my $self = {dbh => $dbh, error => $error};
 	bless $self, $class;
 	return $self;
 }
 
-# 连接数据库。暂未检测失败，不能 or die
+# 连接数据库。因不能 or die，顺便返回错误信息
 sub Connect
 {
+	my $error = '';
 	my $dbh = DBI->connect("dbi:$driver:$dsn", $username, $passwd, $flags)
-		or set_error("Failed to connect to database: $DBI::errstr");
-	return $dbh;
+		or $error = "Failed to connect to database: $DBI::errstr";
+	return ($dbh, $error);
 }
 
 sub Disconnect
@@ -75,22 +61,22 @@ sub Error
 }
 
 # 入参：
-# $fields, $where 符合 SQL::Abstract 参数规则
-# 无 $order 参数，只按默认 id 排序
+# $fields, $where 符合 SQL::Abstract 参数规则，在 $order 之前插入 $limit
+# 无 $order 参数时，只按默认 id 排序
 # 不提供 $fields 时，使用默认的列名数组
 # $limit 是一个数字，或逗号分隔的两个数字，将拼在 LIMIT 之后
 # 返回：
 # 查询结果数组 arraryref ，单行查询也是一个数组，每行是个 hashref
 sub Query
 {
-	my ($self, $fields, $where, $limit) = @_;
+	my ($self, $fields, $where, $limit, $order) = @_;
 	my $dbh = $self->{dbh};
 
 	if (!$fields || (scalar @$fields) < 1) {
 		$fields = \@FIELD_MEMBER;
 	}
 	my $sql = SQL::Abstract->new;
-	my($stmt, @bind) = $sql->select($TABLE_MEMBER, $fields, $where);
+	my($stmt, @bind) = $sql->select($TABLE_MEMBER, $fields, $where, $order);
 	if ($limit) {
 		$stmt .= " LIMIT $limit";
 	}
@@ -104,6 +90,33 @@ sub Query
 
 	my $result = $sth->fetchall_arrayref({});
 	return $result;
+}
+
+# 查找记录行数
+# 入参：$where 与 Query 相同
+# 出参：返回数值
+sub Count
+{
+	my ($self, $where) = @_;
+	my $dbh = $self->{dbh};
+	my $sql = SQL::Abstract->new;
+	my($stmt, @bind) = $sql->where($where);
+
+	my $stmt_full = "SELECT count(1) FROM $TABLE_MEMBER $stmt";
+	wlog("$stmt; ?= @bind");
+	$self->Error();
+	my $sth = $dbh->prepare($stmt) 
+		or return $self->Error(0, "Fail to prepater");
+	$sth->execute(@bind)
+		or return $self->Error(0, "Fail to execute");
+
+	my @result = $sth->fetchrow_array;
+	if (@result) {
+		return $result[0];
+	}
+	else {
+		return $self->Error(0, "Fail to get count");
+	}
 }
 
 # 入参：
@@ -172,7 +185,7 @@ sub Remove
 	my $sql = SQL::Abstract->new;
 	my($stmt, @bind) = $sql->delete($TABLE_MEMBER, $where);
 
-	wlog($stmt);
+	wlog("$stmt; ?= @bind");
 	$self->Error();
 	my $sth = $dbh->prepare($stmt) 
 		or return $self->Error([], "Fail to prepater");
@@ -183,111 +196,17 @@ sub Remove
 	return $affected;
 }
 
-# 根据姓名查 id level sex
-sub QueryByName
-{
-	my ($self, $name) = @_;
-	set_error("OK");
-
-	my $dbh = $self->{dbh};
-
-	wlog("select ... where name = '$name'");
-	my $result = $dbh->selectrow_hashref(
-		'SELECT F_id, F_level, F_sex, F_name FROM t_family_member WHERE F_name = ?', undef, $name)
-		or set_error("No member who named: $name");
-
-	return $result;
-}
-
-sub InsertMember
-{
-	my ($self, $new_member) = @_;
-	set_error();
-
-	my $dbh = $self->{dbh};
-	my $sql = "INSERT INTO t_family_member SET F_name = '$new_member->{F_name}', F_sex = $new_member->{F_sex}, F_level = $new_member->{F_level}, ";
-	if ($new_member->{F_father}) {
-		$sql .= "F_father = '$new_member->{F_father}', ";
-	}
-	if ($new_member->{F_mother}) {
-		$sql .= "F_mother = '$new_member->{F_mother}', ";
-	}
-	if ($new_member->{F_partner}) {
-		$sql .= "F_partner = '$new_member->{F_partner}', ";
-	}
-	if ($new_member->{F_birthday}) {
-		$sql .= "F_birthday = '$new_member->{F_birthday}', ";
-	}
-	if ($new_member->{F_deathday}) {
-		$sql .= "F_deathday = '$new_member->{F_deathday}', ";
-	}
-
-	$sql .= "F_create_time = now(), F_update_time = now()";
-	wlog($sql);
-	$dbh->do($sql) or return error(0, "Fail to inser member: " . $dbh->errstr);
-	return 1;
-}
-
-sub SelectAll
-{
-	my ($self) = @_;
-	my $dbh = $self->{dbh};
-
-	my $fields = join(', ', @FIELD_MEMBER);
-	my $sql = "SELECT $fields FROM t_family_member";
-	my $result = $dbh->selectall_arrayref( $sql, { Slice => {} });
-	foreach my $rs (@$result) {
-		foreach my $fd (@FIELD_MEMBER) {
-			$rs->{$fd} //= 'NULL';
-			if ($fd eq 'F_sex') {
-				if ($rs->{$fd} == 1) {
-					$rs->{$fd} = '男';
-				}
-				else {
-					$rs->{$fd} = '女';
-				}
-			}
-		}
-	}
-	return $result;
-}
-
-sub PrintAll
-{
-	my ($self) = @_;
-
-	my $result = $self->SelectAll();
-	my $fields_head = join("\t ", @FIELD_MEMBER);
-	print "$fields_head\n";
-	foreach my $rs (@$result) {
-		foreach my $fd (@FIELD_MEMBER) {
-			print $rs->{$fd} . "\t";
-		}
-		print "\n";
-	}
-	
-	my $count = scalar @$result;
-	wlog("All member count: $count");
-	return $result;
-}
-
 ##-- MAIN --##
 sub main
 {
 	# $WebLog::to_std = 1;
 	wlog("log start");
 
-	my ($name) = @_;
-	set_error("NO ERROR");
 	my $db = FamilyDB->new();
-	my $rs = $db->QueryByName($name) or warn $error;
-	wlog("id: $rs->{F_id}; sex: " . $rs->{F_sex});
-
-	$db->PrintAll();
 	$db->Disconnect();
-	wlog("pm error: $error");
+	wlog("pm error: $db->{error}");
 	wlog("log end");
-	print WebLog::buff_as_web();
+	WebLog::instance()->output_std();
 }
 
 ##-- END --##
