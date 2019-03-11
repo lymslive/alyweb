@@ -64,6 +64,193 @@ var $DD = {
 		LAST_PRETECT: 0
 	},
 
+	// 要查看的个人详情
+	Person: {
+		curid: 0,
+		mine: null,
+		partner: null,
+		children: null,
+		parents: null,
+		sibling: null,
+		brief: '',
+
+		// 更新码
+		update: 0,
+		MINE: 1,
+		PARTNER: 1<<1,
+		CHILDREN: 1<<2,
+		PARENTS: 1<<3,
+		SIBLING: 1<<4,
+
+		markUpdate: function(_bit) {
+			this.update |= _bit;
+		},
+		canUpdate: function(_bit) {
+			return this.update & _bit;
+		},
+		clearUpdate() {
+			this.update = 0;
+		},
+
+		// 先从前端表中查找
+		lookinTable: function(_id) {
+			clearUpdate();
+			this.curid = _id;
+			if ($DD.Table.List.length < 1) {
+				return relations;
+			}
+
+			// 自己
+			if ($DD.Table.Hash[_id]) {
+				this.mine = $DD.Table.Hash[_id];
+				markUpdate(this.MINE);
+			}
+			// 配偶
+			var partner_id = this.mine.F_partner;
+			if ($DD.Table.Hash[partner_id]) {
+				this.partner = $DD.Table.Hash[partner_id];
+				markUpdate(this.PARTNER);
+			}
+
+			// 子女
+			var mine = this.mine;
+			var children = [];
+			$DD.Table.List.forEach(function(_item, _idx) {
+				if (mine.F_sex == 1 && _item.F_father == mine.F_id) {
+					children.push(_item);
+				}
+				else if (mine.F_sex == 0 && _item.F_mother == mine.F_id) {
+					children.push(_item);
+				}
+			});
+			if (children.length > 0) {
+				this.children = children;
+				markUpdate(this.CHILDREN);
+			}
+
+			// 先辈
+			var parents = [];
+			var row = mine;
+			while (row) {
+				var father_id = row.F_father;
+				var mother_id = row.F_mother;
+				var parent_one = null;
+				if ($DD.Table.Hash[father_id] && $DD.Table.Hash[father_id][F_level] > 0) {
+					parent_one = $DD.Table.Hash[father_id];
+				}
+				else if ($DD.Table.Hash[mother_id] && $DD.Table.Hash[mother_id][F_level] > 0) {
+					parent_one = $DD.Table.Hash[mother_id];
+				}
+				if (parent_one) {
+					parents.push(parent_one);
+					row = parent_one;
+				}
+				else {
+					row = null;
+					break;
+				}
+			}
+			if (parents.length > 0) {
+				this.parents = parents;
+				markUpdate(this.PARENTS);
+			}
+
+			// 兄弟
+			if (parents.length > 0) {
+				var parent_one = parents[0];
+				var sibling = [];
+				$DD.Table.List.forEach(function(_item, _idx) {
+					if (parent_one.F_sex == 1 && _item.F_father == parent_one.F_id && _item.F_id != mine.F_id) {
+						sibling.push(_item);
+					}
+					else if (parent_one.F_sex == 0 && _item.F_mother == parent_one.F_id && _item.F_id != mine.F_id) {
+						sibling.push(_item);
+					}
+				});
+				if (sibling.length > 0) {
+					this.sibling = sibling;
+					markUpdate(this.SIBLING);
+				}
+			}
+
+			return this.update;
+		},
+
+		// 获得未在本地表中查得的数据关系，需要向服务端查询
+		notinTable: function() {
+			return {
+				mine: canUpdate(this.MINE) ? 0 : 1,
+				partner: canUpdate(this.PARTNER) ? 0 : 1,
+				children: canUpdate(this.CHILDREN) ? 0 : 1,
+				parents: canUpdate(this.PARENTS) ? 0 : -1,
+				sibling: canUpdate(this.SIBLING) ? 0 : 1,
+			};
+		},
+
+		// 从服务端返回数据
+		foundinServer: function(_resData) {
+			if (this.curid != _resData.id) {
+				return 0;
+			}
+			var bUpdate = 0;
+			if (_resData.mine && !this.mine) {
+				this.mine = _resData.mine;
+				bUpdate++;
+			}
+			if (_resData.partner && !this.partner) {
+				this.partner = _resData.partner;
+				bUpdate++;
+			}
+			if (_resData.children
+				&& (!this.children || this.children.length < _resData.children.length)) {
+				this.children = _resData.children;
+				bUpdate++;
+			}
+			if (_resData.parents
+				&& (!this.parents || this.parents.length < _resData.parents.length)) {
+				this.parents = _resData.parents;
+				bUpdate++;
+			}
+			if (_resData.sibling
+				&& (!this.sibling || this.sibling.length < _resData.sibling.length)) {
+				this.sibling = _resData.sibling;
+				bUpdate++;
+			}
+			return bUpdate;
+		},
+
+		// 强制从服务端返回数据刷新
+		forceinServer: function(_resData) {
+			if (this.curid != _resData.id) {
+				return 0;
+			}
+			var bUpdate = 0;
+			if (_resData.mine) {
+				this.mine = _resData.mine;
+				bUpdate++;
+			}
+			if (_resData.partner) {
+				this.partner = _resData.partner;
+				bUpdate++;
+			}
+			if (_resData.children) {
+				this.children = _resData.children;
+				bUpdate++;
+			}
+			if (_resData.parents) {
+				this.parents = _resData.parents;
+				bUpdate++;
+			}
+			if (_resData.sibling) {
+				this.sibling = _resData.sibling;
+				bUpdate++;
+			}
+			return bUpdate;
+		},
+
+		LAST_PRETECT: true
+	},
+
 	LAST_PRETECT: true
 };
 

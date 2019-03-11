@@ -42,10 +42,7 @@ var $DE = {
 		// 页签功能
 		$('li.page-menu>a').click(function(_evt) {
 			var href = $(this).attr('href');
-			if ($DV.Page.see(href)) {
-				$('li.page-menu').removeClass('curr-page');
-				$(this).parent().addClass('curr-page');
-			}
+			$DV.Page.see(href);
 			_evt.preventDefault();
 		});
 

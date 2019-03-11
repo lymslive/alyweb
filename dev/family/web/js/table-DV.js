@@ -1,5 +1,34 @@
 // 表观
 var $DV = {
+	// 通用函数
+	Fun: {
+		// 构造指向某个人的超链接，入参为一行记录，出参数为 html 字符串
+		linktoPerson: function(_row, _suffix) {
+			var id = _row.F_id;
+			var name = _row.F_name;
+			var sex = _row.F_sex;
+			if (_suffix && sex < 2) {
+				name .= $DD.SEX[sex];
+			}
+			var html = '<a href="#p' + id + '" title="' + id + '">' + name + '</a>';
+			return html;
+		},
+
+		// 为成员 id 构造超链接，未加载该行记录，可能无法显示姓名
+		linktoPid: function(_id) {
+			var name = _id;
+			var title = _id;
+			if ($DD.Mapid[_id]) {
+				name = $DD.Mapi[_id];
+			}
+			else {
+				title = '点击查找姓名';
+			}
+			var html = '<a href="#p' + id + '" title="' + title + '">' + name + '</a>';
+			return html;
+		},
+	},
+
 	Page: {
 		curid: '',
 
@@ -22,8 +51,28 @@ var $DV = {
 			$('div.page').hide();
 			$(_toid).show();
 			this.curid = _toid;
+			$('#menu-bar li.page-menu').each(function() {
+				if ($(this).find('a').attr('href') == _toid) {
+					$(this).addClass('curr-page');
+				}
+				else {
+					$(this).removeClass('curr-page');
+				}
+			});
 			return true;
-		}
+		},
+
+		// 查看某个人详情
+		checkPerson: function(_id) {
+			if (this.curid != '#pg2-person') {
+				this.see('#pg2-person');
+			}
+			$DD.Person.lookinTable(_id);
+			var lackoff = $DD.Person.notinTable();
+			$DV.Person.update();
+		},
+
+		LAST_PRETECT: true
 	},
 
 	// 主表格
@@ -133,6 +182,7 @@ var $DV = {
 				.appendTo($td);
 			$tr.append($td);
 
+			name = $DV.Fun.linktoPerson(jrow);
 			$td = $('<td></td>').html(name);
 			$tr.append($td);
 
@@ -142,12 +192,36 @@ var $DV = {
 			$td = $('<td></td>').html(level);
 			$tr.append($td);
 
+			if (father) {
+				if ($DD.Table.Hash[father]) {
+					father = $DV.Fun.linktoPerson($DD.Table.Hash[father]);
+				}
+				else {
+					father = $DV.Fun.linktoPid(father);
+				}
+			}
 			$td = $('<td></td>').html(father);
 			$tr.append($td);
 
+			if (mother) {
+				if ($DD.Table.Hash[mother]) {
+					mother = $DV.Fun.linktoPerson($DD.Table.Hash[mother]);
+				}
+				else {
+					mother = $DV.Fun.linktoPid(mother);
+				}
+			}
 			$td = $('<td></td>').html(mother);
 			$tr.append($td);
 
+			if (partner) {
+				if ($DD.Table.Hash[partner]) {
+					partner = $DV.Fun.linktoPerson($DD.Table.Hash[partner]);
+				}
+				else {
+					partner = $DV.Fun.linktoPid(partner);
+				}
+			}
 			$td = $('<td></td>').html(partner);
 			$tr.append($td);
 
@@ -163,6 +237,131 @@ var $DV = {
 		modify: function(_resData, _reqData) {
 			var id = _reqData.id;
 		}
+	},
+
+	// 个人详情页签
+	Person: {
+		update: function() {
+			var Data = $DD.Person;
+			if (!Data.update) {
+				return;
+			}
+
+			// 个人信息
+			if (Data.canUpdate(Data.MINE)) {
+				var id = Data.mine.F_id;
+				var name = Data.mine.F_name;
+				var sex = Data.mine.F_sex;
+				var level = Data.mine.F_level;
+				if (sex < 2) {
+					name .= $DD.SEX[sex];
+				}
+				if (level > 0) {
+					level = '第 +' + level + '代直系';
+				}
+				else {
+					level = '第 ' + level + '代旁系';
+				}
+
+				var text = id + ' | ' + name + ' | ' + level;
+				$('#mine-info').html(text);
+
+				if (Data.mine.F_birthday) {
+					var text = '';
+					var birthDate = new Date(Data.mine.F_birthday); 
+					if (Data.mine.F_deathday) {
+						var deathDate = new Date(Data.mine.F_deathday); 
+						var life = deathDate.getFullYear() - birthDate.getFullYear() + 1;
+						text = Data.mine.F_birthday + ' - ' + Data.mine.F_deathday + '（' + life + '寿）';
+					}
+					else {
+						var nowDate = new Date(); 
+						var age = nowthDate.getFullYear() - birthDate.getFullYear() + 1;
+						text = Data.mine.F_birthday + ' - ?' + '（' + age + '岁）';
+					}
+					$('#mine-dates span.data').html(text);
+					$('#mine-dates').show();
+				}
+				else {
+					$('#mine-dates').hide();
+				}
+
+				if (Data.mine.F_level == 1) {
+					var text = '己是入库的始祖了，有需要请联系管理员升级！';
+					$('#mine-parents').html(text);
+				}
+				else if (Data.mine.F_level < 0) {
+					var text = '旁系配偶不入库！';
+					$('#mine-parents').html(text);
+				}
+			}
+
+			// 配偶信息
+			if (Data.canUpdate(Data.PARTNER)) {
+				if (Data.mine.F_partner) {
+					var html = $DV.Fun.linktoPerson(Data.partner, 1);
+					$('#mine-partner span.data').html(html);
+					$('#mine-partner').show();
+				}
+				else {
+					$('#mine-partner').hide();
+					$('#mine-children').hide();
+				}
+			}
+
+			// 后代
+			if (Data.canUpdate(Data.CHILDREN)) {
+				if (Data.mine.F_partner && Data.children.length > 1) {
+					var html = '';
+					Data.children.forEach(function(_item, _idx) {
+						var child = $DV.Fun.linktoPerson(_item, 1);
+						if (html) {
+							html .= '、' + child;
+						}
+						else {
+							html = child;
+						}
+					});
+					$('#mine-children span.data').html(html);
+					$('#mine-children').show();
+				}
+				else {
+					$('#mine-children').hide();
+				}
+			}
+
+			// 先祖
+			if (Data.canUpdate(Data.PARENTS) && Data.mine.F_level > 1) {
+				var html = '';
+				Data.parents.forEach(function(_item, _idx) {
+					var parent_one = $DV.Fun.linktoPerson(_item, 1);
+					if (html) {
+						html .= '、' + parent_one;
+					}
+					else {
+						html = parent_one;
+					}
+				});
+				$('#mine-parents span.data').html(html);
+			}
+
+			// 兄弟
+			if (Data.canUpdate(Data.SIBLING)) {
+				var html = '';
+				Data.sibling.forEach(function(_item, _idx) {
+					var sibling = $DV.Fun.linktoPerson(_item, 1);
+					if (html) {
+						html .= '、' + sibling;
+					}
+					else {
+						html = sibling;
+					}
+				});
+				$('#mine-sibling span.data').html(html);
+			}
+		},
+
+		LAST_PRETECT: true
 	},
 
 	// 操作表单在某行数据行下展开
