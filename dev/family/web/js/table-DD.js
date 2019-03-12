@@ -25,10 +25,13 @@ var $DD = {
 		perpage: 0,
 		may_more: false,
 
+		// 增量修改的行数
+		updated: 0,
+
 		// 重新加载全表数据
 		load: function(resData) {
 			this.List = resData.records;
-			this.Hash = {};
+			// this.Hash = {};
 			for (var i = 0; i < this.List.length; ++i) {
 				var id = this.List[i].F_id;
 				var name = this.List[i].F_name;
@@ -42,23 +45,102 @@ var $DD = {
 			if (this.total > this.perpage && this.total > (this.page-1) * this.perpage + this.List.length) {
 				this.may_more = true;
 			}
+
+			updated = 0;
 		},
 
+		// 更新服务器数据回调，包含修改自己与增加子女
 		modify: function(_resData, _reqData) {
-			var id = _reqData.id;
-			var jold = $DD.getRow(id);
-			if (_reqData.name) {
-				jold.F_name = _reqData.name;
-			}
-			if (_reqData.sex) {
-				jold.F_sex = _reqData.sex;
-			}
-			if (_reqData.father_id) {
-				jold.F_father = _reqData.father_id;
-			}
-			else if (_reqData.father_name) {
+			if (!_resData.id || !_reqData.id || _resData.id != _reqData.id) {
+				console.log('请求响应数据不对');
 				return;
 			}
+
+			var id = _resData.id;
+			var partner_id = _resData.partner_id;
+			var mine, partner;
+			_resData.records.forEach(function(_item, _idx) {
+				if (_item.F_id == id) {
+					mine = _item;
+				}
+				else if (partner_id && partner_id == _item.F_id) {
+					partner = _item;
+				}
+			});
+
+			if (mine) {
+				this.store(mine);
+			}
+			else {
+				console.log('逻辑错误：没有返回自己的信息');
+			}
+
+			if (partner) {
+				this.store(partner);
+			}
+
+			// 更新个人详情页的小表
+			if ($DD.Person.curid == id) {
+				$DD.Person.fromServer({
+					"id": id,
+					"mine": mine,
+					"partner": partner
+				});
+				$DV.Person.update();
+			}
+			else if ($DD.Person.curid == mine.F_father || $DD.Person.curid == mine.F_mother) {
+				$DD.Person.fromServer({
+					"id": $DD.Person.curid,
+					"children": mine
+				});
+				$DV.Person.update();
+				$DV.Person.Table.expandDown();
+			}
+		},
+
+		// 增量修改或存储一行数据
+		store: function(_row) {
+			var id = _row.F_id;
+			if (!id) {
+				console.log('数据行不存在 id?');
+				return;
+			}
+			this.Hash[id] = _row;
+			if (_row.F_name) {
+				$DD.Mapid[id] = _row.F_name;
+			}
+
+			if (_row.F_level < 0) {
+				console.log('旁系配偶只内部保存，不列出：' + id + _row.F_name);
+				return;
+			}
+
+			var bFound = false;
+			for (var i = 0; i < this.List.length; ++i) {
+				if (this.List[i].F_id == id) {
+					this.List[i] = _row;
+					bFound = true;
+					break;
+				}
+			}
+			if (!bFound) {
+				this.List.push(_row);
+			}
+
+			// 更新页面表
+			this.updated++;
+			$DV.Table.updateRow(_row);
+			this.updated--;
+		},
+
+		// 增量保存旁系配偶，只存在 Hash 中
+		storePartner: function(_resData, _reqData) {
+			_resData.records.forEach(function(_item, _idx) {
+				var id = _item.F_id;
+				var name = _item.F_name;
+				$DD.Mapid[id] = name;
+				this.Hash[id] = _item;
+			});
 		},
 
 		LAST_PRETECT: 0
@@ -108,9 +190,6 @@ var $DD = {
 				this.reset(_id);
 			}
 			this.curid = _id;
-			if ($DD.Table.List.length < 1) {
-				return this.update;
-			}
 
 			// 自己
 			if ($DD.Table.Hash[_id]) {
@@ -131,14 +210,18 @@ var $DD = {
 
 			// 子女
 			var children = [];
-			$DD.Table.List.forEach(function(_item, _idx) {
-				if (mine.F_sex == 1 && _item.F_father == mine.F_id) {
-					children.push(_item);
+			var _fid, _frow;
+			for (_fid in $DD.Table.Hash){
+				if ($DD.Table.Hash.hasOwnProperty(_fid)) {
+					_frow = $DD.Table.Hash[_fid];
+					if (mine.F_sex == 1 && _frow.F_father == mine.F_id) {
+						children.push(_frow);
+					}
+					else if (mine.F_sex == 0 && _frow.F_mother == mine.F_id) {
+						children.push(_frow);
+					}
 				}
-				else if (mine.F_sex == 0 && _item.F_mother == mine.F_id) {
-					children.push(_item);
-				}
-			});
+			}
 			if (children.length > 0) {
 				this.children = children;
 				this.markUpdate(this.CHILDREN);
@@ -175,14 +258,17 @@ var $DD = {
 			if (parents.length > 0) {
 				var parent_one = parents[0];
 				var sibling = [];
-				$DD.Table.List.forEach(function(_item, _idx) {
-					if (parent_one.F_sex == 1 && _item.F_father == parent_one.F_id && _item.F_id != mine.F_id) {
-						sibling.push(_item);
+				for (_fid in $DD.Table.Hash){
+					if ($DD.Table.Hash.hasOwnProperty(_fid)) {
+						_frow = $DD.Table.Hash[_fid];
+						if (parent_one.F_sex == 1 && _frow.F_father == parent_one.F_id && _frow.F_id != mine.F_id) {
+							sibling.push(_frow);
+						}
+						else if (parent_one.F_sex == 0 && _frow.F_mother == parent_one.F_id && _frow.F_id != mine.F_id) {
+							sibling.push(_frow);
+						}
 					}
-					else if (parent_one.F_sex == 0 && _item.F_mother == parent_one.F_id && _item.F_id != mine.F_id) {
-						sibling.push(_item);
-					}
-				});
+				}
 				if (sibling.length > 0) {
 					this.sibling = sibling;
 					this.markUpdate(this.SIBLING);
@@ -203,40 +289,8 @@ var $DD = {
 			};
 		},
 
-		// 从服务端返回数据
-		foundinServer: function(_resData) {
-			if (this.curid != _resData.id) {
-				return 0;
-			}
-			var bUpdate = 0;
-			if (_resData.mine && !this.mine) {
-				this.mine = _resData.mine;
-				bUpdate++;
-			}
-			if (_resData.partner && !this.partner) {
-				this.partner = _resData.partner;
-				bUpdate++;
-			}
-			if (_resData.children
-				&& (!this.children || this.children.length < _resData.children.length)) {
-				this.children = _resData.children;
-				bUpdate++;
-			}
-			if (_resData.parents
-				&& (!this.parents || this.parents.length < _resData.parents.length)) {
-				this.parents = _resData.parents;
-				bUpdate++;
-			}
-			if (_resData.sibling
-				&& (!this.sibling || this.sibling.length < _resData.sibling.length)) {
-				this.sibling = _resData.sibling;
-				bUpdate++;
-			}
-			return bUpdate;
-		},
-
 		// 强制从服务端返回数据刷新
-		forceinServer: function(_resData) {
+		fromServer: function(_resData) {
 			if (this.curid != _resData.id) {
 				return 0;
 			}

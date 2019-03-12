@@ -83,16 +83,6 @@ var $DE = {
 	onFillTable: function() {
 		var that = this;
 
-		$("tr").mouseover(function() {
-			$(this).addClass("over");
-		});
-
-		$("tr").mouseout(function() {
-			$(this).removeClass("over");
-		});
-
-		$("tr:even").addClass("even");
-
 		$('td a.rowid').click(function(_evt) {
 			_evt.preventDefault();
 		});
@@ -106,6 +96,13 @@ var $DE = {
 		});
 
 		/*
+		$("tr").mouseover(function() {
+			$(this).addClass("over");
+		});
+		$("tr").mouseout(function() {
+			$(this).removeClass("over");
+		});
+		$("tr:even").addClass("even");
 		$('#tabMember td a.toperson').click(function(_evt) {
 			that.gotoPerson($(this));
 			_evt.preventDefault();
@@ -133,9 +130,6 @@ var $DE = {
 	},
 
 	onModifyRow: function() {
-		if ($DV.Operate.refid) {
-			$DV.Operate.fold(0);
-		}
 	},
 
 	LAST_PRETECT: true

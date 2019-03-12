@@ -1,34 +1,60 @@
 // ajax 请求
 var $DJ = {
 	// 组装请求参数
-	reqOption: function(reqData) {
+	reqOption: function(req) {
 		var opt = {
 			method: "POST",
 			contentType: "application/json",
 			dataType: "json",
-			data: JSON.stringify(reqData)
+			data: JSON.stringify(req)
 			// data: req // 会发送 api=query& 而不是 json 串
 		};
 		return opt;
 	},
 
-	requestAll: function() {
-		var req = {"api":"query","data":{"all":1}};
+	// 封装请求服务端 api
+	// req 为请求 api json 对象， callback 是成功时回调，接收参数为响应与请求
+	// 的实质 data 部分
+	requestAPI: function(req, callback) {
 		var opt = this.reqOption(req);
-		this.table = $.ajax($DD.API_URL, opt)
+		var ajx = $.ajax($DD.API_URL, opt)
 			.done(function(res, textStatus, jqXHR) {
-				// api 返回的应该是 json
+				// api 返回的 res 直接解析为 json
 				if (res.error) {
 					$DV.log(res.error);
 				}
 				else {
-					$DD.Table.load(res.data);
-					$DV.Table.fill();
-					$DE.onFillTable();
+					callback(res.data, req.data);
 				}
 			})
 			.fail(this.resFail)
 			.always(this.resAlways);
+		return ajx;
+	},
+
+	// 默认拉取所有数据
+	requestAll: function() {
+		var req = {"api":"query","data":{"all":1}};
+		this.table = this.requestAPI(req, function(_resData, _reqData) {
+			$DD.Table.load(_resData);
+			$DV.Table.fill();
+			$DE.onFillTable();
+		});
+	},
+
+	// 查询配偶
+	reqPartnerAll: function() {
+		var req = {"api":"query",
+			"data":{
+				"filter":{
+					"F_level":{"<":0},  // 代际负为旁系
+					"F_partner":{">":0},// 确实关联一个成员
+				}
+			}
+		};
+		this.modify = this.requestAPI(req, function(_resData, _reqData) {
+			$DD.Table.storePartner(_resData, _reqData);
+		});
 	},
 
 	// 请求修改
@@ -37,20 +63,22 @@ var $DJ = {
 			console.log('请求参数不对');
 			return false;
 		}
-		this.modify = $.ajax($DD.API_URL, reqOption(req))
-			.done(function(_res, textStatus, jqXHR) {
-				// api 返回的应该是 json
-				if (_res.error) {
-					$DV.log(_res.error);
-				}
-				else {
-					$DD.Table.modify(_res.data, _req.data);
-					$DV.Table.modify(_res.data, _req.data);
-					$DE.onModifyRow();
-				}
-			})
-			.fail(this.resFail)
-			.always(this.resAlways);
+		this.modify = this.requestAPI(_req, function(_resData, _reqData) {
+			$DD.Table.modify(_resData, _reqData);
+			$DE.onModifyRow();
+		});
+	},
+
+	// 请求增加
+	reqAppend: function(_req) {
+		if (!_req.api || _req.api != 'create') {
+			console.log('请求参数不对');
+			return false;
+		}
+		this.create = this.requestAPI(_req, function(_resData, _reqData) {
+			$DD.Table.modify(_resData, _reqData);
+			$DE.onModifyRow();
+		});
 	},
 
 	resFail: function(jqXHR, textStatus, errorThrown) {

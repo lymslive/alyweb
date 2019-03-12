@@ -127,6 +127,7 @@ var $DV = {
 			console.log('将清空表格数据行：' + this.rows);
 			$(this.domid).find('.' + this.rowcss).remove();
 			$(this.butid).remove();
+			this.rows = 0;
 		},
 
 		fill: function() {
@@ -139,9 +140,14 @@ var $DV = {
 			}
 			console.log('将填充表格数据行：' + data.length);
 			for (var i=0; i<data.length; i++) {
-				$(this.domid).append(this.formatRow(data[i]));
+				var $tr = this.formatRow(data[i]);
+				this.rows++;
+				if (this.rows % 2 == 0) {
+					$tr.addClass("even");
+				}
+				$(this.domid).append($tr);
 			}
-			this.rows = data.length;
+			// this.rows = data.length;
 			if (data.length > this.but_limit) {
 				$(this.domid).append(this.hth());
 			}
@@ -228,16 +234,41 @@ var $DV = {
 			$td = $('<td></td>').html(deathday);
 			$tr.append($td);
 
+			// 为当前行附加事件属性
 			$tr.find('td a.toperson').click(function(_evt) {
 				$DE.gotoPerson($(this));
 				_evt.preventDefault();
 			});
 
+			$tr.mouseover(function() {
+				$(this).addClass("over");
+			});
+			$tr.mouseout(function() {
+				$(this).removeClass("over");
+			});
+
 			return $tr;
 		},
 
-		modify: function(_resData, _reqData) {
-			var id = _reqData.id;
+		// 更新一行，替换或加在表尾
+		updateRow: function(_row) {
+			var id = _row.id;
+			var rid = '#r' + id;
+			var $old = $(rid);
+			var $tr = formatRow(_row);
+			if ($old.length > 0) {
+				if ($old.hasClass('even')) {
+					$tr.addClass('even');
+				}
+				$old.replaceWith($tr);
+			}
+			else {
+				this.rows++;
+				if (this.rows % 2 == 0) {
+					$tr.addClass("even");
+				}
+				$(this.domid).append($tr);
+			}
 		}
 	},
 
@@ -623,7 +654,7 @@ var $DV = {
 
 		submit: function(evt) {
 			if (!this.refid) {
-				console.log('逻辑错误：不在参照行下展开表单？');
+				console.log('逻辑错误：没有参考个人信息');
 				return false;
 			}
 
@@ -699,6 +730,7 @@ var $DV = {
 					return false;
 				}
 
+				reqData.requery = 1;
 				req.api = 'modify';
 				req.data = reqData;
 				console.log(req);
@@ -763,9 +795,12 @@ var $DV = {
 					reqData.deathday = deathday;
 				}
 
+				reqData.requery = 1;
 				req.api = 'create';
 				req.data = reqData;
 				console.log(req);
+				$DV.log(req);
+				$DJ.reqAppend(req);
 			}
 			else {
 				console.log('只有修改或增加后代需提交数据');
