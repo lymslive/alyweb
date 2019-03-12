@@ -1,3 +1,18 @@
+/*
+max-width: 42em;
+ */
+body {
+	font-family: "PingFang SC", "Hiragino Sans GB", Helvetica, Arial, sans-serif;
+	margin: 1em;
+	background-color: white;
+}
+@media screen and (min-width: 914px) {
+	body {
+		width: 40em;
+		margin: 1em auto;
+	}
+}
+
 /* 超链接 */
 a {
 	color: #0069d6; 
@@ -19,8 +34,7 @@ a:hover {
 }
 
 li.page-menu {
-	width: 5em;
-	padding-right: 1em;
+	width: 6em;
 	float: left;
 }
 
@@ -60,6 +74,12 @@ th {
 	background-color: #626975;
 }
 
+tr.mine {
+	font-weight: bold;
+	color: blue;
+	background-color: #C2C8D4;
+}
+
 /* 折叠设置 */
 .foldOff {
 	display: none;
@@ -74,13 +94,19 @@ th {
 }
 
 a.foldOpen {
-	color:blue;
+	color: blue;
 	text-decoration: wavy underline;
+}
+a.foldOpen:before{
+	content: "▼";
 }
 
 a.foldClose {
 	color:blue;
 	text-decoration: underline;
+}
+a.foldClose:before{
+	content: "►";
 }
 
 a.foldOpen:hover {
@@ -121,7 +147,7 @@ th.fname {
 	width: 4em;
 }
 th.fdate {
-	width: 5em;
+	width: 6em;
 }
 th.fsex {
 	width: 3em;

@@ -56,7 +56,6 @@ var $DE = {
 
 		$('#oper-close').click(function() {
 			$DV.Operate.close();
-			// $('a[href=#divOperate]').click();
 		});
 
 		$('#formOperate').submit(function(_evt) {
@@ -64,8 +63,13 @@ var $DE = {
 			return $DV.Operate.submit(_evt);
 		});
 
-		$('#test-toggle').click(function() {
-			// $DOC.VIEW.Operate.fold();
+		$('#tabMine-exup>a').click(function(_evt) {
+			$DV.Person.Table.expandUp();
+			_evt.preventDefault();
+		});
+		$('#tabMine-exdp>a').click(function(_evt) {
+			$DV.Person.Table.expandDown();
+			_evt.preventDefault();
 		});
 
 		$('#remarry').click(function(_evt) {
@@ -77,6 +81,8 @@ var $DE = {
 
 	// 填充完表格注册事件
 	onFillTable: function() {
+		var that = this;
+
 		$("tr").mouseover(function() {
 			$(this).addClass("over");
 		});
@@ -99,6 +105,31 @@ var $DE = {
 			_evt.preventDefault();
 		});
 
+		/*
+		$('#tabMember td a.toperson').click(function(_evt) {
+			that.gotoPerson($(this));
+			_evt.preventDefault();
+		});
+		*/
+	},
+
+	// 个人详情填充完毕注册事件
+	onPersonUpdate: function() {
+		var that = this;
+		$('#member-relation li a.toperson').click(function(_evt) {
+			that.gotoPerson($(this));
+			_evt.preventDefault();
+		});
+	},
+
+	// 根据超链接跳到转指定个人详情
+	gotoPerson: function($_emt) {
+		var href = $_emt.attr('href');
+		var rem = href.match(/#p(\d+)/);
+		if (rem) {
+			var id = rem[1];
+			$DV.Page.checkPerson(id);
+		}
 	},
 
 	onModifyRow: function() {

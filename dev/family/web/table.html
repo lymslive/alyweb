@@ -2,7 +2,9 @@
 <html>
 	<head>
 		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width" />
+		<meta name="viewport" content="width=device-width"/>
+		<!--
+		-->
 		<link rel="stylesheet" href="css/table.css"/>
 		<script src="http://code.jquery.com/jquery-2.1.0.js"></script>
 		<script src="js/table-DD.js"></script>
@@ -98,13 +100,13 @@
 					<li id="mine-children">延续后代：<span class="data"></span></li>
 					<li id="mine-sibling">兄弟姐妹：<span class="data"></span></li>
 					<li id="mine-dates">生辰年方：<span class="data"></span></li>
-					<li id="mine-partner">婚配于：<span class="data"></span></li>
+					<li id="mine-partner">婚配夫妻：<span class="data"></span></li>
 				</ul>
 			</div>
 			<div>
-				<h3><a href="#member-desc" class="foldClose">生平简介：</a></h3>
+				<h3><a href="#member-desc" class="foldClose">生平简介</a></h3>
 				<div id="member-desc">
-					<p/>
+					<p>（暂未支持，但是是将显示在这）</p>
 					<h4><a href="#modify-desc" class="foldClose">修改简介</a></h4>
 					<div id="modify-desc">
 						<form id="formDesc">
@@ -116,7 +118,9 @@
 				</div>
 			</div>
 			<div>
-				<a href="#">向上扩展<a/>
+				<div id="tabMine-exup">
+					<a href="#">▲向上扩展</a>
+				</div>
 				<table id="tabMine">
 					<tr>
 						<th class="fid">编号</th>
@@ -130,7 +134,9 @@
 						<th class="fdate">忌日</th>
 					</tr>
 				</table>
-				<a href="#">向下扩展</a>
+				<div id="tabMine-exdp">
+					<a href="#">▼向下扩展</a>
+				</div>
 				<h3><a href="#divOperate" class="foldClose">修改资料</a></h3>
 				<div id="divOperate">
 					<form id="formOperate">
@@ -139,13 +145,13 @@
 						<label>删除记录<input type="radio" name="operate" value="remove" id="to-remove"/></label>
 						<label>操作口令<input type="password" name="operkey" value="123456" size="10"/></label>
 						<div id="oper-detail" class="foldOff">
-							<label>编号<input type="text" name="mine_id" value="" size="10"/></label>
-							<label>姓名<input type="text" name="mine_name" value="" size="10"/></label>
+							<label>编号<input type="text" name="mine_id" value="" size="12"/></label>
+							<label>姓名<input type="text" name="mine_name" value="" size="12"/></label>
 							<label>男<input type="radio" name="sex" value="1"/></label>
 							<label>女<input type="radio" name="sex" value="0"/></label><br>
-							<label>父亲<input type="text" name="father" value="" size="10"/></label>
-							<label>母亲<input type="text" name="mother" value="" size="10"/></label><br>
-							<label>配偶<input type="text" name="partner" value="" size="10"/></label>
+							<label>父亲<input type="text" name="father" value="" size="12"/></label>
+							<label>母亲<input type="text" name="mother" value="" size="12"/></label><br>
+							<label>配偶<input type="text" name="partner" value="" size="12"/></label>
 							<a href="#" id="remarry">（增加配偶）</a><br>
 							<label>生日<input type="date" name="birthday" value=""/></label>
 							<label>忌日<input type="date" name="deathday" value=""/></label><br>
@@ -200,7 +206,7 @@
 
 		<!-- 页底区域 -->
 		<div id="pg-foot">
-			<a href="#menu-bar">回顶部菜单</a>
+			<a href="#menu-bar">▲回顶部菜单</a>
 		</div>
 
 		<div id="divLog" class="foldOff">

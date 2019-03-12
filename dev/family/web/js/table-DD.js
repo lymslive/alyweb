@@ -66,6 +66,7 @@ var $DD = {
 
 	// 要查看的个人详情
 	Person: {
+		DEFAULT: 10001,
 		curid: 0,
 		mine: null,
 		partner: null,
@@ -92,28 +93,43 @@ var $DD = {
 			this.update = 0;
 		},
 
+		reset: function(_id) {
+			this.mine = null;
+			this.partner = null;
+			this.children = null;
+			this.parents = null;
+			this.sibling = null;
+			this.clearUpdate();
+		},
+
 		// 先从前端表中查找
 		lookinTable: function(_id) {
-			clearUpdate();
+			if (_id != this.curid && this.curid) {
+				this.reset(_id);
+			}
 			this.curid = _id;
 			if ($DD.Table.List.length < 1) {
-				return relations;
+				return this.update;
 			}
 
 			// 自己
 			if ($DD.Table.Hash[_id]) {
 				this.mine = $DD.Table.Hash[_id];
-				markUpdate(this.MINE);
+				this.markUpdate(this.MINE);
 			}
+			var mine = this.mine;
+			if (!mine) {
+				return this.update;
+			}
+
 			// 配偶
 			var partner_id = this.mine.F_partner;
 			if ($DD.Table.Hash[partner_id]) {
 				this.partner = $DD.Table.Hash[partner_id];
-				markUpdate(this.PARTNER);
+				this.markUpdate(this.PARTNER);
 			}
 
 			// 子女
-			var mine = this.mine;
 			var children = [];
 			$DD.Table.List.forEach(function(_item, _idx) {
 				if (mine.F_sex == 1 && _item.F_father == mine.F_id) {
@@ -125,7 +141,7 @@ var $DD = {
 			});
 			if (children.length > 0) {
 				this.children = children;
-				markUpdate(this.CHILDREN);
+				this.markUpdate(this.CHILDREN);
 			}
 
 			// 先辈
@@ -135,10 +151,10 @@ var $DD = {
 				var father_id = row.F_father;
 				var mother_id = row.F_mother;
 				var parent_one = null;
-				if ($DD.Table.Hash[father_id] && $DD.Table.Hash[father_id][F_level] > 0) {
+				if ($DD.Table.Hash[father_id] && $DD.Table.Hash[father_id].F_level > 0) {
 					parent_one = $DD.Table.Hash[father_id];
 				}
-				else if ($DD.Table.Hash[mother_id] && $DD.Table.Hash[mother_id][F_level] > 0) {
+				else if ($DD.Table.Hash[mother_id] && $DD.Table.Hash[mother_id].F_level > 0) {
 					parent_one = $DD.Table.Hash[mother_id];
 				}
 				if (parent_one) {
@@ -152,7 +168,7 @@ var $DD = {
 			}
 			if (parents.length > 0) {
 				this.parents = parents;
-				markUpdate(this.PARENTS);
+				this.markUpdate(this.PARENTS);
 			}
 
 			// 兄弟
@@ -169,7 +185,7 @@ var $DD = {
 				});
 				if (sibling.length > 0) {
 					this.sibling = sibling;
-					markUpdate(this.SIBLING);
+					this.markUpdate(this.SIBLING);
 				}
 			}
 
@@ -179,11 +195,11 @@ var $DD = {
 		// 获得未在本地表中查得的数据关系，需要向服务端查询
 		notinTable: function() {
 			return {
-				mine: canUpdate(this.MINE) ? 0 : 1,
-				partner: canUpdate(this.PARTNER) ? 0 : 1,
-				children: canUpdate(this.CHILDREN) ? 0 : 1,
-				parents: canUpdate(this.PARENTS) ? 0 : -1,
-				sibling: canUpdate(this.SIBLING) ? 0 : 1,
+				mine: this.canUpdate(this.MINE) ? 0 : 1,
+				partner: this.canUpdate(this.PARTNER) ? 0 : 1,
+				children: this.canUpdate(this.CHILDREN) ? 0 : 1,
+				parents: this.canUpdate(this.PARENTS) ? 0 : -1,
+				sibling: this.canUpdate(this.SIBLING) ? 0 : 1,
 			};
 		},
 
