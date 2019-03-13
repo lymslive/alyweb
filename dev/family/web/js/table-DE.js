@@ -11,6 +11,10 @@ var $DE = {
 				foldin.show();
 				$(this).removeClass('foldClose');
 				$(this).addClass('foldOpen');
+				// 特殊处理，表单自动选择第一个
+				if (href == '#divOperate') {
+					$('#to-modify').click();
+				}
 			}
 			else {
 				foldin.hide();
@@ -72,9 +76,12 @@ var $DE = {
 			_evt.preventDefault();
 		});
 
-		$('#remarry').click(function(_evt) {
-			var $partner = $('#formOperate input:text[name=partner]');
-			$DV.Operate.unlock($partner);
+		// 强制解锁已自动填充的表单域
+		$('#formOperate a.input-unlock').click(function(_evt) {
+			var href = $(this).attr('href');
+			var name = href.substring(1);
+			var $input = $(`#formOperate input:text[name=${name}]`);
+			$DV.Operate.unlock($input);
 			_evt.preventDefault();
 		});
 	},

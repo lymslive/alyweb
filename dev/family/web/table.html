@@ -11,7 +11,7 @@
 		<script src="js/table-DV.js"></script>
 		<script src="js/table-DE.js"></script>
 		<script src="js/table-DJ.js"></script>
-		<title> 谭氏家谱 </title>
+		<title> 澄江谭氏家谱电子系统 </title>
 	</head>
 	<body>
 
@@ -27,7 +27,7 @@
 			</div>
 		</div>
 
-		<h1 class="atcenter">谭氏家谱电子系统</h1>
+		<h1 class="atcenter">澄江谭氏家谱电子系统</h1>
 		<div id="menu-bar">
 			<ul>
 				<li class="page-menu"><a href="#pg1-table">家谱纵览</a></li>
@@ -87,7 +87,7 @@
 		<div id="pg2-person" class="page">
 			<h2>家谱个人详情</h2>
 			<div id="member-header">
-				<form method="get">
+				<form id="formPerson">
 					<span id="mine-info">10025 | 谭水龙 | 第 4 代直系</span> 
 					<input type="submit" value="查找其他"/>
 					<input size="5" type="text" name="mine" required="required"/>
@@ -140,17 +140,22 @@
 				<h3><a href="#divOperate" class="foldClose">修改资料</a></h3>
 				<div id="divOperate">
 					<form id="formOperate">
-						<label>修改资料<input type="radio" name="operate" value="modify" id="to-modify"/></label>
-						<label>添加子女<input type="radio" name="operate" value="append" id="to-append"/></label>
-						<label>操作口令<input type="password" name="operkey" value="123456" size="10"/></label>
-						<label>编号<input type="text" name="mine_id" value="" size="12"/></label>
-						<label>姓名<input type="text" name="mine_name" value="" size="12"/></label>
+						<label>修改资料<input type="radio" name="operate" value="modify" id="to-modify"/></label>　
+						<label>添加子女<input type="radio" name="operate" value="append" id="to-append"/></label>　
+						<label>操作口令<input type="password" name="operkey" value="123456" size="10"/></label><br>
+						<a href="#mine_id" class="input-unlock">编号</a>
+						<input type="text" name="mine_id" value="" size="12"/>　
+						<a href="#mine_name" class="input-unlock">姓名</a>
+						<input type="text" name="mine_name" value="" size="12"/>　
 						<label>男<input type="radio" name="sex" value="1"/></label>
 						<label>女<input type="radio" name="sex" value="0"/></label><br>
-						<label>父亲<input type="text" name="father" value="" size="12"/></label>
-						<label>母亲<input type="text" name="mother" value="" size="12"/></label><br>
-						<a href="#" id="unlock-partner">配偶</a><input type="text" name="partner" value="" size="12"/>
-						<label>生日<input type="date" name="birthday" value=""/></label>
+						<a href="#father" class="input-unlock">父亲</a>
+						<input type="text" name="father" value="" size="12"/>　
+						<a href="#mother" class="input-unlock">母亲</a>
+						<input type="text" name="mother" value="" size="12"/><br>
+						<a href="#partner" class="input-unlock">配偶</a>
+						<input type="text" name="partner" value="" size="12"/><br>
+						<label>生日<input type="date" name="birthday" value=""/></label>　
 						<label>忌日<input type="date" name="deathday" value=""/></label><br>
 						<input type="submit" value="提交操作"/>
 						<input type="button" value="取消操作" id="oper-close"/>

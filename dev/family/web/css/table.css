@@ -162,3 +162,11 @@ a.foldClose:hover {
 .atcenter {
 	text-align: center;
 }
+
+/* 文章样式 */
+#article h1 { font-size: 20px; margin-top: 30px; margin-top: 0px; text-align:center; }
+#article h2 { font-size: 18px; }
+#article h3 { font-size: 16px; }
+#article h4 { font-size: 14px; }
+#article h5 { font-size: 12px; }
+#article p { margin-bottom: 9px; text-indent: 2em;}

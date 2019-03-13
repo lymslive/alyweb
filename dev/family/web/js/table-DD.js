@@ -3,6 +3,7 @@
 var $DD = {
 	// 常量
 	API_URL: '/dev/family/japi.cgi',
+	HELP_URL: '/dev/family/web/doc-help.htm',
 	SEX: ['女♀', '男♂'],
 	NULL: '',
 

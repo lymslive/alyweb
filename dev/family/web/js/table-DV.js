@@ -70,6 +70,9 @@ var $DV = {
 					this.checkPerson($DD.Person.DEFAULT);
 				}
 			}
+			else if (_toid == '#pg3-help') {
+				$DV.Help.showdoc();
+			}
 			return true;
 		},
 
@@ -819,6 +822,23 @@ var $DV = {
 
 		// 避免最后一个逗号
 		LAST_PRETECT: 0
+	},
+
+	// 帮助页
+	Help: {
+		pulled: false,
+		
+		// 显示帮助页
+		showdoc: function(res) {
+			if (res) {
+				console.log('get help doc');
+				$('#article').html(res);
+				this.pulled = true;
+			}
+			if (!this.pulled) {
+				$DJ.reqHelp();
+			}
+		},
 	},
 
 	log: function(_msg) {

@@ -89,7 +89,20 @@ var $DJ = {
 	},
 	resAlways: function(data, textStatus, jqXHR) {
 		console.log('ajax finish with status: ' + textStatus);
-	}
+	},
+
+	reqHelp: function() {
+		var ajx = $.get($DD.HELP_URL)
+			.done(function(res, textStatus, jqXHR) {
+				$DV.Help.showdoc(res);
+			})
+			.fail(this.resFail)
+			.always(this.resAlways);
+		this.doc = ajx;
+		return ajx;
+	},
+
+	LAST_PRETECT: true
 };
 
 // 全局对象
