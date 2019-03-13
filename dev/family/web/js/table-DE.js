@@ -53,6 +53,16 @@ var $DE = {
 		// 折叠链接功能
 		this.initFold();
 
+		// 扩展支表
+		$('#tabMine-exup>a').click(function(_evt) {
+			$DV.Person.Table.expandUp();
+			_evt.preventDefault();
+		});
+		$('#tabMine-exdp>a').click(function(_evt) {
+			$DV.Person.Table.expandDown();
+			_evt.preventDefault();
+		});
+
 		// 修改表单事件
 		$('#formOperate input:radio[name=operate]').change(function(_evt){
 			$DV.Operate.change();
@@ -67,15 +77,6 @@ var $DE = {
 			return $DV.Operate.submit(_evt);
 		});
 
-		$('#tabMine-exup>a').click(function(_evt) {
-			$DV.Person.Table.expandUp();
-			_evt.preventDefault();
-		});
-		$('#tabMine-exdp>a').click(function(_evt) {
-			$DV.Person.Table.expandDown();
-			_evt.preventDefault();
-		});
-
 		// 强制解锁已自动填充的表单域
 		$('#formOperate a.input-unlock').click(function(_evt) {
 			var href = $(this).attr('href');
@@ -83,6 +84,40 @@ var $DE = {
 			var $input = $(`#formOperate input:text[name=${name}]`);
 			$DV.Operate.unlock($input);
 			_evt.preventDefault();
+		});
+
+		// 快捷搜索成员表单
+		$('#formPerson').submit(function(_evt) {
+			_evt.preventDefault();
+			return $DV.Person.onSearch(_evt);
+		});
+
+		// 过滤表单
+		$('#formFilter').submit(function(_evt) {
+			_evt.preventDefault();
+			return false;
+		});
+
+		$('#filter-rollback').click(function() {
+			$DV.Table.Filter.onReset();
+		});
+
+		$('#formFilter input:checkbox[name=filter]').change(function(_evt){
+			$DV.Table.Filter.onCheckbox();
+		});
+
+		$('#formFilter select').change(function(_evt){
+			$DV.Table.Filter.onSelection();
+			$DV.Table.Filter.onCheckbox();
+		});
+
+		// 添加辈份选项
+		var $levelFrom = $('#formFilter select[name=level-from]');
+		var $levelTo = $('#formFilter select[name=level-to]');
+		$DD.LEVEL.forEach(function(_item, _idx) {
+			var html = `<option value="${_idx}">${_item}</option>`;
+			$levelFrom.append(html);
+			$levelTo.append(html);
 		});
 	},
 

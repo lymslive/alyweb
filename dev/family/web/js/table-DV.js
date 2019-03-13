@@ -145,6 +145,17 @@ var $DV = {
 			}
 			console.log('将填充表格数据行：' + data.length);
 			for (var i=0; i<data.length; i++) {
+				// 过滤
+				if (!this.Filter.checkTan(data[i])) {
+					continue;
+				}
+				if (!this.Filter.checkMan(data[i])) {
+					continue;
+				}
+				if (!this.Filter.checkLevel(data[i])) {
+					continue;
+				}
+
 				var $tr = this.formatRow(data[i]);
 				this.rows++;
 				if (this.rows % 2 == 0) {
@@ -287,11 +298,84 @@ var $DV = {
 			});
 		},
 
+		// 过滤表单
+		Filter: {
+			tan: false,
+			man: false,
+			levelFrom: 0,
+			levelTo: 0,
+
+			// 复选框变化
+			onCheckbox: function() {
+				var $checkbox = $('#formFilter input:checkbox[name=filter]');
+				this.tan = $checkbox[0].checked;
+				this.man = $checkbox[0].checked;
+				$DV.Table.fill();
+			},
+
+			onSelection: function() {
+				var $levelFrom = $('#formFilter select[name=level-from]');
+				var $levelTo = $('#formFilter select[name=level-to]');
+				this.levelFrom = $levelFrom.val();
+				this.levelTo = $levelTo.val();
+			},
+
+			checkTan: function(_row) {
+				return !this.tan || (_row.F_name && _row.F_name.indexOf($DD.TAN) == 0);
+			},
+
+			checkMan: function(_row) {
+				return !this.man || _row.F_sex == 1;
+			},
+
+			// 判断代际是否在中间，如果只选了一个，则按相等判断
+			checkLevel: function(_row) {
+				if (!this.levelFrom && !this.levelTo) {
+					return true;
+				}
+				if (this.levelFrom && !this.levelTo) {
+					return this.levelFrom == _row.F_level;
+				}
+				if (!this.levelFrom && this.levelTo) {
+					return this.levelTo == _row.F_level;
+				}
+				return (_row.F_level - this.levelFrom) * (_row.F_level - this.LevelTo) <= 0;
+			},
+
+			// 撤销过滤，显示全表
+			onReset: function() {
+				if (this.tan || this.man || this.levelFrom || this.levelTo) {
+					this.tan = this.man = false;
+					this.levelFrom = this.levelTo = 0;
+					$DV.Table.fill();
+					$('#formFilter').trigger('reset');
+				}
+			}
+		},
+
 		LAST_PRETECT: true
 	},
 
 	// 个人详情页签
 	Person: {
+		// 搜索框看指定成员
+		onSearch: function() {
+			var idname = $('#formPerson input[name=mine]').val();
+			var id = parseInt(idname);
+			if (isNaN(id)) {
+				var idInHash = $DD.Table.getIdByName(idname);
+				if (idInHash) {
+					id = idInHash;
+				}
+			}
+			if (id && $DD.Table.Hash[id]) {
+				this.checkout(id);
+			}
+			else {
+				//todo: 向服务器查询信息
+			}
+		},
+
 		checkout: function(_id) {
 			var Data = $DD.Person;
 			if (Data.curid == _id) {

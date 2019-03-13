@@ -48,10 +48,12 @@
 					<label>父系<input type="checkbox" name="filter" value="tan"/></label>
 					<label>男丁<input type="checkbox" name="filter" value="man"/></label>
 					<label>代际
-						<input type="input" name="levelup" value="1" size="2"/>至
-						<input type="input" name="levelup" value="" size="2"/>
+						<select name="level-from">
+						</select>
+						<select name="level-to">
+						</select>
 					</label>
-					<input type="reset" value="撤销"/>
+					<input type="reset" value="撤销" id="filter-rollback"/>
 					<input type="submit" value="刷新"/>
 					<br>
 				</form>
@@ -85,12 +87,14 @@
 		</div>
 
 		<div id="pg2-person" class="page">
-			<h2>家谱个人详情</h2>
+			<h2>家谱成员个人详情</h2>
 			<div id="member-header">
 				<form id="formPerson">
 					<span id="mine-info">10025 | 谭水龙 | 第 4 代直系</span> 
 					<input type="submit" value="查找其他"/>
 					<input size="5" type="text" name="mine" required="required"/>
+					<span class="operate-warn">
+					</span>
 				</form>
 			</div>
 			<hr>

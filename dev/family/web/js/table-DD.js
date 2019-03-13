@@ -4,6 +4,8 @@ var $DD = {
 	// 常量
 	API_URL: '/dev/family/japi.cgi',
 	HELP_URL: '/dev/family/web/doc-help.htm',
+	TAN: '谭',
+	LEVEL: ['辈', '年', '芳', '和', '积', '祥', '生'];
 	SEX: ['女♀', '男♂'],
 	NULL: '',
 
@@ -155,6 +157,16 @@ var $DD = {
 						});
 						$DV.Person.update();
 					}
+				}
+			}
+		},
+
+		// 在前端内存中查看名字是否有对应 id
+		getIdByName: function(name) {
+			var id;
+			for (id in this.Hash){
+				if (this.Hash.hasOwnProperty(id) && this.Hash[id] == name) {
+					return id;
 				}
 			}
 		},
