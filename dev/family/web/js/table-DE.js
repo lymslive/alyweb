@@ -95,6 +95,7 @@ var $DE = {
 		// 过滤表单
 		$('#formFilter').submit(function(_evt) {
 			_evt.preventDefault();
+			$DV.Table.Filter.onSubmit();
 			return false;
 		});
 
@@ -108,7 +109,6 @@ var $DE = {
 
 		$('#formFilter select').change(function(_evt){
 			$DV.Table.Filter.onSelection();
-			$DV.Table.Filter.onCheckbox();
 		});
 
 		// 添加辈份选项
@@ -119,6 +119,14 @@ var $DE = {
 			$levelFrom.append(html);
 			$levelTo.append(html);
 		});
+
+		// 登陆表单
+		$('#formLogin').submit(function(_evt) {
+			_evt.preventDefault();
+			$DV.Login.onSubmit();
+			return false;
+		});
+
 	},
 
 	// 填充完表格注册事件

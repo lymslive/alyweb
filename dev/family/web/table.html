@@ -16,13 +16,14 @@
 	<body>
 
 		<div id="login-bar">
-			<div><a href="#">未登陆</a></div>
-			<div class="foldOff">
-				<form id="formLogin">
-					<input type="text" size="10" name="login_id"/>
-					<input type="submit" value="登陆"/>
-				</form>
+			<div id="not-login"><a href="#" class="to-login">未登陆</a></div>
+			<div id="has-login" class="foldOff">
+				已登陆：<span class="data"></span><a href="#" class="to-login">换名登陆</a>
 			</div>
+			<form id="formLogin" class="foldOff">
+				<input type="text" size="10" name="login_id"/>
+				<input type="submit" value="登陆"/>
+			</form>
 			<div id="login-msg">
 			</div>
 		</div>

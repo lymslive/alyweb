@@ -5,7 +5,7 @@ var $DD = {
 	API_URL: '/dev/family/japi.cgi',
 	HELP_URL: '/dev/family/web/doc-help.htm',
 	TAN: '谭',
-	LEVEL: ['辈', '年', '芳', '和', '积', '祥', '生'];
+	LEVEL: ['辈', '年', '芳', '和', '积', '祥', '生'],
 	SEX: ['女♀', '男♂'],
 	NULL: '',
 
@@ -165,7 +165,7 @@ var $DD = {
 		getIdByName: function(name) {
 			var id;
 			for (id in this.Hash){
-				if (this.Hash.hasOwnProperty(id) && this.Hash[id] == name) {
+				if (this.Hash.hasOwnProperty(id) && this.Hash[id].F_name == name) {
 					return id;
 				}
 			}

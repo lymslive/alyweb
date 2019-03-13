@@ -95,7 +95,7 @@ var $DV = {
 
 		// 10 行以上额外加底部标题行
 		but_limit: 10,
-		butid: '#butTH',
+		butid: 'butTH',
 
 		// 创建单元格与行的 jq 对象
 		htd: function(content) {
@@ -131,7 +131,7 @@ var $DV = {
 
 			console.log('将清空表格数据行：' + this.rows);
 			$(this.domid).find('.' + this.rowcss).remove();
-			$(this.butid).remove();
+			$('#' + this.butid).remove();
 			this.rows = 0;
 		},
 
@@ -141,7 +141,7 @@ var $DV = {
 				return;
 			}
 			if (this.rows) {
-				empty();
+				this.empty();
 			}
 			console.log('将填充表格数据行：' + data.length);
 			for (var i=0; i<data.length; i++) {
@@ -163,8 +163,7 @@ var $DV = {
 				}
 				$(this.domid).append($tr);
 			}
-			// this.rows = data.length;
-			if (data.length > this.but_limit) {
+			if (this.rows > this.but_limit) {
 				$(this.domid).append(this.hth());
 			}
 
@@ -309,15 +308,16 @@ var $DV = {
 			onCheckbox: function() {
 				var $checkbox = $('#formFilter input:checkbox[name=filter]');
 				this.tan = $checkbox[0].checked;
-				this.man = $checkbox[0].checked;
+				this.man = $checkbox[1].checked;
 				$DV.Table.fill();
 			},
 
 			onSelection: function() {
 				var $levelFrom = $('#formFilter select[name=level-from]');
 				var $levelTo = $('#formFilter select[name=level-to]');
-				this.levelFrom = $levelFrom.val();
-				this.levelTo = $levelTo.val();
+				this.levelFrom = parseInt($levelFrom.val());
+				this.levelTo = parseInt($levelTo.val());
+				$DV.Table.fill();
 			},
 
 			checkTan: function(_row) {
@@ -339,7 +339,7 @@ var $DV = {
 				if (!this.levelFrom && this.levelTo) {
 					return this.levelTo == _row.F_level;
 				}
-				return (_row.F_level - this.levelFrom) * (_row.F_level - this.LevelTo) <= 0;
+				return (_row.F_level - this.levelFrom) * (_row.F_level - this.levelTo) <= 0;
 			},
 
 			// 撤销过滤，显示全表
@@ -349,6 +349,12 @@ var $DV = {
 					this.levelFrom = this.levelTo = 0;
 					$DV.Table.fill();
 					$('#formFilter').trigger('reset');
+				}
+			},
+
+			onSubmit: function() {
+				if (!$DD.Table.may_more) {
+					console.log('已拉取所有数据，无需请求');
 				}
 			}
 		},
@@ -360,6 +366,7 @@ var $DV = {
 	Person: {
 		// 搜索框看指定成员
 		onSearch: function() {
+			$('#formPerson span.operate-warn').html('');
 			var idname = $('#formPerson input[name=mine]').val();
 			var id = parseInt(idname);
 			if (isNaN(id)) {
@@ -373,6 +380,8 @@ var $DV = {
 			}
 			else {
 				//todo: 向服务器查询信息
+				var msg = '查找失败，请检查编号或姓名是否正确';
+				$('#formPerson span.operate-warn').html(msg);
 			}
 		},
 
