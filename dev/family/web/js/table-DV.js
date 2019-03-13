@@ -533,7 +533,6 @@ var $DV = {
 			}
 			$('#formOperate').trigger('reset');
 			$('#divOperate div.operate-tips').hide();
-			$('#oper-detail').hide();
 			$('#formOperate input:radio[name=operate]').parent('label').removeClass('radio-checked');
 			$('#oper-error').html('');
 			$('a[href=#divOperate]').click();
@@ -549,18 +548,12 @@ var $DV = {
 			if (!op) {
 				return;
 			}
-			console.log('操作单选发生变化：' + op); // reset 时似乎不会调到
+			// console.log('操作单选发生变化：' + op); // reset 时似乎不会调到
 			var tip = '#tip-' + op;
 			var radio = '#to-' + op;
 			$(tip).show();
 			$(radio).parent('label').addClass('radio-checked');
-			if (op == 'modify' || op == 'append') {
-				$('#oper-detail').show();
-				this.select(op);
-			}
-			else {
-				$('#oper-detail').hide();
-			}
+			this.select(op);
 		},
 
 		// 选择操作后自动填写部分表单
@@ -572,8 +565,6 @@ var $DV = {
 			}
 			$('#formOperate input:text').val('');
 			if (op == 'modify') {
-				$('#formOperate input:submit').attr('value', '修改资料');
-
 				this.lock($('#formOperate input:text[name=mine_id]'), this.refid);
 				var rowdata = $DD.getRow(this.refid);
 				if (rowdata.F_father) {
@@ -608,9 +599,6 @@ var $DV = {
 				}
 			}
 			else if(op == 'append') {
-				$('#formOperate input:submit').attr('value', '添加子女');
-
-				// 自动填表
 				this.lock($('#formOperate input:text[name=mine_id]'), '');
 
 				var rowdata = $DD.getRow(this.refid);
@@ -649,8 +637,7 @@ var $DV = {
 				this.unlock($('#formOperate input:text[name=partner]'));
 			} 
 			else if(op == 'remove') {
-				console.log('删除操作不该至此');
-				// $('#oper-detail').hide();
+				console.log('已禁删除操作不该至此');
 			}
 			else {
 				console.log('未定义操作');

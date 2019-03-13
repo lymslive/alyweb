@@ -142,66 +142,42 @@
 					<form id="formOperate">
 						<label>修改资料<input type="radio" name="operate" value="modify" id="to-modify"/></label>
 						<label>添加子女<input type="radio" name="operate" value="append" id="to-append"/></label>
-						<label>删除记录<input type="radio" name="operate" value="remove" id="to-remove"/></label>
 						<label>操作口令<input type="password" name="operkey" value="123456" size="10"/></label>
-						<div id="oper-detail" class="foldOff">
-							<label>编号<input type="text" name="mine_id" value="" size="12"/></label>
-							<label>姓名<input type="text" name="mine_name" value="" size="12"/></label>
-							<label>男<input type="radio" name="sex" value="1"/></label>
-							<label>女<input type="radio" name="sex" value="0"/></label><br>
-							<label>父亲<input type="text" name="father" value="" size="12"/></label>
-							<label>母亲<input type="text" name="mother" value="" size="12"/></label><br>
-							<label>配偶<input type="text" name="partner" value="" size="12"/></label>
-							<a href="#" id="remarry">（增加配偶）</a><br>
-							<label>生日<input type="date" name="birthday" value=""/></label>
-							<label>忌日<input type="date" name="deathday" value=""/></label><br>
-							<input type="submit" value="提交操作"/>
-							<input type="button" value="取消操作" id="oper-close"/>
-						</div>
+						<label>编号<input type="text" name="mine_id" value="" size="12"/></label>
+						<label>姓名<input type="text" name="mine_name" value="" size="12"/></label>
+						<label>男<input type="radio" name="sex" value="1"/></label>
+						<label>女<input type="radio" name="sex" value="0"/></label><br>
+						<label>父亲<input type="text" name="father" value="" size="12"/></label>
+						<label>母亲<input type="text" name="mother" value="" size="12"/></label><br>
+						<a href="#" id="unlock-partner">配偶</a><input type="text" name="partner" value="" size="12"/>
+						<label>生日<input type="date" name="birthday" value=""/></label>
+						<label>忌日<input type="date" name="deathday" value=""/></label><br>
+						<input type="submit" value="提交操作"/>
+						<input type="button" value="取消操作" id="oper-close"/>
 						<div id="oper-error" class="operate-warn">
 						</div>
 					</form>
 					<div id="tip-modify" class="foldOff operate-tips">
 						<ul>
-							<li>根据唯一编号修改资料，可以改姓名、性别与缺失的资料</li>
+							<li>根据当前唯一编号修改资料，可以改姓名、性别与缺失的资料</li>
 							<li>父母、配偶若要修改时，可填编号或姓名（不重名时）</li>
-							<li>已确立的父母不可修改，若要修改父母的姓名应该修改父母的资料</li>
-							<li>代际根据父母关系确定，如果父母代际关系完全错乱，只能删除重新录入</li>
-							<li>录入配偶时，将自动为配偶增加记录，并设为旁系（代际用负数区分）</li>
-							<li>为旁系配偶修改资料时，不再录入其父母关系</li>
-							<li>除非确有再婚情况，已录入配偶信息的，不能再修改配偶</li>
+							<li>录入配偶时，将自动为配偶增加记录，并设为旁系</li>
 						</ul>
 					</div>
 					<div id="tip-append" class="foldOff operate-tips">
 						<ul>
 							<li>添加子女后时，编号由系统自动分配，作为唯一标志</li>
-							<li>一般只要填入姓名、性别即可录入后代，其他资料后续修改</li>
 							<li>已自动填入父或母的依托关系</li>
-							<li>未自动填入的某方父母，可手动填入，前提是只有依赖已入库的成员</li>
+							<li>一般只要填入姓名、性别即可录入后代，然后去其详情页面再续修改</li>
 						</ul>
-					</div>
-					<div id="tip-remove" class="foldOff operate-tips">
-						<div class="operate-warn">
-							注意：如果只是名字错误，可通过修改资料。<br/>
-							请只在无法修改正确的情况下删除再重录，或者删除重复记录。
-						</div>
-						<div>
-							确定删除<span id="mine-id-name">id/name</span>的记录吗？
-							<input type="button" value="确定删除" id="do-remove"/>
-						</div>
 					</div>
 				</div> <!-- divOperate -->
 			</div>
 		</div> <!-- #pg2-person -->
 
 		<div id="pg3-help" class="page">
-			<h2>家谱表简单说明：</h2>
-			<ul>
-				<li> 收录同一祖先以下的子嗣血脉。祖先设为第 1 代，后续递增。也可收录配偶，代际前加一短横（取负数）以区别。
-				<li> 原则上不分男女，都可收录，甚至女儿的后代也算血脉延续。有更多数据后可按需要再筛选。
-				<li> 在表的末行可添加新成员。至少要填写所依的父亲或母亲，可填 ID 或姓名（不存在重名时）。
-				<li> 新成员可先入库基本信息（姓名与父/母依存关系），后面再修改补充其他信息。
-			</ul>
+			<div id="article">
+			</div>
 		</div>
 
 		<!-- 页底区域 -->
