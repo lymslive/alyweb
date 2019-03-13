@@ -130,7 +130,10 @@ sub handle_query
 	my $limit = "$lb,$ub";
 
 	# 默认不选姓名为 '0' 与旁系
-	my $where = {F_name => {'!=' => '0'}, F_level => {'>' => 0}};
+	my $where = {};
+	if (!$jreq->{filter} || !$jreq->{filter}->{id}) {
+		$where = {F_name => {'!=' => '0'}, F_level => {'>' => 0}};
+	}
 	if (!$jreq->{all} && $jreq->{filter}) {
 		my $filter = $jreq->{filter};
 		$where->{F_id} = $filter->{id} if $filter->{id};
@@ -181,7 +184,7 @@ sub handle_query
 	}
 
 	# 默认按代际排序
-	my $order = 'F_level';
+	my $order = ['F_level', 'F_id'];
 	my $records = $db->Query($fields, $where, $limit, $order);
 	if ($db->{error}) {
 		wlog("DB error: $db->{error}");

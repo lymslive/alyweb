@@ -17,11 +17,12 @@ var $DJ = {
 	// 的实质 data 部分
 	requestAPI: function(req, callback) {
 		var opt = this.reqOption(req);
+		$DV.log('api req = ' + opt.data);
 		var ajx = $.ajax($DD.API_URL, opt)
 			.done(function(res, textStatus, jqXHR) {
 				// api 返回的 res 直接解析为 json
 				if (res.error) {
-					$DV.log(res.error);
+					$DV.log('api err = ' + res.error);
 				}
 				else {
 					callback(res.data, req.data);
@@ -39,6 +40,7 @@ var $DJ = {
 			$DD.Table.load(_resData);
 			$DV.Table.fill();
 			$DE.onFillTable();
+			$DJ.reqPartnerAll();
 		});
 	},
 
@@ -47,13 +49,14 @@ var $DJ = {
 		var req = {"api":"query",
 			"data":{
 				"filter":{
-					"F_level":{"<":0},  // 代际负为旁系
-					"F_partner":{">":0},// 确实关联一个成员
+					"level":{"<":0},  // 代际负为旁系
+					"partner":{">":0},// 确实关联一个成员
 				}
 			}
 		};
-		this.modify = this.requestAPI(req, function(_resData, _reqData) {
+		this.partner = this.requestAPI(req, function(_resData, _reqData) {
 			$DD.Table.storePartner(_resData, _reqData);
+			$DV.Table.updateName();
 		});
 	},
 

@@ -68,7 +68,7 @@ sub on_console
 	print STDERR "--" x 20;
 	print STDERR "\n";
 	print STDERR "console log:\n";
-	WebLog::buff_to_std();
+	WebLog::instance()->output_std();
 }
 
 ##-- END --##

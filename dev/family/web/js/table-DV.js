@@ -19,14 +19,16 @@ var $DV = {
 		linktoPid: function(_id) {
 			var name = _id;
 			var title = _id;
+			var css = 'toperson';
 			if ($DD.Mapid[_id]) {
 				name = $DD.Mapid[_id];
 			}
 			else {
 				title = '点击查找姓名';
+				css += ' qname';
 			}
 			// var html = '<a href="#p' + _id + '" title="' + title + '">' + name + '</a>';
-			var html = `<a href="#p${id}" title="${title}" class="toperson">${name}</a>`;
+			var html = `<a href="#p${_id}" title="${title}" class="${css}">${name}</a>`;
 			return html;
 		},
 	},
@@ -252,10 +254,10 @@ var $DV = {
 
 		// 更新一行，替换或加在表尾
 		updateRow: function(_row) {
-			var id = _row.id;
+			var id = _row.F_id;
 			var rid = '#r' + id;
 			var $old = $(rid);
-			var $tr = formatRow(_row);
+			var $tr = this.formatRow(_row);
 			if ($old.length > 0) {
 				if ($old.hasClass('even')) {
 					$tr.addClass('even');
@@ -269,7 +271,20 @@ var $DV = {
 				}
 				$(this.domid).append($tr);
 			}
-		}
+		},
+
+		// 更新链接中缺失名字的 id
+		updateName: function() {
+			$('td a.qname').each(function(_idx, _element) {
+				var id = $(this).html();
+				var name = $DD.Mapid[id];
+				if (name) {
+					$(this).html(name).attr('title', id);
+				}
+			});
+		},
+
+		LAST_PRETECT: true
 	},
 
 	// 个人详情页签
@@ -279,6 +294,7 @@ var $DV = {
 			if (Data.curid == _id) {
 				return false;
 			}
+			$DV.Operate.close();
 			Data.lookinTable(_id);
 			// todo: 未能先拉全表时？
 			var lackoff = $DD.Person.notinTable();
@@ -334,7 +350,7 @@ var $DV = {
 
 			// 配偶信息
 			if (_force || Data.canUpdate(Data.PARTNER)) {
-				if (Data.mine.F_partner) {
+				if (Data.mine.F_partner && Data.partner) {
 					var html = $DV.Fun.linktoPerson(Data.partner, 1);
 					$('#mine-partner span.data').html(html);
 					$('#mine-partner').show();
@@ -512,13 +528,16 @@ var $DV = {
 
 		// 关闭所有
 		close: function() {
+			if (!this.refid) {
+				return;
+			}
 			$('#formOperate').trigger('reset');
 			$('#divOperate div.operate-tips').hide();
 			$('#oper-detail').hide();
 			$('#formOperate input:radio[name=operate]').parent('label').removeClass('radio-checked');
 			$('#oper-error').html('');
 			$('a[href=#divOperate]').click();
-			// $('#divOperate').hide();
+			this.refid = 0;
 		},
 
 		// 单选择发生变化
@@ -823,5 +842,4 @@ var $DV = {
 	},
 	LAST_PRETECT: true
 };
-
 

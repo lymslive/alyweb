@@ -25,9 +25,6 @@ var $DD = {
 		perpage: 0,
 		may_more: false,
 
-		// 增量修改的行数
-		updated: 0,
-
 		// 重新加载全表数据
 		load: function(resData) {
 			this.List = resData.records;
@@ -45,8 +42,6 @@ var $DD = {
 			if (this.total > this.perpage && this.total > (this.page-1) * this.perpage + this.List.length) {
 				this.may_more = true;
 			}
-
-			updated = 0;
 		},
 
 		// 更新服务器数据回调，包含修改自己与增加子女
@@ -68,15 +63,23 @@ var $DD = {
 				}
 			});
 
+			if (partner) {
+				this.store(partner);
+			}
 			if (mine) {
 				this.store(mine);
 			}
 			else {
 				console.log('逻辑错误：没有返回自己的信息');
+				return;
 			}
 
+			// 更新页面表
 			if (partner) {
-				this.store(partner);
+				$DV.Table.updateRow(partner);
+			}
+			if (mine) {
+				$DV.Table.updateRow(mine);
 			}
 
 			// 更新个人详情页的小表
@@ -126,21 +129,33 @@ var $DD = {
 			if (!bFound) {
 				this.List.push(_row);
 			}
-
-			// 更新页面表
-			this.updated++;
-			$DV.Table.updateRow(_row);
-			this.updated--;
 		},
 
 		// 增量保存旁系配偶，只存在 Hash 中
 		storePartner: function(_resData, _reqData) {
+			var that = this;
+			console.log('将保存配偶信息：' + _resData.records.length);
 			_resData.records.forEach(function(_item, _idx) {
 				var id = _item.F_id;
 				var name = _item.F_name;
 				$DD.Mapid[id] = name;
-				this.Hash[id] = _item;
+				that.Hash[id] = _item;
 			});
+
+			// 可能需要同步更新个人详情页
+			if ($DD.Person.curid && $DD.Person.mine) {
+				var partner_id = $DD.Person.mine.F_partner;
+				if (this.Hash[partner_id]) {
+					var partner = this.Hash[partner_id];
+					if (partner != $DD.Person.partner) {
+						$DD.Person.fromServer({
+							"id": $DD.Person.curid,
+							"partner": parnter
+						});
+						$DV.Person.update();
+					}
+				}
+			}
 		},
 
 		LAST_PRETECT: 0
@@ -294,28 +309,27 @@ var $DD = {
 			if (this.curid != _resData.id) {
 				return 0;
 			}
-			var bUpdate = 0;
 			if (_resData.mine) {
 				this.mine = _resData.mine;
-				bUpdate++;
+				this.markUpdate(this.MINE);
 			}
 			if (_resData.partner) {
 				this.partner = _resData.partner;
-				bUpdate++;
+				this.markUpdate(this.PARTNER);
 			}
 			if (_resData.children) {
 				this.children = _resData.children;
-				bUpdate++;
+				this.markUpdate(this.CHILDREN);
 			}
 			if (_resData.parents) {
 				this.parents = _resData.parents;
-				bUpdate++;
+				this.markUpdate(this.PARENTS);
 			}
 			if (_resData.sibling) {
 				this.sibling = _resData.sibling;
-				bUpdate++;
+				this.markUpdate(this.SIBLING);
 			}
-			return bUpdate;
+			return this.update;
 		},
 
 		LAST_PRETECT: true

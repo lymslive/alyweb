@@ -80,6 +80,24 @@ tr.mine {
 	background-color: #C2C8D4;
 }
 
+/* 表头设置 */
+
+th.fid {
+	width: 3em;
+}
+th.fname {
+	width: 4em;
+}
+th.fdate {
+	width: 6em;
+}
+th.fsex {
+	width: 3em;
+}
+th.flevel {
+	width: 3em;
+}
+
 /* 折叠设置 */
 .foldOff {
 	display: none;
@@ -138,20 +156,9 @@ a.foldClose:hover {
 	background-color: #8797B7;
 }
 
-/* 表格设置 */
-
-th.fid {
-	width: 3em;
+.atright {
+	text-align: right;
 }
-th.fname {
-	width: 4em;
-}
-th.fdate {
-	width: 6em;
-}
-th.fsex {
-	width: 3em;
-}
-th.flevel {
-	width: 3em;
+.atcenter {
+	text-align: center;
 }
