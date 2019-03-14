@@ -41,28 +41,8 @@ var $DE = {
 		});
 	},
 
-	// 加载页面时注册事件
-	onLoad: function() {
-		// 页签功能
-		$('li.page-menu>a').click(function(_evt) {
-			var href = $(this).attr('href');
-			$DV.Page.see(href);
-			_evt.preventDefault();
-		});
-
-		// 折叠链接功能
-		this.initFold();
-
-		// 扩展支表
-		$('#tabMine-exup>a').click(function(_evt) {
-			$DV.Person.Table.expandUp();
-			_evt.preventDefault();
-		});
-		$('#tabMine-exdp>a').click(function(_evt) {
-			$DV.Person.Table.expandDown();
-			_evt.preventDefault();
-		});
-
+	// 各种表单初始化
+	initForm: function() {
 		// 修改表单事件
 		$('#formOperate input:radio[name=operate]').change(function(_evt){
 			$DV.Operate.change();
@@ -127,6 +107,38 @@ var $DE = {
 			return false;
 		});
 
+		// 简介表单
+		$('#formBrief').submit(function(_evt) {
+			_evt.preventDefault();
+			$DV.Operate.submitBrief();
+			return false;
+		});
+	},
+
+	// 加载页面时注册事件
+	onLoad: function() {
+		// 页签功能
+		$('li.page-menu>a').click(function(_evt) {
+			var href = $(this).attr('href');
+			$DV.Page.see(href);
+			_evt.preventDefault();
+		});
+
+		
+		this.initFold(); // 定制折叠
+		this.initForm(); // 定制表单
+
+		// 扩展支表
+		$('#tabMine-exup>a').click(function(_evt) {
+			$DV.Person.Table.expandUp();
+			_evt.preventDefault();
+		});
+		$('#tabMine-exdp>a').click(function(_evt) {
+			$DV.Person.Table.expandDown();
+			_evt.preventDefault();
+		});
+
+
 	},
 
 	// 填充完表格注册事件
@@ -144,20 +156,6 @@ var $DE = {
 		$('#table-next-page').click(function(_evt) {
 			_evt.preventDefault();
 		});
-
-		/*
-		$("tr").mouseover(function() {
-			$(this).addClass("over");
-		});
-		$("tr").mouseout(function() {
-			$(this).removeClass("over");
-		});
-		$("tr:even").addClass("even");
-		$('#tabMember td a.toperson').click(function(_evt) {
-			that.gotoPerson($(this));
-			_evt.preventDefault();
-		});
-		*/
 	},
 
 	// 个人详情填充完毕注册事件
@@ -177,9 +175,6 @@ var $DE = {
 			var id = rem[1];
 			$DV.Page.checkPerson(id);
 		}
-	},
-
-	onModifyRow: function() {
 	},
 
 	LAST_PRETECT: true

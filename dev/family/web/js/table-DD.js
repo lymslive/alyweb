@@ -192,6 +192,7 @@ var $DD = {
 		CHILDREN: 1<<2,
 		PARENTS: 1<<3,
 		SIBLING: 1<<4,
+		BRIEF: 1<<5,
 
 		markUpdate: function(_bit) {
 			this.update |= _bit;
@@ -303,6 +304,16 @@ var $DD = {
 				}
 			}
 
+			// 简介
+			if (mine.F_text) {
+				this.brief = mine.F_text;
+				this.markUpdate(this.BRIEF);
+			}
+			else {
+				// 直接请求查询简介了
+				$DJ.reqBrief(_id);
+			}
+
 			return this.update;
 		},
 
@@ -314,6 +325,7 @@ var $DD = {
 				children: this.canUpdate(this.CHILDREN) ? 0 : 1,
 				parents: this.canUpdate(this.PARENTS) ? 0 : -1,
 				sibling: this.canUpdate(this.SIBLING) ? 0 : 1,
+				brief: this.canUpdate(this.BRIEF) ? 0 : 1,
 			};
 		},
 
@@ -343,6 +355,32 @@ var $DD = {
 				this.markUpdate(this.SIBLING);
 			}
 			return this.update;
+		},
+
+		onBriefRes: function(_resData, _reqData) {
+			var id = _resData.id;
+			var text = _resData.text;
+			var affected = _resData.affected;
+
+			if (!text && affected) {
+				console.log('修改简介返回');
+				text = _reqData.text;
+			}
+
+			if (text) {
+				var row = $DD.Table.Hash[id];
+				if (row) {
+					row.F_text = text;
+				}
+				if (this.curid == id) {
+					this.brief = text;
+					this.markUpdate(this.BRIEF);
+					$DV.Person.update();
+				}
+			}
+			else {
+				console.log('查询简介失败，可能不存在');
+			}
 		},
 
 		LAST_PRETECT: true

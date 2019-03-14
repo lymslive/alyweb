@@ -100,6 +100,14 @@ sub to_webline
 
 ## Function API
 
+=sub wlog()
+  通用记录日志函数，导出函数，利用模块的默认单例对象记录日志，
+  内部缓存日志，根据配置打对终端或文件。
+  日志格式：[file:line] (sub) | msg
+  入参：$msg 字符串，$cfg 可选配置。
+    cfg.deep 额外回退栈数，影响输入的文件名，函数名
+  出参：始终返回 1
+=cut
 sub wlog
 {
 	return 1 if $disable;

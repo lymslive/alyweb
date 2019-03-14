@@ -394,7 +394,7 @@ var $DV = {
 			Data.lookinTable(_id);
 			// todo: 未能先拉全表时？
 			var lackoff = $DD.Person.notinTable();
-			return this.update(true);
+			this.update(true);
 		},
 
 		update: function(_force) {
@@ -522,6 +522,11 @@ var $DV = {
 				else {
 					$('#mine-sibling').hide();
 				}
+			}
+
+			// 简介
+			if (_force || Data.canUpdate((Data.BRIEF)) {
+				$('#member-brief>p').first().html(Data.brief);
 			}
 
 			this.Table.fill();
@@ -913,6 +918,18 @@ var $DV = {
 			return false;// 测试不提交
 		},
 
+		submitBrief: function() {
+			if (!this.refid) {
+				return false;
+			}
+			var text = $('#formBrief textarea').val();
+			var id = this.refid;
+			var create = 0;
+			if (!$DD.Person.brief) {
+				create = 1;
+			}
+			$DJ.reqBrief(id, text, create);
+		},
 		// 避免最后一个逗号
 		LAST_PRETECT: 0
 	},

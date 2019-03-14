@@ -33,6 +33,13 @@ var $DJ = {
 		return ajx;
 	},
 
+    resFail: function(jqXHR, textStatus, errorThrown) {
+        alert('ajax fails!'  +  jqXHR.status + textStatus);
+    },
+    resAlways: function(data, textStatus, jqXHR) {
+        console.log('ajax finish with status: ' + textStatus);
+    },
+
 	// 默认拉取所有数据
 	requestAll: function() {
 		var req = {"api":"query","data":{"all":1}};
@@ -68,7 +75,6 @@ var $DJ = {
 		}
 		this.modify = this.requestAPI(_req, function(_resData, _reqData) {
 			$DD.Table.modify(_resData, _reqData);
-			$DE.onModifyRow();
 		});
 	},
 
@@ -80,17 +86,10 @@ var $DJ = {
 		}
 		this.create = this.requestAPI(_req, function(_resData, _reqData) {
 			$DD.Table.modify(_resData, _reqData);
-			$DE.onModifyRow();
 		});
 	},
 
-	resFail: function(jqXHR, textStatus, errorThrown) {
-		alert('ajax fails!'  +  jqXHR.status + textStatus);
-	},
-	resAlways: function(data, textStatus, jqXHR) {
-		console.log('ajax finish with status: ' + textStatus);
-	},
-
+    // 请求帮助文档
 	reqHelp: function() {
 		var ajx = $.get($DD.HELP_URL)
 			.done(function(res, textStatus, jqXHR) {
@@ -101,6 +100,27 @@ var $DJ = {
 		this.doc = ajx;
 		return ajx;
 	},
+
+    // 请求查询或修改简介
+    reqBrief: function(_id, _text, _create) {
+        var req = {};
+        var data = {id: _id}
+        if (_text) {
+            data.text = _text;
+            if (_create) {
+                data.create = 1;
+            }
+            req.api = 'modify_brief';
+        }
+        else {
+            req.api = 'query_brief';
+        }
+        req.data = data;
+
+        this.create = this.requestAPI(req, function(_resData, _reqData) {
+            $DD.Person.onBriefRes(_resData, _reqData);
+        });
+    },
 
 	LAST_PRETECT: true
 };

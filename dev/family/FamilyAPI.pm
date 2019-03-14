@@ -26,6 +26,7 @@ my $MESSAGE_REF = {
 	ERR_PARENT_LACKED => '13. 缺少父母关系',
 	ERR_PARENT_DISMATCH => '14. 父母辈份不匹配',
 	ERR_MEMBER_LACKED => '15. 不存在成员ID',
+	ERR_ARGNO_TEXT => '16. 参数错误，缺少简介文本',
 };
 
 sub error_msg
@@ -43,9 +44,14 @@ my $HANDLER = {
 	modify => \& handle_modify,
 	remove => \& handle_remove,
 	member_relations => \& handle_member_relations,
+
+	query_brief => \& handle_query_brief,
+	create_brief => \& handle_create_brief,
+	modify_brief => \& handle_modify_brief,
+	remove_brief => \& handle_remove_brief,
 };
 
-# 分发响应函数
+# 请求入口，分发响应函数
 # req = {api => '接口名', data => {实际请求数据}}
 sub handle_request
 {
@@ -65,6 +71,9 @@ sub handle_request
 	return response($error, $res_data);
 }
 
+# 将派发函数返回的两个参数，发回客户端
+# 只有 $error 为假时，$data 才有效，否则当作错误信息附加在 errmsg
+# 不出错时，返回空 error 码与　data 数据字段
 sub response
 {
 	my ($error, $data) = @_;
@@ -72,6 +81,11 @@ sub response
 	my $res = { error => $error};
 	if ($error) {
 		$res->{errmsg} = error_msg($error);
+		if ($data && !ref($data)) {
+			$res->{errmsg} .= ": " . $data;
+		}
+		wlog("RES error: $res->{errmsg}");
+		return $res;
 	}
 
 	$res->{data} = $data if $data;
@@ -145,7 +159,7 @@ sub handle_query
 		$where->{F_partner} = $filter->{partner} if $filter->{partner};
 
 		# 模糊查询 name
-		if ($filter->{name} =~ /%/) {
+		if ($filter->{name} && $filter->{name} =~ /%/) {
 			$where->{F_name} = {-like => $filter->{name}};
 		}
 
@@ -186,11 +200,7 @@ sub handle_query
 	# 默认按代际排序
 	my $order = ['F_level', 'F_id'];
 	my $records = $db->Query($fields, $where, $limit, $order);
-	if ($db->{error}) {
-		wlog("DB error: $db->{error}");
-		$error = 'ERR_DBI_FAILED';
-		return ($error);
-	}
+	return ('ERR_DBI_FAILED', $db->{error}) if ($db->{error});
 
 	$jres->{records} = $records;
 	$jres->{page} = $page;
@@ -269,10 +279,7 @@ sub handle_create
 	$fieldvals->{F_update_time} = $now_time;
 
 	my $ret = $db->Create($fieldvals);
-	if ($db->{error}) {
-		wlog("DB error: $db->{error}");
-		$error = 'ERR_DBI_FAILED';
-	}
+	return ('ERR_DBI_FAILED', $db->{error}) if ($db->{error});
 
 	if ($ret != 1) {
 		wlog("Expect to insert just one row: $ret");
@@ -334,7 +341,7 @@ sub handle_modify
 	check_parent($db, $jreq);
 
 	my $fieldvals = {};
-	$fieldvals->{F_name} = $jreq->{name} if $jreq->{name};
+	$fieldvals->{F_name} = $jreq->{name} if defined($jreq->{name});
 	if (defined($jreq->{sex}) && ($jreq->{sex} == 1 || $jreq->{sex} == 0)) {
 		$fieldvals->{F_sex} = $jreq->{sex};
 	}
@@ -347,10 +354,13 @@ sub handle_modify
 	$fieldvals->{F_update_time} = $now_time;
 
 	my $ret = $db->Modify($fieldvals, { F_id => $mine_id});
+	return ('ERR_DBI_FAILED', $db->{error}) if ($db->{error});
+=xxx
 	if ($db->{error}) {
 		wlog("DB error: $db->{error}");
 		$error = 'ERR_DBI_FAILED';
 	}
+=cut
 
 	if ($ret != 1) {
 		wlog("Expect to modify just one row");
@@ -398,27 +408,14 @@ sub handle_modify
 sub handle_remove
 {
 	my ($db, $jreq) = @_;
-	my $error = 0;
-	my $jres = {};
+	my $mine_id = $jreq->{id} or return('ERR_ARGNO_ID');
 
-	my $mine_id = $jreq->{id}
-		or return('ERR_ARGNO_ID');
 	my $where = {F_id => $mine_id};
-
 	my $ret = $db->Remove($where);
-	if ($db->{error}) {
-		wlog("DB error: $db->{error}");
-		$error = 'ERR_DBI_FAILED';
-	}
+	return ('ERR_DBI_FAILED', $db->{error}) if ($db->{error});
+	return ('ERR_DBI_FAILED', "Expect to delete just one row") if ($ret != 1);
 
-	if ($ret != 1) {
-		wlog("Expect to delete just one row");
-		$error = 'ERR_DBI_FAILED';
-	}
-
-	$jres->{removed} = $ret;
-
-	return ($error, $jres);
+	return (0, {removed => $ret});
 }
 
 # 检查双亲关系，返回错误码
@@ -574,7 +571,7 @@ sub modify_partner
 		return ('ERR_ARGUMENT', 0);
 	}
 
-	return 0;
+	return ('ERR_SYSTEM', 0);
 }
 
 sub now_time_str
@@ -722,4 +719,78 @@ sub query_single
 		return undef;
 	}
 	return $qry_res->{records}->[0];
+}
+
+=head1 brief table operate
+=cut
+
+=markdown handle_query_brief()
+	查询简介
+	req = { id }
+	res = { F_text }
+=cut
+sub handle_query_brief
+{
+	my ($db, $jreq) = @_;
+	my $id = $jreq->{id} or return ('ERR_ARGNO_ID');
+
+	my $text = $db->QueryBrief($id);
+	return ('ERR_DBI_FAILED', $db->{error}) if ($db->{error});
+
+	return (0, {F_text => $text});
+}
+
+=markdown handle_create_brief()
+	创建简介
+	req = { id, text }
+	res = { id, affected }
+=cut
+sub handle_create_brief
+{
+	my ($db, $jreq) = @_;
+	my $id = $jreq->{id} or return ('ERR_ARGNO_ID');
+	return ('ERR_ARGNO_TEXT') if !$jreq->{text};
+	my $text = $jreq->{text};
+
+	my $affected = $db->CreateBrief($id, $text);
+	return ('ERR_DBI_FAILED', $db->{error}) if ($db->{error});
+
+	return (0, {id => $id, affected => $affected});
+}
+
+=markdown handle_modify_brief()
+	修改简介
+	req = { id, text, create }
+	如果指定 create 则在原无简介记录时也尝试新建
+	res = { id, affected }
+=cut
+sub handle_modify_brief
+{
+	my ($db, $jreq) = @_;
+	my $id = $jreq->{id} or return ('ERR_ARGNO_ID');
+	return ('ERR_ARGNO_TEXT') if !defined($jreq->{text});
+	my $text = $jreq->{text};
+
+	my $affected = $jreq->{create}
+		? $db->ReplaceBrief($id, $text)
+		: $db->ModifyBrief($id, $text);
+	return ('ERR_DBI_FAILED', $db->{error}) if ($db->{error});
+
+	return (0, {id => $id, affected => $affected});
+}
+
+=markdown handle_remove_brief()
+	删除简介
+	req = { id }
+	res = { id, affected }
+=cut
+sub handle_remove_brief
+{
+	my ($db, $jreq) = @_;
+	my $id = $jreq->{id} or return ('ERR_ARGNO_ID');
+
+	my $affected = $db->RemoveBrief($id);
+	return ('ERR_DBI_FAILED', $db->{error}) if ($db->{error});
+
+	return (0, {id => $id, affected => $affected});
 }

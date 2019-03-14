@@ -22,8 +22,8 @@ my $flags = {AutoCommit => 1, mysql_enable_utf8 => 1};
 
 my $TABLE_MEMBER = 't_family_member';
 my @FIELD_MEMBER = qw(F_id F_name F_sex F_level F_father F_mother F_partner F_birthday F_deathday);
-# my $dbh;
 
+my $TABLE_BRIEF = 't_member_brief';
 =head1 对象封装
 =cut
 
@@ -32,6 +32,7 @@ sub new
 	my ($class) = @_;
 	my ($dbh, $error) = Connect();
 	my $self = {dbh => $dbh, error => $error};
+	$self->{sql} = SQL::Abstract->new;
 	bless $self, $class;
 	return $self;
 }
@@ -60,6 +61,22 @@ sub Error
 	return $ret;
 }
 
+# 执行由 SQL::Abstract 生成的 sql 语句
+# 传入语句 $stmt 字符串与绑定值 $bind 数组引用
+# 返回执行完语句对象 $sth ，并设置错误消息
+sub Execute
+{
+	my ($self, $stmt, $bind) = @_;
+	my $dbh = $self->{dbh};
+	wlog("$stmt; ?= @$bind");
+	$self->{error} = '';
+	my $sth = $dbh->prepare($stmt) 
+		or return $self->Error(undef, "Fail to prepater: " . $dbh->errstr);
+	$sth->execute(@$bind)
+		or return $self->Error(undef, "Fail to execute: " . $dbh->errstr);
+	return $sth;
+}
+
 # 入参：
 # $fields, $where 符合 SQL::Abstract 参数规则，在 $order 之前插入 $limit
 # 无 $order 参数时，只按默认 id 排序
@@ -70,24 +87,16 @@ sub Error
 sub Query
 {
 	my ($self, $fields, $where, $limit, $order) = @_;
-	my $dbh = $self->{dbh};
 
 	if (!$fields || (scalar @$fields) < 1) {
 		$fields = \@FIELD_MEMBER;
 	}
-	my $sql = SQL::Abstract->new;
-	my($stmt, @bind) = $sql->select($TABLE_MEMBER, $fields, $where, $order);
+	my($stmt, @bind) = $self->{sql}->select($TABLE_MEMBER, $fields, $where, $order);
 	if ($limit) {
 		$stmt .= " LIMIT $limit";
 	}
 
-	wlog("$stmt; ?= @bind");
-	$self->Error();
-	my $sth = $dbh->prepare($stmt) 
-		or return $self->Error([], "Fail to prepater");
-	$sth->execute(@bind)
-		or return $self->Error([], "Fail to execute");
-
+	my $sth = $self->Execute($stmt, \@bind) or return 0;
 	my $result = $sth->fetchall_arrayref({});
 	return $result;
 }
@@ -98,25 +107,13 @@ sub Query
 sub Count
 {
 	my ($self, $where) = @_;
-	my $dbh = $self->{dbh};
-	my $sql = SQL::Abstract->new;
-	my($stmt, @bind) = $sql->where($where);
+	my($stmt, @bind) = $self->{sql}->where($where);
 
 	my $stmt_full = "SELECT count(1) FROM $TABLE_MEMBER $stmt";
-	wlog("$stmt; ?= @bind");
-	$self->Error();
-	my $sth = $dbh->prepare($stmt) 
-		or return $self->Error(0, "Fail to prepater");
-	$sth->execute(@bind)
-		or return $self->Error(0, "Fail to execute");
+	my $sth = $self->Execute($stmt_full, \@bind) or return 0;
 
-	my @result = $sth->fetchrow_array;
-	if (@result) {
-		return $result[0];
-	}
-	else {
-		return $self->Error(0, "Fail to get count");
-	}
+	my $result = $sth->fetchrow_arrayref;
+	return $result && $result->[0];
 }
 
 # 入参：
@@ -126,20 +123,10 @@ sub Count
 sub Create
 {
 	my ($self, $fieldvals) = @_;
-	my $dbh = $self->{dbh};
 
-	my $sql = SQL::Abstract->new;
-	my($stmt, @bind) = $sql->insert($TABLE_MEMBER, $fieldvals);
-
-	wlog("$stmt; ?= @bind");
-	$self->Error();
-	my $sth = $dbh->prepare($stmt) 
-		or return $self->Error([], "Fail to prepater");
-	$sth->execute(@bind)
-		or return $self->Error([], "Fail to execute");
-
-	my $affected = $sth->rows();
-	return $affected;
+	my($stmt, @bind) = $self->{sql}->insert($TABLE_MEMBER, $fieldvals);
+	my $sth = $self->Execute($stmt, \@bind);
+	return $sth && $sth->rows();
 }
 
 # 返回最后一个自增 id
@@ -157,20 +144,10 @@ sub LastInsertID
 sub Modify
 {
 	my ($self, $fieldvals, $where) = @_;
-	my $dbh = $self->{dbh};
 
-	my $sql = SQL::Abstract->new;
-	my($stmt, @bind) = $sql->update($TABLE_MEMBER, $fieldvals, $where);
-
-	wlog("$stmt; ?= @bind");
-	$self->Error();
-	my $sth = $dbh->prepare($stmt) 
-		or return $self->Error([], "Fail to prepater");
-	$sth->execute(@bind)
-		or return $self->Error([], "Fail to execute");
-
-	my $affected = $sth->rows();
-	return $affected;
+	my($stmt, @bind) = $self->{sql}->update($TABLE_MEMBER, $fieldvals, $where);
+	my $sth = $self->Execute($stmt, \@bind);
+	return $sth && $sth->rows();
 }
 
 # 入参：
@@ -180,21 +157,87 @@ sub Modify
 sub Remove
 {
 	my ($self, $where) = @_;
-	my $dbh = $self->{dbh};
 
-	my $sql = SQL::Abstract->new;
-	my($stmt, @bind) = $sql->delete($TABLE_MEMBER, $where);
-
-	wlog("$stmt; ?= @bind");
-	$self->Error();
-	my $sth = $dbh->prepare($stmt) 
-		or return $self->Error([], "Fail to prepater");
-	$sth->execute(@bind)
-		or return $self->Error([], "Fail to execute");
-
-	my $affected = $sth->rows();
-	return $affected;
+	my($stmt, @bind) = $self->{sql}->delete($TABLE_MEMBER, $where);
+	my $sth = $self->Execute($stmt, \@bind);
+	return $sth && $sth->rows();
 }
+
+# 查找简介，入参 id ，返回简单字符串，不存在时返回空串
+sub QueryBrief
+{
+	my ($self, $id) = @_;
+	return '' if !$id;
+
+	my $where = { F_id => $id };
+	my($stmt, @bind) = $self->{sql}->select($TABLE_BRIEF, ['F_text'], $where);
+	my $sth = $self->Execute($stmt, \@bind) or return '';
+	my $result = $sth->fetchrow_arrayref;
+	return $result && $result->[0];
+}
+
+# 查找是否有简介，入参 id ，返回true/false
+sub HaveBrief
+{
+	my ($self, $id) = @_;
+	return 0 if !$id;
+
+	my $where = { F_id => $id };
+	my($stmt, @bind) = $self->{sql}->select($TABLE_BRIEF, ['F_id'], $where);
+	my $sth = $self->Execute($stmt, \@bind) or return 0;
+	my $result = $sth->fetchrow_arrayref;
+	return $result && $result->[0];
+}
+
+# 增加简介，入参 id 与 text 字符串，返回影响行数
+sub CreateBrief
+{
+	my ($self, $id, $text) = @_;
+	return 0 if !$text || !$id;
+
+	my $fieldvals = { F_id => $id, F_text => $text };
+	my($stmt, @bind) = $self->{sql}->insert($TABLE_BRIEF, $fieldvals);
+	my $sth = $self->Execute($stmt, \@bind);
+	return $sth && $sth->rows();
+}
+
+# 修改简介，入参 id 与 text 字符串，返回影响行数
+sub ModifyBrief
+{
+	my ($self, $id, $text) = @_;
+	return 0 if !$text || !$id;
+
+	my $fieldvals = { F_text => $text };
+	my $where = { F_id => $id };
+	my($stmt, @bind) = $self->{sql}->update($TABLE_BRIEF, $fieldvals, $where);
+	my $sth = $self->Execute($stmt, \@bind);
+	return $sth && $sth->rows();
+}
+
+# 修改或增加简介，入参 id 与 text 字符串
+sub ReplaceBrief
+{
+	my ($self, $id, $text) = @_;
+	if ($self->HaveBrief($id)) {
+		return $self->ModifyBrief($id, $text);
+	}
+	else {
+		return $self->CreateBrief($id, $text);
+	}
+}
+
+# 删除简介，入参 id ，返回影响行数
+sub RemoveBrief
+{
+	my ($self, $id) = @_;
+	return 0 if !$id;
+
+	my $where = { F_id => $id };
+	my($stmt, @bind) = $self->{sql}->delete($TABLE_BRIEF, $where);
+	my $sth = $self->Execute($stmt, \@bind);
+	return $sth && $sth->rows();
+}
+
 
 ##-- MAIN --##
 sub main
