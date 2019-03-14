@@ -1,289 +1,301 @@
 #! /usr/bin/env perl
-package HTPL;
 use utf8;
 use strict;
 use warnings;
+use FindBin qw($Bin);
+use lib "$Bin";
+use WebLog;
+use ForkCGI;
+use FamilyAPI;
+use FamilyUtil;
+use view::detail;
 
-my @sex_mark = qw(♀ ♂);
+my $DEBUG = 0;
+$DEBUG = 1 if $ENV{SCRIPT_NAME} =~ m/\.pl$/;
+my $LOG = WebLog::instance();
 
-sub new
+##-- MAIN --##
+sub main
 {
-	my ($class) = @_;
-	my $self = {};
-	$self->{title} = '谭氏家谱-成员详情';
-	$self->{body} = '';
-	$self->{H1} = '谭氏年浪翁家谱成员细览';
-	bless $self, $class;
-	return $self;
-}
+	my @argv = @_;
+	my $param = ForkCGI::Param(@argv);
+	my $debug = $param->{debug} // $DEBUG;
+	$LOG->{debug} = $debug;
 
-sub runout
-{
-	my ($self, $data, $LOG) = @_;
-	$self->generate($data, $LOG);
-	return $self->response();
-}
+	wlog("ENV{HTTP_COOKIE}: $ENV{HTTP_COOKIE }");
+	wlog("param{HTTP_COOKIE}: $param->{HTTP_COOKIE}");
 
-sub response
-{
-	my ($self) = @_;
-	print "Content-type:text/html\n\n";
-
-	print <<EndOfHTML;
-<!DOCTYPE html>
-<html>
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width" />
-		<script src="js/cutil.js"></script>
-		<title> $self->{title} </title>
-	</head>
-	<body>
-		$self->{body}
-	</body>
-</html>
-EndOfHTML
-
-	return 0;
-}
-
-sub body
-{
-	my ($self, $MemberHeader, $MemberRelation, $OperateResult, $TableForm) = @_;
-
-	my $Body = <<EndOfHTML;
-<h1>$self->{H1}</h1>
-<div id="member-header">
-	$MemberHeader
-</div>
-<hr>
-<div id="member-relation">
-	$MemberRelation
-</div>
-<div id="operate-form">
-	<p> 资料：$OperateResult</p>
-	$TableForm
-</div>
-<div id = "form_tips">
-	<h2>修改说明：</h2>
-	<ul>
-		<li> 成员 ID 已固定，可以修改其他资料
-		<li> 父亲、母亲、配偶三项可填姓名，除非有重名必须填 ID
-	</ul>
-</div>
-EndOfHTML
-
-	return $Body;
-}
-
-sub generate
-{
-	my ($self, $data, $LOG) = @_;
-	if (!$data || $data->{error}) {
-		return on_error('查询成员详情失败');
+	# 当前需要操作的行
+	my $operate_result = '';
+	if ($param->{operate} && $param->{operate} eq 'modify') {
+		$operate_result = modify_row($param);
 	}
 
-	my $null = '--';
-	my $id = $data->{id};
-	my $name = $data->{name};
-	my $sex = $data->{sex};
-	my $level = $data->{level};
-	my $father = $data->{father};
-	my $mother = $data->{mother};
-	my $partner = $data->{partner};
-	my $birthday = $data->{birthday} // $null;
-	my $deathday = $data->{deathday} // $null;
+	my $uid;
+	my $cookie;
+	if ($ENV{HTTP_COOKIE}) {
+		$cookie = ForkCGI::Cookie();
+		if ($cookie->{uid} && $cookie->{uid} =~ /^(\d+)-/) {
+			$uid = $1;
+		}
+	}
+
+	my $id = $param->{mine} // $param->{mine_id} // $uid;
+	my $detail = query_detail($id, $param);
+	$detail->{operate_result} = $operate_result;
+	if ($ENV{HTTP_COOKIE}) {
+		$detail->{COOKIE} = $cookie;
+	}
+
+	my $html = view::detail->new();
+	return $html->runout($detail, $LOG);
+}
+
+##-- SUBS --##
+
+# 查询详情
+# 输入：id/name
+# 输出：{} ，除了本行记录，再联表查询祖先继承关系与所有子女
+sub query_detail
+{
+	my ($id, $param) = @_;
 	
-	my $MemberHeader = s_member_header($id, $name, $level);
+	if (!$id) {
+		return {error => '未提供ID，请登陆'};
+	}
 
-	my $root = $data->{root};
-	my $child = $data->{child};
-	my $MemberRelation = s_member_relation($root, $child, $level);
+	my $filter = {};
+	if ($id =~ /^\d+$/) {
+		$filter->{id} = $id;
+	}
+	else {
+		$filter->{name} = $id;
+	}
 
-	my $OperateResult = $data->{operate_result};
-	my $TableForm = s_table_form([$id, $name, $sex, $level, $father, $mother, $partner, $birthday, $deathday]);
+	my $detail = {};
+	my $req = { api => "query", data => { filter => $filter}};
+	my $res = FamilyAPI::handle_request($req);
+	if ($res->{error} || !$res->{data}) {
+		return ewlog('查询数据失败：' . $res->{errmsg});
+	}
+	my $row = $res->{data}->[0] or return elog("不存在id/name: $id");
 
-	$self->{body} = $self->body($MemberHeader, $MemberRelation, $OperateResult, $TableForm);
-	if ($LOG->{debug}) {
-		$self->{body} .= s_debug_log($LOG);
+	$detail->{id} = $row->{F_id};
+	$detail->{name} = $row->{F_name};
+	$detail->{sex} = $row->{F_sex};
+	$detail->{level} = $row->{F_level};
+	$detail->{birthday} = $row->{F_birthday};
+	$detail->{deathday} = $row->{F_deathday};
+
+	if ($row->{F_partner}) {
+		my $partner = query_base($row->{F_partner});
+		$detail->{partner} = $partner;
+	}
+
+	# 直系后代须查父母
+	if ($detail->{level} > 1) {
+		my $root = [];
+		my $root_id = 0;
+		if ($row->{F_father}) {
+			my $parent = query_base($row->{F_father});
+			$detail->{father} = $parent;
+			if ($parent->{level} > 0) {
+				push(@$root, $parent);
+				$root_id = $row->{F_father};
+			}
+		}
+		if ($row->{F_mother}) {
+			my $parent = query_base($row->{F_mother});
+			$detail->{mother} = $parent;
+			if ($parent->{level} > 0) {
+				push(@$root, $parent);
+				$root_id = $row->{F_mother};
+			}
+		}
+
+		if (!$root_id) {
+			wlog("查询父/母失败");
+			return {error => "查询父/母失败"};
+		}
+
+		# 继续往上查祖父……
+		for (my $level = $row->{F_level} - 1; $level > 1; $level--) {
+			wlog("query root_id: $root_id; level $level");
+			my $parent = select_parent($root_id);
+			last unless %$parent;
+			push(@$root, $parent);
+			$root_id = $parent->{id};
+		}
+
+		$detail->{root} = $root;
+	}
+
+	# 快捷增加子女
+	if ($param->{operate} && $param->{operate} eq 'create'
+		&& $param->{child_name} && defined($param->{child_sex})) {
+		create_child($detail, $param);
+	}
+
+	# 查询子女
+	$detail->{child} = select_child($detail->{id}, $detail->{sex});
+
+	return $detail;
+}
+
+# 由 id 查询基本的 id name sex level
+sub query_base
+{
+	my ($id) = @_;
+	my $base = {};
+	my $fields = ['F_name', 'F_level', 'F_sex'];
+	my $req = { api => "query", data => { filter => { id => $id}, fields => $fields}};
+	my $res = FamilyAPI::handle_request($req);
+	if ($res->{error} || !$res->{data}) {
+		wlog('查询数据失败：' . $res->{errmsg});
+		return {};
+	}
+	my $data = $res->{data} or return {};
+	my $row = $data->[0] or return {};
+	$base->{id} = $id;
+	$base->{name} = $row->{F_name};
+	$base->{level} = $row->{F_level};
+	$base->{sex} = $row->{F_sex};
+	return $base;
+}
+
+# 选出一个继承父母，level > 0 的
+# 返回父/母的信息 {id , name, sex}
+sub select_parent
+{
+	my ($id) = @_;
+	
+	my $req = { api => "query", data => { filter => { id => $id}, fields => ['F_father', 'F_mother', 'F_sex']}};
+	my $res = FamilyAPI::handle_request($req);
+	my $data = $res->{data} or return {};
+	my $row = $data->[0] or return {};
+	if ($row->{F_father}) {
+		my $parent = query_base($row->{F_father});
+		if ($parent->{level} > 0) {
+			return $parent;
+		}
+	}
+	elsif ($row->{F_mother}) {
+		my $parent = query_base($row->{F_mother});
+		if ($parent->{level} > 0) {
+			return $parent;
+		}
+	}
+
+	wlog('查询父/母失败');
+	return {};
+}
+
+# 查询所有子女
+# 输入：自己的 id sex
+# 输出：数组 [{id name sex}]
+sub select_child
+{
+	my ($id, $sex) = @_;
+	wlog("id: $id; sex: $sex");
+	return [] unless $id;
+	
+	my @fields = qw[F_id F_name F_sex];
+	my $filter = {};
+	if ($sex == 1) {
+		$filter->{father} = $id;
+	}
+	elsif ($sex == 0) {
+		$filter->{mother} = $id;
+	}
+	else {
+		return [];
+	}
+
+	my $req = { api => "query", data => { filter => $filter, fields => \@fields}};
+	my $res = FamilyAPI::handle_request($req);
+	my $data = $res->{data} or return [];
+
+	# 复制并转化出数据
+	my @child;
+	foreach my $row (@$data) {
+		push(@child, {id => $row->{F_id}, name => $row->{F_name}, sex => $row->{F_sex}});
+	}
+	
+	return \@child;
+}
+
+sub modify_row
+{
+	wlog("Enter ...");
+	my ($param) = @_;
+	my $msg = '修改成功';
+	my $req_data = FamilyUtil::Param2api($param);
+	if (!$req_data->{id}) {
+		$msg = '需要输入被修改成员的id';
+		wlog($msg);
+		return $msg;
+	}
+
+	if (scalar(keys %$req_data) <= 1) {
+		return "未指定任何修改字段";
+	}
+
+	my $req = { api => "modify", data => $req_data};
+	my $res = FamilyAPI::handle_request($req);
+	if ($res->{error} || !$res->{data}) {
+		$msg = '修改数据失败：' . $res->{errmsg};
+		wlog($msg);
+		return $msg;
+	}
+
+	return $msg;
+}
+
+sub create_child
+{
+	my ($detail, $param) = @_;
+	
+	my $req_data = {
+		name => $param->{child_name},
+		sex  => $param->{child_sex},
+	};
+
+	my $partner_id = $detail->{partner}->{id} if $detail->{partner};
+	if ($detail->{sex} == 1) {
+		$req_data->{father_id} = $detail->{id};
+		$req_data->{mother_id} = $partner_id if $partner_id;
+	}
+	elsif ($detail->{sex} == 0) {
+		$req_data->{mother_id} = $detail->{id};
+		$req_data->{father_id} = $partner_id if $partner_id;
+	}
+	else {
+		wlog('非法性别');
+		return {error => '非法性别'};
+	}
+
+	if ($param->{child_birthday}) {
+		$req_data->{birthday} = $param->{child_birthday};
+	}
+	if ($param->{child_deathday}) {
+		$req_data->{deathday} = $param->{child_deathday};
+	}
+
+	my $req = { api => "create", data => $req_data};
+	my $res = FamilyAPI::handle_request($req);
+	if ($res->{error} || !$res->{data}) {
+		wlog('插入数据失败：' . $res->{errmsg});
+		return {error => '插入数据失败：' . $res->{errmsg}};
 	}
 
 	return 0;
 }
 
-sub on_error
-{
-	my ($self, $msg) = @_;
-	$self->{body} = $msg;
-	return -1;
-}
+##-- END --##
+&main(@ARGV) unless defined caller;
 
-sub s_debug_log
-{
-	my ($LOG) = @_;
-	my $display = ($LOG->{debug} > 0) ? 'inline' : 'none';
-	my $log = $LOG->to_webline();
-	my $html = <<EndOfHTML;
-	<hr>
-	<div><a href="javascript:void(0);" onclick="DivHide('debug_log')">网页日志</a></div>
-<div id="debug_log" style="display:$display">
-	$log
-</div>
-EndOfHTML
-	return $html;
-}
-
-# eg.
-# 10025 | 谭水龙 | 第 4 代
-sub s_member_header
-{
-	my ($id, $name, $level) = @_;
-	my $left = '';
-	if ($level > 0) {
-		$left = "$id | $name | 第 +$level 代直系";
-	}
-	else {
-		$left = "$id | $name | 第 $level 代旁系";
-	}
-	my $right = qq{<a href="view_table.cgi">回列表</a>};
-	return "$left -- ($right)";
-}
-
-sub s_link_to
-{
-	my ($member) = @_;
-	if ($member && $member->{id} && $member->{name}) {
-		return qq{<a href="?mine_id=$member->{id}">$member->{name}</a>};
-	}
-	return '';
-}
-
-# 生成上下级关系
-sub s_member_relation
-{
-	my ($root, $child, $level) = @_;
-	my $html = '';
-	if ($level > 0) {
-		if ($level == 1) {
-			$html .= qq{<p>先人：（本支祖先）</p>\n};
-		}
-		elsif ($root && @$root) {
-			my @root_name = ();
-			foreach my $parent (@$root) {
-				my $html = s_link_to($parent);
-				my $sex = $parent->{sex};
-				$html .= $sex_mark[$sex];
-				push(@root_name, $html);
-			}
-			
-			my $root_name = join(' / ', @root_name);
-			$html .= qq{<p>先人：$root_name</p>\n};
-		}
-		else {
-			$html .= qq{<p>先人：（数据错误缺失）</p>\n};
-		}
-	}
-	else {
-		$html .= qq{<p>先人：（旁系配偶不记录）</p>\n};
-	}
-
-	if ($child && @$child) {
-		my @child_name = ();
-		foreach my $kid (@$child) {
-			my $html = s_link_to($kid);
-			my $sex = $kid->{sex};
-			$html .= $sex_mark[$sex];
-			push(@child_name, $html);
-		}
-		
-		my $child_name = join(' 、 ', @child_name);
-		$html .= qq{<p>后人：$child_name</p>\n};
-	}
-
-	return $html;
-}
-
-sub s_table_form
-{
-	my ($row) = @_;
-	my ($id, $name, $sex, $level, $father_ref, $mother_ref, $partner_ref, $birthday, $deathday) = @$row;
-
-	my $father = s_link_to($father_ref);
-	my $mother = s_link_to($mother_ref);
-	my $partner = s_link_to($partner_ref);
-
-	my ($sex_str, $man, $woman);
-	if ($sex == 1) {
-		$sex_str = '男';
-		$man = 'selected';
-		$woman = '';
-	}
-	else{
-		$sex_str = '女';
-		$man = '';
-		$woman = 'selected';
-	}
-	$sex_str .= $sex_mark[$sex];
-
-	my $html = <<EndOfHTML;
-<form action="?operate=modify&mine_id=$id" method="post">
-	<table>
-		<tr>
-			<td>编号：</td>
-			<td>$id</td>
-		</tr>
-		<tr>
-			<td>姓名：</td>
-			<td>$name</td>
-			<td><input size="3" type="text" name="mine_name" /></td>
-		</tr>
-		<tr>
-			<td>性别：</td>
-			<td>$sex_str</td>
-			<td>
-				<select name="sex">
-					<option value="">请选择</option>
-					<option value="1">男</option>
-					<option value="0">女</option>
-				</select>
-			</td>
-		</tr>
-		<tr>
-			<td>父亲：</td>
-			<td>$father</td>
-			<td><input size="3" type="text" name="father"</td>
-		</tr>
-		<tr>
-			<td>母亲：</td>
-			<td>$mother</td>
-			<td><input size="3" type="text" name="mother"/></td>
-		</tr>
-		<tr>
-			<td>配偶：</td>
-			<td>$partner</td>
-			<td><input size="3" type="text" name="partner"/></td>
-		</tr>
-		<tr>
-			<td>生日：</td>
-			<td>$birthday</td>
-			<td><input size="5" type="date" name="birthday"/></td>
-		</tr>
-		<tr>
-			<td>忌日：</td>
-			<td>$deathday</td>
-			<td><input size="5" type="date" name="deathday"/></td>
-		</tr>
-		<tr>
-			<td></td>
-			<td><input type="reset" value="不必修改" /></td>
-			<td><input type="submit" value="修改资料" /></td>
-		</tr>
-	</table>
-	简介：<br/>
-	<textarea name="desc" rows="10" cols="30" >（暂不保存，敬请期待）</textarea><br/>
-</form>
-EndOfHTML
-	return $html
+if (ForkCGI::TermTest()) {
+	$LOG->output_std();
 }
 
 1;

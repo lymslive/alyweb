@@ -1,318 +1,297 @@
 #! /usr/bin/env perl
-package HTPL;
+# package view_table;
 use utf8;
 use strict;
 use warnings;
+use FindBin qw($Bin);
+use lib "$Bin";
+use WebLog;
+use ForkCGI;
+use FamilyAPI;
+use FamilyUtil;
+use view::table;
 
-# 控制是否显示表格尾列的操作链接
-my $OPERATE = 0;
-sub show_operate
+my $DEBUG = 0;
+my $LOG = WebLog::instance();
+$DEBUG = 1 if $ENV{SCRIPT_NAME} && $ENV{SCRIPT_NAME} =~ m/\.pl$/;
+
+##-- MAIN --##
+sub main
 {
-	my ($show) = @_;
-	$OPERATE = $show;
+	my @argv = @_;
+	my $param = ForkCGI::Param(@argv);
+	my $debug = $param->{debug} // $DEBUG;
+	$LOG->{debug} = $debug;
+
+	my $data = deal($param);
+	$data->{COOKIE} = ForkCGI::Cookie() if $ENV{HTTP_COOKIE};
+	my $html = view::table->new();
+	return $html->runout($data, $LOG);
 }
 
-sub new
+=markdown deal()
+	准备数据
+返回：hashref{}
+	error => 数据处理出错信息，抑制剩余字段
+	rows => 检索的数据行
+	removed, modified, created => 增删改操作结构
+		error => 操作出错信息
+		id => 
+		queried => 操作前后重新检索过
+		row => 被操作的行
+=cut
+sub deal
 {
-	my ($class) = @_;
-	my $self = {};
-	$self->{title} = '谭氏家谱网-成员列表';
-	$self->{body} = '';
-	$self->{H1} = '谭氏年浪翁子嗣家谱表';
-	bless $self, $class;
-	return $self;
-}
+	my ($param) = @_;
+	my $data = {};
 
-sub runout
-{
-	my ($self, $data, $LOG) = @_;
-	$self->generate($data, $LOG);
-	return $self->response();
-}
-
-sub response
-{
-	my ($self) = @_;
-	print "Content-type:text/html\n\n";
-
-	print <<EndOfHTML;
-<!DOCTYPE html>
-<html>
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width" />
-		<script src="js/cutil.js"></script>
-		<title> $self->{title} </title>
-	</head>
-	<body>
-		$self->{body}
-	</body>
-</html>
-EndOfHTML
-
-	return 0;
-}
-
-sub body
-{
-	my ($self, $TableRows) = @_;
-
-	my $Body = <<EndOfHTML;
-<h1>$self->{H1}</h1>
-<div id="family_table">
-	<table border="1">
-	$TableRows
-	</table>
-</div>
-<div id = "table_instruction">
-	<h2>家谱表简单说明：</h2>
-	<ul>
-		<li> 收录同一祖先以下的子嗣血脉。祖先设为第 1 代，后续递增。也可收录配偶，代际前加一短横（取负数）以区别。
-		<li> 原则上不分男女，都可收录，甚至女儿的后代也算血脉延续。有更多数据后可按需要再筛选。
-		<li> 在表的末行可添加新成员。至少要填写所依的父亲或母亲，可填 ID 或姓名（不存在重名时）。
-		<li> 新成员可先入库基本信息（姓名与父/母依存关系），再去详情页修改。本页快捷修改须指定编号。
-		<li> 删除数据须谨慎。本页地址暂不要外传，为方便前期录入数据，操作修改尚未作登陆验证。
-		<li> 我目前侧重该电子家谱系统的服务端开发与优化，有懂前端会做网页(html+css+js)的兄弟姐妹可联系我。
-	</ul>
-</div>
-EndOfHTML
-
-	return $Body;
-}
-
-sub generate
-{
-	my ($self, $data, $LOG) = @_;
-	if (!$data || $data->{error}) {
-		return on_error('查询成员详情失败');
+	# 当前需要操作的行
+	if ($param->{operate} && $param->{operate} eq 'remove') {
+		$data->{removed} = remove_row($param);
+	}
+	if ($param->{operate} && $param->{operate} eq 'modify') {
+		$data->{modified} = modify_row($param);
+	}
+	if ($param->{operate} && $param->{operate} eq 'create') {
+		$data->{created} = create_row($param);
 	}
 
-	show_operate($LOG->{debug});
+	my $req = { api => 'query', data => { all => 1} };
+	my $res = FamilyAPI::handle_request($req);
+	if (!$res || $res->{error}) {
+		return {error => "查询数据失败：$res->{error}"};
+	}
+	my $res_data = $res->{data};
 
-	my $TableRows = s_table($data);
-	$self->{body} = $self->body($TableRows);
-	if ($LOG->{debug}) {
-		$self->{body} .= s_debug_log($LOG);
+	# id=>name 映射
+	my $mapid = {};
+	wlog('顺便缓存 id=>name 映射表');
+	foreach my $row (@$res_data) {
+		$mapid->{$row->{F_id}} = $row->{F_name};
 	}
 
-	return 0;
-}
+	$data->{rows} = $res_data;
+	foreach my $row (@$res_data) {
+		# 加工检索行，原位添加父母配偶的名字
+		append_name($mapid, $row);
 
-sub on_error
-{
-	my ($self, $msg) = @_;
-	$self->{body} = $msg;
-	return -1;
-}
-
-
-sub s_debug_log
-{
-	my ($LOG) = @_;
-	my $display = ($LOG->{debug} > 0) ? 'inline' : 'none';
-	my $log = $LOG->to_webline();
-	my $html = <<EndOfHTML;
-	<hr>
-	<div><a href="javascript:void(0);" onclick="DivHide('debug_log')">网页日志</a></div>
-<div id="debug_log" style="display:$display">
-	$log
-</div>
-EndOfHTML
-	return $html;
-}
-
-sub s_table
-{
-	my ($data) = @_;
-	
-	my $th = s_table_head();
-	my @html = ($th);
-	foreach my $row (@{$data->{rows}}) {
-		push @html, s_table_row($row, 1);
+		# 匹配刚修改的行
+		if ($data->{modified}
+			&& $data->{modified}->{id}
+			&& $data->{modified}->{id} == $row->{F_id}) {
+			wlog("匹配到修改行：" . $data->{modified}->{id});
+			$data->{modified}->{row} = $row;
+			$data->{modified}->{queried} = 1;
+		}
+		if ($data->{created}
+			&& $data->{created}->{id}
+			&& $data->{created}->{id} == $row->{F_id}) {
+			wlog("匹配到增加行：" . $data->{created}->{id});
+			$data->{created}->{row} = $row;
+			$data->{created}->{queried} = 1;
+		}
 	}
 
-	my $count = scalar(@{$data->{rows}});
-	push @html, s_table_sumary($count);
-
-	my ($hot_row, $hot_msg);
-	if ($data->{removed}) {
-		$hot_row = $data->{removed}->{row};
-		$hot_msg = '刚删除的行：';
-	}
-	elsif ($data->{modified}) {
-		$hot_row = $data->{modified}->{row};
-		$hot_msg = '刚修改的行：';
-	}
-	elsif ($data->{created}) {
-		$hot_row = $data->{created}->{row};
-		$hot_msg = '刚增加的行：';
-	}
-
-	if ($hot_row) {
-		if ($hot_row->{error}) {
-			my $hot_html = s_operate_msg("操作失败：" . $hot_row->{error});
-			push @html, $hot_html;
+	# 未匹配刚修改的行
+	if ($data->{modified}
+		&& $data->{modified}->{id}
+		&& !$data->{modified}->{queried}) {
+		my $row = query_single($data->{modified}->{id});
+		if (!$row->{error}) {
+			append_name($mapid, $row);
+			$data->{modified}->{row} = $row;
+			$data->{modified}->{queried} = 1;
 		}
 		else {
-			my $hot_html = s_operate_msg("操作成功，" . $hot_msg);
-			$hot_html .= s_table_row($hot_row);
-			push @html, $hot_html;
+			$data->{modified}->{error} = $row->{error};
+		}
+	}
+	if ($data->{created}
+		&& $data->{created}->{id}
+		&& !$data->{created}->{queried}) {
+		my $row = query_single($data->{created}->{id});
+		if (!$row->{error}) {
+			append_name($mapid, $row);
+			$data->{created}->{row} = $row;
+			$data->{created}->{queried} = 1;
+		}
+		else {
+			$data->{created}->{error} = $row->{error};
 		}
 	}
 
-	push @html, s_table_form();
-	push @html, $th;
-
-	return join("\n", @html);
+	return $data;
 }
 
-sub s_table_head
+sub append_name
 {
-	my ($var) = @_;
+	my ($mapid, $row) = @_;
 	
-	my $html = <<EndOfHTML;
-<tr>
-	<td>编号</td>
-	<td>姓名</td>
-	<td>性别</td>
-	<td>代际</td>
-	<td>父亲</td>
-	<td>母亲</td>
-	<td>元配</td>
-	<td>生日</td>
-	<td>忌日</td>
-</tr>
-EndOfHTML
-
-	return $html;
-}
-
-sub s_detail_link
-{
-	my ($id, $text) = @_;
-	my $html = qq{<a href="view_detail.cgi?mine_id=$id">$text<a>};
-	return $html;
-}
-
-sub s_table_row
-{
-	my ($row, $link) = @_;
-	my $null = '--';
-	my $id = $row->{F_id} // $null;
-	my $name = $row->{F_name} // $null;
-	my $sex = $row->{F_sex} // $null;
-	$sex = ($sex == 1 ? '男' : '女');
-	my $level = $row->{F_level} // $null;
-	my $father = $row->{F_father} // $null;
-	my $mother = $row->{F_mother} // $null;
-	my $partner = $row->{F_partner} // $null;
-	my $birthday = $row->{F_birthday} // $null;
-	my $deathday = $row->{F_deathday} // $null;
-
-	my $row_tail = '';
-	if ($link) {
-		my $modify = qq{<a href="view_detail.cgi?mine_id=$id">详情</a>};
-		my $remove = qq{<a href="javascript:void(0)">删除</a>};
-		if ($OPERATE) {
-			$remove = qq{<a href="?operate=remove&id=$id">删除</a>};
+	if ($row->{F_father}) {
+		if ($mapid->{$row->{F_father}}) {
+			$row->{father_name} = $mapid->{$row->{F_father}};
 		}
-		$row_tail .= qq{	<td>$modify</td>\n};
-		$row_tail .= qq{	<td>$remove</td>\n};
+		else {
+			$row->{father_name} = update_mapid($mapid, $row->{F_father});
+		}
 	}
-
-	if ($level > 0) {
-		$level = "+$level";
+	if ($row->{F_mother}) {
+		if ($mapid->{$row->{F_mother}}) {
+			$row->{mother_name} = $mapid->{$row->{F_mother}};
+		}
+		else {
+			$row->{mother_name} = update_mapid($mapid, $row->{F_mother});
+		}
 	}
-
-	# 转换链接
-	my $id_link = s_detail_link($id, $id);
-	$name = s_detail_link($id, $name);
-	if ($row->{F_father} && $row->{father_name}) {
-		$father = s_detail_link($row->{F_father}, $row->{father_name});
+	if ($row->{F_partner}) {
+		if ($mapid->{$row->{F_partner}}) {
+			$row->{partner_name} = $mapid->{$row->{F_partner}};
+		}
+		else {
+			$row->{partner_name} = update_mapid($row->{F_partner});
+		}
 	}
-	if ($row->{F_mother} && $row->{mother_name}) {
-		$mother = s_detail_link($row->{F_mother}, $row->{mother_name});
-	}
-	if ($row->{F_partner} && $row->{partner_name}) {
-		$partner = s_detail_link($row->{F_partner}, $row->{partner_name});
-	}
-
-	my $html = <<EndOfHTML;
-<tr>
-	<td>$id_link</td>
-	<td>$name</td>
-	<td>$sex</td>
-	<td>$level</td>
-	<td>$father</td>
-	<td>$mother</td>
-	<td>$partner</td>
-	<td>$birthday</td>
-	<td>$deathday</td>
-	$row_tail
-</tr>
-EndOfHTML
-	return $html;
 }
 
-sub s_table_sumary
+# 更新 mapid 缓存，添加一个 id, 返回对应的 name
+sub update_mapid
 {
-	my ($count) = @_;
+	my ($mapid, $id) = @_;
 	
-	my $html = <<EndOfHTML;
-	<tr>
-		<td colspan="9"><span id="table-sumary">小计：</span>
-		共收录 $count 名家族成员。再接再励！
-		</td>
-	</tr>
-EndOfHTML
-
-	return $html;
+	my $req_data = { filter => {id => $id}, fields => ['F_id', 'F_name']};
+	my $req = { api => 'query', data => $req_data};
+	my $res = FamilyAPI::handle_request($req);
+	if ($res->{error}) {
+		wlog("检索 $id 失败：$res->{error}");
+		return '';
+	}
+	my $first = $res->{data}->[0];
+	$mapid->{$first->{F_id}} = $first->{F_name};
+	wlog("更新缓存：$id => $first->{F_name}");
+	return $first->{F_name};
 }
 
-# 操作失败提示
-sub s_operate_msg
+# 缓存所有 id=>name ，暂未用了
+sub cache_mapid
 {
-	my ($msg) = @_;
-	my $html = <<EndOfHTML;
-<tr>
-	<td colspan="9">$msg</td>
-</tr>
-EndOfHTML
-	return $html;
+	my ($mapid) = @_;
+	my $req_data = { all => 1, fields => ['F_id', 'F_name']};
+	my $req = { api => 'query', data => $req_data};
+	my $res = FamilyAPI::handle_request($req);
+	return if $res->{error};
+	my $res_data = $res->{data};
+	foreach my $row (@$res_data) {
+		$mapid->{$row->{F_id}} = $row->{F_name};
+	}
+	wlog('预缓存 id=>name 映射表');
+}
+sub id2name
+{
+	my ($mapid, $id) = @_;
+	return $id unless $id > 0;
+	return $mapid->{$id} if defined($mapid->{$id});
+	cache_mapid();
+	return $mapid->{$id};
 }
 
-sub s_table_form
+# 查询一行数据，返回 {F_字段}，如果出错，返回 {error}
+sub query_single
 {
-	my ($var) = @_;
+	my ($id) = @_;
 	
-	my $html = <<EndOfHTML;
-<form action="#table-sumary" method="post">
-	<tr>
-		<td colspan="9"><span id="operate-form">操作：</span>
-			新增<input type="radio" name="operate" value="create" checked="checked"/>，
-			修改<input type="radio" name="operate" value="modify"/>
-		</td>
-	</tr>
-	<tr>
-		<td><input size="3" type="text" name="mine_id"/></td>
-		<td><input size="3" type="text" name="mine_name"/></td>
-		<td><select name="sex">
-				<option value="1">男</option>
-				<option value="0">女</option>
-			</select></td>
-		<td>--</td>
-		<td><input size="3" type="text" name="father"/></td>
-		<td><input size="3" type="text" name="mother"/></td>
-		<td><input size="3" type="text" name="partner"/></td>
-		<td><input size="5" type="date" name="birthday"/></td>
-		<td><input size="5" type="date" name="deathday"/></td>
-		<td><input type="submit" value="提交"/></td>
-		<td><input type="reset" value="重置"/></td>
-	</tr>
-</form>
-EndOfHTML
+	my $req = { api => "query", data => { filter => { id => $id}}};
+	my $res = FamilyAPI::handle_request($req);
 
-	return $html;
+	if (!$res || $res->{error} || !$res->{data}) {
+		my $msg = "检索 $id 失败：$res->{error}";
+		wlog($msg);
+		return {error => $msg};
+	}
+
+	my $row = $res->{data}->[0] or return {error => "检索 $id 失败"};
+	return $row;
+}
+
+# 增删改操作，返回 {} 字段如下：
+# error => 操作出错，不再有其他字段
+# id =>
+# queried => 已检索过
+# row => 数据行
+sub remove_row
+{
+	wlog("Enter ...");
+	my ($param) = @_;
+	my $id = $param->{id} or return {error => '未指定删除 id'};
+	my $row = query_single($id);
+	if ($row->{error}) {
+		return $row;
+	}
+
+	my $removed = {row => $row, queried => 1, id => $id};
+
+	my $req = { api => "remove", data => { id => $id}};
+	my $res = FamilyAPI::handle_request($req);
+	if ($res->{error} || !$res->{data}) {
+		my $msg = '删除数据失败：' . $res->{errmsg};
+		wlog($msg);
+		return {error => $msg};
+	}
+
+	return $removed;
+}
+
+sub modify_row
+{
+	wlog("Enter ...");
+	my ($param) = @_;
+	my $req_data = FamilyUtil::Param2api($param);
+	if (!$req_data->{id}) {
+		wlog('需要输入被修改成员的id');
+		return {error => '需要输入被修改成员的编号id'};
+	}
+
+	if (scalar(keys %$req_data) <= 1) {
+		return elog("未指定任何修改字段");
+	}
+
+	my $req = { api => "modify", data => $req_data};
+	my $res = FamilyAPI::handle_request($req);
+	if ($res->{error} || !$res->{data}) {
+		wlog('修改数据失败：' . $res->{errmsg});
+		return { error => '修改数据失败：' . $res->{errmsg}};
+	}
+
+	return {queried => 0, id => $req_data->{id}};
+}
+
+sub create_row
+{
+	wlog("Enter ...");
+	my ($param) = @_;
+	my $req_data = FamilyUtil::Param2api($param);
+	if (!$req_data->{name}) {
+		wlog('需要输入新成员的姓名');
+		return {error => '需要输入新成员的姓名'};
+	}
+
+	wlog("插入新数据");
+	my $req = { api => "create", data => $req_data};
+	my $res = FamilyAPI::handle_request($req);
+	if ($res->{error} || !$res->{data}) {
+		wlog('插入数据失败：' . $res->{errmsg});
+		return {error => '插入数据失败：' . $res->{errmsg}};
+	}
+
+	my $newid = $res->{data}->{id};
+	wlog("新增成员ID: $newid");
+	return {queried => 0, id => $newid};
+}
+
+##-- END --##
+&main(@ARGV) unless defined caller;
+
+if (ForkCGI::TermTest()) {
+	$LOG->output_std();
 }
 
 1;

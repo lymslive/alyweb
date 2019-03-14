@@ -10,7 +10,6 @@ CREATE TABLE `t_family_member` (
 	`F_partner` int(10) unsigned DEFAULT NULL COMMENT '配偶ID',
 	`F_birthday` date DEFAULT NULL COMMENT '生日',
 	`F_deathday` date DEFAULT NULL COMMENT '忌日',
-	`F_desc` int(10) unsigned DEFAULT NULL COMMENT '生平简介文本ID',
 	`F_create_time` datetime NOT NULL COMMENT '记录入库时间',
 	`F_update_time` datetime NOT NULL COMMENT '记录更新时间',
 	PRIMARY KEY (`F_id`)

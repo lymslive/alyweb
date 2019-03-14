@@ -26,6 +26,7 @@ my $MESSAGE_REF = {
 	ERR_PARENT_LACKED => '13. 缺少父母关系',
 	ERR_PARENT_DISMATCH => '14. 父母辈份不匹配',
 	ERR_MEMBER_LACKED => '15. 不存在成员ID',
+	ERR_ARGNO_TEXT => '16. 参数错误，缺少简介文本',
 };
 
 sub error_msg
@@ -42,9 +43,15 @@ my $HANDLER = {
 	create => \& handle_create,
 	modify => \& handle_modify,
 	remove => \& handle_remove,
+	member_relations => \& handle_member_relations,
+
+	query_brief => \& handle_query_brief,
+	create_brief => \& handle_create_brief,
+	modify_brief => \& handle_modify_brief,
+	remove_brief => \& handle_remove_brief,
 };
 
-# 分发响应函数
+# 请求入口，分发响应函数
 # req = {api => '接口名', data => {实际请求数据}}
 sub handle_request
 {
@@ -64,6 +71,9 @@ sub handle_request
 	return response($error, $res_data);
 }
 
+# 将派发函数返回的两个参数，发回客户端
+# 只有 $error 为假时，$data 才有效，否则当作错误信息附加在 errmsg
+# 不出错时，返回空 error 码与　data 数据字段
 sub response
 {
 	my ($error, $data) = @_;
@@ -71,6 +81,11 @@ sub response
 	my $res = { error => $error};
 	if ($error) {
 		$res->{errmsg} = error_msg($error);
+		if ($data && !ref($data)) {
+			$res->{errmsg} .= ": " . $data;
+		}
+		wlog("RES error: $res->{errmsg}");
+		return $res;
 	}
 
 	$res->{data} = $data if $data;
@@ -128,7 +143,11 @@ sub handle_query
 	my $ub = ($page) * $perpage;
 	my $limit = "$lb,$ub";
 
+	# 默认不选姓名为 '0' 与旁系
 	my $where = {};
+	if (!$jreq->{filter} || !$jreq->{filter}->{id}) {
+		$where = {F_name => {'!=' => '0'}, F_level => {'>' => 0}};
+	}
 	if (!$jreq->{all} && $jreq->{filter}) {
 		my $filter = $jreq->{filter};
 		$where->{F_id} = $filter->{id} if $filter->{id};
@@ -137,14 +156,61 @@ sub handle_query
 		$where->{F_level} = $filter->{level} if $filter->{level};
 		$where->{F_father} = $filter->{father} if $filter->{father};
 		$where->{F_mother} = $filter->{mother} if $filter->{mother};
-		# todo 支持更多条件
+		$where->{F_partner} = $filter->{partner} if $filter->{partner};
+
+		# 模糊查询 name
+		if ($filter->{name} && $filter->{name} =~ /%/) {
+			$where->{F_name} = {-like => $filter->{name}};
+		}
+
+		if ($filter->{birthday}) {
+			my $birthday = $filter->{birthday};
+			if (ref($birthday) eq 'ARRAY') {
+				$where->{F_birthday} = {-in => $birthday};
+			}
+			else {
+				$where->{F_birthday} = {'>=' => $birthday};
+			}
+		}
+
+		if ($filter->{deathday}) {
+			my $deathday = $filter->{deathday};
+			if (ref($deathday) eq 'ARRAY') {
+				$where->{F_deathday} = {-in => $deathday};
+			}
+			else {
+				$where->{F_deathday} = {'<=' => $deathday};
+			}
+		}
+
+		if ($filter->{age}) {
+			my $age = $filter->{age};
+			if (ref($age) eq 'ARRAY') {
+				my $birth_from = DateTime->now->add(years => -$age->[1]);
+				my $birth_to = DateTime->now->add(years => -$age->[0]);
+				$where->{F_birthday} = {-in => [$birth_from, $birth_to]};
+			}
+			else {
+				my $birth_from = DateTime->now->add(years => -$age->[0]);
+				$where->{F_bithathday} = {'>=' => $birth_from};
+			}
+		}
 	}
 
-	$jres = $db->Query($fields, $where, $limit);
-	if ($db->{error}) {
-		wlog("DB error: $db->{error}");
-		$error = 'ERR_DBI_FAILED';
+	# 默认按代际排序
+	my $order = ['F_level', 'F_id'];
+	my $records = $db->Query($fields, $where, $limit, $order);
+	return ('ERR_DBI_FAILED', $db->{error}) if ($db->{error});
+
+	$jres->{records} = $records;
+	$jres->{page} = $page;
+	$jres->{perpage} = $perpage;
+	my $total = scalar(@{$records});
+	if ($total >= $perpage) {
+		$total= $db->Count($where);
 	}
+	$jres->{total} = $total;
+
 	return ($error, $jres);
 }
 
@@ -160,16 +226,19 @@ sub handle_query
     father_id => 直接指定 id ，优先级比姓名高
     mother_name =>
     mother_id =>
-    partner_name =>
-    partner_id =>
+	partner_name => 提供配偶姓名，同时为配偶增加一条记录
+	partner_id => 提供配偶 id ，用于给已入库成员修改配偶 id
     birthday => 生日
     deathday => 忌日
-    desc => 简介文字
+    // desc => 简介文字
+	requery => 重新查询插入的数据（可能包括配偶）
   }
  
   响应：
   res = {
     id => 新插入成员的 id
+	partner_id => 新增或被修改的配偶 id
+	records => [] 重查的数据
   }
 =cut
 sub handle_create
@@ -210,10 +279,7 @@ sub handle_create
 	$fieldvals->{F_update_time} = $now_time;
 
 	my $ret = $db->Create($fieldvals);
-	if ($db->{error}) {
-		wlog("DB error: $db->{error}");
-		$error = 'ERR_DBI_FAILED';
-	}
+	return ('ERR_DBI_FAILED', $db->{error}) if ($db->{error});
 
 	if ($ret != 1) {
 		wlog("Expect to insert just one row: $ret");
@@ -229,7 +295,22 @@ sub handle_create
 
 	# 新增成员时同时增加配偶信息
 	if ($jreq->{partner_id} || $jreq->{partner_name}) {
-		modify_partner($db, $jreq);
+		my ($ret_err, $ret_id) = modify_partner($db, $jreq);
+		if (!$ret_err) {
+			$jres->{partner_id} = $ret_id;
+		}
+	}
+
+	if ($jreq->{requery}) {
+		my $requery = ($jres->{partner_id}) ? [$jres->{id}, $jres->{partner_id}] : $jres->{id};
+		my $jqry = {filter => { id => $requery}};
+		my ($qry_err, $qry_res) = handle_query($db, $jqry);
+		if ($qry_err) {
+			$error = $qry_err;
+		}
+		else {
+			$jres->{records} = $qry_res->{records}; 
+		}
 	}
 
 	return ($error, $jres);
@@ -260,7 +341,7 @@ sub handle_modify
 	check_parent($db, $jreq);
 
 	my $fieldvals = {};
-	$fieldvals->{F_name} = $jreq->{name} if $jreq->{name};
+	$fieldvals->{F_name} = $jreq->{name} if defined($jreq->{name});
 	if (defined($jreq->{sex}) && ($jreq->{sex} == 1 || $jreq->{sex} == 0)) {
 		$fieldvals->{F_sex} = $jreq->{sex};
 	}
@@ -273,10 +354,13 @@ sub handle_modify
 	$fieldvals->{F_update_time} = $now_time;
 
 	my $ret = $db->Modify($fieldvals, { F_id => $mine_id});
+	return ('ERR_DBI_FAILED', $db->{error}) if ($db->{error});
+=xxx
 	if ($db->{error}) {
 		wlog("DB error: $db->{error}");
 		$error = 'ERR_DBI_FAILED';
 	}
+=cut
 
 	if ($ret != 1) {
 		wlog("Expect to modify just one row");
@@ -284,10 +368,27 @@ sub handle_modify
 	}
 
 	$jres->{modified} = $ret;
+	$jres->{id} = $jreq->{id};
 
 	# 额外同步配偶信息
 	if ($jreq->{partner_id} || $jreq->{partner_name}) {
-		modify_partner($db, $jreq);
+		my ($ret_err, $ret_id) = modify_partner($db, $jreq);
+		if (!$ret_err) {
+			$jres->{partner_id} = $ret_id;
+			$jres->{modified} += 1;
+		}
+	}
+
+	if ($jreq->{requery}) {
+		my $requery = ($jres->{partner_id}) ? [$jres->{id}, $jres->{partner_id}] : $jres->{id};
+		my $jqry = {filter => { id => $requery}};
+		my ($qry_err, $qry_res) = handle_query($db, $jqry);
+		if ($qry_err) {
+			$error = $qry_err;
+		}
+		else {
+			$jres->{records} = $qry_res->{records}; 
+		}
 	}
 
 	return ($error, $jres);
@@ -307,31 +408,17 @@ sub handle_modify
 sub handle_remove
 {
 	my ($db, $jreq) = @_;
-	# todo
-	my $error = 0;
-	my $jres = {};
+	my $mine_id = $jreq->{id} or return('ERR_ARGNO_ID');
 
-	my $mine_id = $jreq->{id}
-		or return('ERR_ARGNO_ID');
 	my $where = {F_id => $mine_id};
-
 	my $ret = $db->Remove($where);
-	if ($db->{error}) {
-		wlog("DB error: $db->{error}");
-		$error = 'ERR_DBI_FAILED';
-	}
+	return ('ERR_DBI_FAILED', $db->{error}) if ($db->{error});
+	return ('ERR_DBI_FAILED', "Expect to delete just one row") if ($ret != 1);
 
-	if ($ret != 1) {
-		wlog("Expect to delete just one row");
-		$error = 'ERR_DBI_FAILED';
-	}
-
-	$jres->{removed} = $ret;
-
-	return ($error, $jres);
+	return (0, {removed => $ret});
 }
 
-# 检查双亲关系
+# 检查双亲关系，返回错误码
 sub check_parent
 {
 	my ($db, $jreq) = @_;
@@ -406,16 +493,17 @@ sub check_parent
 
 # 修改并同步配偶信息
 # 如果提供姓名 partner_name ，为配偶新增一条记录
+# 返回错误码与配偶的 id
 sub modify_partner
 {
 	my ($db, $jreq) = @_;
 	
 	my $mine_id = $jreq->{id};
-	return 'ERR_ARGUMENT' unless $mine_id;
+	return ('ERR_ARGUMENT', 0) unless $mine_id;
 
 	my $records = $db->Query(['F_sex, F_level'], {F_id => $mine_id});
 	if ((scalar @$records) < 1) {
-		return 'ERR_MEMBER_LACKED';
+		return ('ERR_MEMBER_LACKED', 0);
 	}
 	my $mine_sex = $records->[0]->{F_sex};
 	my $mine_level = $records->[0]->{F_level};
@@ -425,7 +513,7 @@ sub modify_partner
 		wlog('modify by partner id: ' . $jreq->{partner_id});
 		my $records = $db->Query(['F_sex, F_level'], {F_id => $jreq->{partner_id}});
 		if ((scalar @$records) < 1) {
-			return 'ERR_MEMBER_LACKED';
+			return ('ERR_MEMBER_LACKED', 0);
 		}
 
 		# 检查后直接修改自己的信息
@@ -441,8 +529,10 @@ sub modify_partner
 		my $ret = $db->Modify($fieldvals, { F_id => $mine_id});
 		if ($db->{error}) {
 			wlog("DB error: $db->{error}");
-			return 'ERR_DBI_FAILED';
+			return ('ERR_DBI_FAILED', 0);
 		}
+
+		return (0, $jreq->{partner_id});
 	}
 	elsif ($jreq->{partner_name}) {
 		wlog('modify by partner name ' . $jreq->{partner_name});
@@ -458,7 +548,7 @@ sub modify_partner
 		my $ret = $db->Create($fieldvals);
 		if ($db->{error}) {
 			wlog("DB error: $db->{error}");
-			return 'ERR_DBI_FAILED';
+			return ('ERR_DBI_FAILED', 0);
 		}
 		if ($ret != 1) {
 			wlog("Expect to insert just one row");
@@ -472,14 +562,16 @@ sub modify_partner
 		$ret = $db->Modify($fieldvals, { F_id => $mine_id});
 		if ($db->{error}) {
 			wlog("DB error: $db->{error}");
-			return 'ERR_DBI_FAILED';
+			return ('ERR_DBI_FAILED', 0);
 		}
+
+		return (0, $partner_id);
 	}
 	else {
-		return 'ERR_ARGUMENT';
+		return ('ERR_ARGUMENT', 0);
 	}
 
-	return 0;
+	return ('ERR_SYSTEM', 0);
 }
 
 sub now_time_str
@@ -487,4 +579,218 @@ sub now_time_str
 	my $now_obj = DateTime->now;
 	my $now_time = $now_obj->ymd . ' ' . $now_obj->hms;
 	return $now_time;
+}
+
+=sub handle_member_relations
+req = {
+  id => 待查成员 id
+  mine => 1/0 包含自己
+  parents => -1/1, 2 查多少代祖辈
+  children => 1/0 包含子女
+  partner => 1/0 包含配偶
+  sibling => 1/0 包含兄弟
+}
+res = {
+  id => 原样返回
+  （其他参数同名返回记录数组）
+}
+=cut
+sub handle_member_relations
+{
+	my ($db, $jreq) = @_;
+	
+	my $error = 0;
+	my $jres = {};
+
+	my $id = $jreq->{id}
+		or return ('ERR_ARGNO_ID');
+
+	# 先查自己
+	my $filter = {id => $id};
+	my $qry_data = {filter => $filter};
+	my ($qry_err, $qry_res) = handle_query($db, $qry_data);
+	if ($qry_err || !$qry_res->{records}) {
+		return ('ERR_MEMBER_LACKED');
+	}
+
+	my $row_mine = $qry_res->{records}->[0];
+
+	$jres->{id} = $id;
+	$jres->{mine} = $qry_res->{records} if $jreq->{mine};
+
+	# 查配偶
+	if ($jreq->{partner} && $row_mine->{F_partner}) {
+		$filter = {partner => $id};
+		($qry_err, $qry_res) = handle_query($db, {filter => $filter});
+		if (!$qry_err && $qry_res->{records}) {
+			$jres->{partner} = $qry_res->{records};
+		}
+	}
+
+	# 查孩子
+	if ($jreq->{children}) {
+		if ($row_mine->{F_sex} == 1) {
+			$filter = {father => $id};
+		}
+		else {
+			$filter = {mother => $id};
+		}
+		($qry_err, $qry_res) = handle_query($db, {filter => $filter});
+		if (!$qry_err && $qry_res->{records}) {
+			$jres->{children} = $qry_res->{records};
+		}
+	}
+
+	# 查先祖
+	if ($jreq->{parents} && $row_mine->{F_level} > 1) {
+		my $req_level = $jreq->{parents};
+		my $max_level = $row_mine->{F_level} - 1;
+		if ($req_level < 0) {
+			$req_level = $max_level;
+		}
+
+		my $roots = [];
+		my $row = $row_mine;
+		for (my $level = 0; $level < $req_level && $level < $max_level; $level++) {
+			wlog("query parent from id: $row->{F_id}; level $row->{F_level}");
+			my $parent = select_parent($db, $row);
+			last unless $parent;
+			push(@$roots, $parent);
+			$row = $parent;
+		}
+
+		$jres->{parents} = $roots;
+	}
+
+	# 查兄弟
+	if ($jreq->{sibling} && $row_mine->{F_level} > 1) {
+		my $parent = $jres->{parents}->[0];
+		if (!$parent) {
+			wlog('没查到父母，无法查兄弟');
+		}
+		else {
+			if ($parent->{F_sex} == 1) {
+				$filter = {father => $parent->{F_id}};
+			}
+			else {
+				$filter = {mother => $parent->{F_id}};
+			}
+			# 排除自己
+			$filter->{id} = {'!=' => $row_mine->{F_id}};
+			($qry_err, $qry_res) = handle_query($db, {filter => $filter});
+			if (!$qry_err && $qry_res->{records}) {
+				$jres->{sibling} = $qry_res->{records};
+			}
+		}
+	}
+
+	return ($error, $jres);
+}
+
+# 根据自己这行，查找直系父母（代际大于0）那行，失败时返回 undef
+sub select_parent
+{
+	my ($db, $row_mine) = @_;
+	
+	if ($row_mine <= 1) {
+		wlog('已到顶层祖先，无法再追查父母');
+		return undef;
+	}
+
+	if ($row_mine->{F_father}) {
+		my $parent = query_single($db, $row_mine->{F_father});
+		return $parent if ($parent && $parent->{F_level} > 0);
+	}
+	if ($row_mine->{F_mother}) {
+		my $parent = query_single($db, $row_mine->{F_mother});
+		return $parent if ($parent && $parent->{F_level} > 0);
+	}
+
+	return undef;
+}
+
+# 按 id 查询单行，直接返回记录 hashref ，不存在时返回 undef
+sub query_single
+{
+	my ($db, $id) = @_;
+	my $filter = {id => $id};
+	my ($qry_err, $qry_res) = handle_query($db, {filter => $filter});
+	if ($qry_err || !$qry_res->{records}) {
+		return undef;
+	}
+	return $qry_res->{records}->[0];
+}
+
+=head1 brief table operate
+=cut
+
+=markdown handle_query_brief()
+	查询简介
+	req = { id }
+	res = { F_id, F_text }
+=cut
+sub handle_query_brief
+{
+	my ($db, $jreq) = @_;
+	my $id = $jreq->{id} or return ('ERR_ARGNO_ID');
+
+	my $text = $db->QueryBrief($id);
+	return ('ERR_DBI_FAILED', $db->{error}) if ($db->{error});
+
+	return (0, {F_id => $id, F_text => $text});
+}
+
+=markdown handle_create_brief()
+	创建简介
+	req = { id, text }
+	res = { F_id, affected }
+=cut
+sub handle_create_brief
+{
+	my ($db, $jreq) = @_;
+	my $id = $jreq->{id} or return ('ERR_ARGNO_ID');
+	return ('ERR_ARGNO_TEXT') if !$jreq->{text};
+	my $text = $jreq->{text};
+
+	my $affected = $db->CreateBrief($id, $text);
+	return ('ERR_DBI_FAILED', $db->{error}) if ($db->{error});
+
+	return (0, {F_id => $id, affected => $affected});
+}
+
+=markdown handle_modify_brief()
+	修改简介
+	req = { id, text, create }
+	如果指定 create 则在原无简介记录时也尝试新建
+	res = { F_id, affected }
+=cut
+sub handle_modify_brief
+{
+	my ($db, $jreq) = @_;
+	my $id = $jreq->{id} or return ('ERR_ARGNO_ID');
+	return ('ERR_ARGNO_TEXT') if !defined($jreq->{text});
+	my $text = $jreq->{text};
+
+	my $affected = $jreq->{create}
+		? $db->ReplaceBrief($id, $text)
+		: $db->ModifyBrief($id, $text);
+	return ('ERR_DBI_FAILED', $db->{error}) if ($db->{error});
+
+	return (0, {F_id => $id, affected => $affected});
+}
+
+=markdown handle_remove_brief()
+	删除简介
+	req = { id }
+	res = { F_id, affected }
+=cut
+sub handle_remove_brief
+{
+	my ($db, $jreq) = @_;
+	my $id = $jreq->{id} or return ('ERR_ARGNO_ID');
+
+	my $affected = $db->RemoveBrief($id);
+	return ('ERR_DBI_FAILED', $db->{error}) if ($db->{error});
+
+	return (0, {F_id => $id, affected => $affected});
 }

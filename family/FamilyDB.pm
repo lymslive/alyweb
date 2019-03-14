@@ -8,6 +8,9 @@ use DBI;
 use SQL::Abstract;
 use WebLog;
 
+=head1 数据库配置
+=cut
+
 my $HOST = '47.106.142.119';
 my $DBNAME = 'db_family';
 
@@ -19,44 +22,28 @@ my $flags = {AutoCommit => 1, mysql_enable_utf8 => 1};
 
 my $TABLE_MEMBER = 't_family_member';
 my @FIELD_MEMBER = qw(F_id F_name F_sex F_level F_father F_mother F_partner F_birthday F_deathday);
-# my $dbh;
 
-our $error = '';
-
-sub error
-{
-	my ($ret, $msg) = @_;
-	$error = $msg // '';
-	return $ret;
-}
-
-sub set_error
-{
-	my ($msg) = @_;
-	$error = $msg // '';
-}
-
-sub add_error
-{
-	my ($msg) = @_;
-	$error .= "\n$msg" if $msg;
-}
+my $TABLE_BRIEF = 't_member_brief';
+=head1 对象封装
+=cut
 
 sub new
 {
 	my ($class) = @_;
-	my $dbh = Connect();
-	my $self = {dbh => $dbh, error => ''};
+	my ($dbh, $error) = Connect();
+	my $self = {dbh => $dbh, error => $error};
+	$self->{sql} = SQL::Abstract->new;
 	bless $self, $class;
 	return $self;
 }
 
-# 连接数据库。暂未检测失败，不能 or die
+# 连接数据库。因不能 or die，顺便返回错误信息
 sub Connect
 {
+	my $error = '';
 	my $dbh = DBI->connect("dbi:$driver:$dsn", $username, $passwd, $flags)
-		or set_error("Failed to connect to database: $DBI::errstr");
-	return $dbh;
+		or $error = "Failed to connect to database: $DBI::errstr";
+	return ($dbh, $error);
 }
 
 sub Disconnect
@@ -74,36 +61,59 @@ sub Error
 	return $ret;
 }
 
+# 执行由 SQL::Abstract 生成的 sql 语句
+# 传入语句 $stmt 字符串与绑定值 $bind 数组引用
+# 返回执行完语句对象 $sth ，并设置错误消息
+sub Execute
+{
+	my ($self, $stmt, $bind) = @_;
+	my $dbh = $self->{dbh};
+	wlog("$stmt; ?= @$bind");
+	$self->{error} = '';
+	my $sth = $dbh->prepare($stmt) 
+		or return $self->Error(undef, "Fail to prepater: " . $dbh->errstr);
+	$sth->execute(@$bind)
+		or return $self->Error(undef, "Fail to execute: " . $dbh->errstr);
+	return $sth;
+}
+
 # 入参：
-# $fields, $where 符合 SQL::Abstract 参数规则
-# 无 $order 参数，只按默认 id 排序
+# $fields, $where 符合 SQL::Abstract 参数规则，在 $order 之前插入 $limit
+# 无 $order 参数时，只按默认 id 排序
 # 不提供 $fields 时，使用默认的列名数组
 # $limit 是一个数字，或逗号分隔的两个数字，将拼在 LIMIT 之后
 # 返回：
 # 查询结果数组 arraryref ，单行查询也是一个数组，每行是个 hashref
 sub Query
 {
-	my ($self, $fields, $where, $limit) = @_;
-	my $dbh = $self->{dbh};
+	my ($self, $fields, $where, $limit, $order) = @_;
 
 	if (!$fields || (scalar @$fields) < 1) {
 		$fields = \@FIELD_MEMBER;
 	}
-	my $sql = SQL::Abstract->new;
-	my($stmt, @bind) = $sql->select($TABLE_MEMBER, $fields, $where);
+	my($stmt, @bind) = $self->{sql}->select($TABLE_MEMBER, $fields, $where, $order);
 	if ($limit) {
 		$stmt .= " LIMIT $limit";
 	}
 
-	wlog("$stmt; ?= @bind");
-	$self->Error();
-	my $sth = $dbh->prepare($stmt) 
-		or return $self->Error([], "Fail to prepater");
-	$sth->execute(@bind)
-		or return $self->Error([], "Fail to execute");
-
+	my $sth = $self->Execute($stmt, \@bind) or return 0;
 	my $result = $sth->fetchall_arrayref({});
 	return $result;
+}
+
+# 查找记录行数
+# 入参：$where 与 Query 相同
+# 出参：返回数值
+sub Count
+{
+	my ($self, $where) = @_;
+	my($stmt, @bind) = $self->{sql}->where($where);
+
+	my $stmt_full = "SELECT count(1) FROM $TABLE_MEMBER $stmt";
+	my $sth = $self->Execute($stmt_full, \@bind) or return 0;
+
+	my $result = $sth->fetchrow_arrayref;
+	return $result && $result->[0];
 }
 
 # 入参：
@@ -113,20 +123,10 @@ sub Query
 sub Create
 {
 	my ($self, $fieldvals) = @_;
-	my $dbh = $self->{dbh};
 
-	my $sql = SQL::Abstract->new;
-	my($stmt, @bind) = $sql->insert($TABLE_MEMBER, $fieldvals);
-
-	wlog("$stmt; ?= @bind");
-	$self->Error();
-	my $sth = $dbh->prepare($stmt) 
-		or return $self->Error([], "Fail to prepater");
-	$sth->execute(@bind)
-		or return $self->Error([], "Fail to execute");
-
-	my $affected = $sth->rows();
-	return $affected;
+	my($stmt, @bind) = $self->{sql}->insert($TABLE_MEMBER, $fieldvals);
+	my $sth = $self->Execute($stmt, \@bind);
+	return $sth && $sth->rows();
 }
 
 # 返回最后一个自增 id
@@ -144,20 +144,10 @@ sub LastInsertID
 sub Modify
 {
 	my ($self, $fieldvals, $where) = @_;
-	my $dbh = $self->{dbh};
 
-	my $sql = SQL::Abstract->new;
-	my($stmt, @bind) = $sql->update($TABLE_MEMBER, $fieldvals, $where);
-
-	wlog("$stmt; ?= @bind");
-	$self->Error();
-	my $sth = $dbh->prepare($stmt) 
-		or return $self->Error([], "Fail to prepater");
-	$sth->execute(@bind)
-		or return $self->Error([], "Fail to execute");
-
-	my $affected = $sth->rows();
-	return $affected;
+	my($stmt, @bind) = $self->{sql}->update($TABLE_MEMBER, $fieldvals, $where);
+	my $sth = $self->Execute($stmt, \@bind);
+	return $sth && $sth->rows();
 }
 
 # 入参：
@@ -167,109 +157,87 @@ sub Modify
 sub Remove
 {
 	my ($self, $where) = @_;
-	my $dbh = $self->{dbh};
 
-	my $sql = SQL::Abstract->new;
-	my($stmt, @bind) = $sql->delete($TABLE_MEMBER, $where);
-
-	wlog($stmt);
-	$self->Error();
-	my $sth = $dbh->prepare($stmt) 
-		or return $self->Error([], "Fail to prepater");
-	$sth->execute(@bind)
-		or return $self->Error([], "Fail to execute");
-
-	my $affected = $sth->rows();
-	return $affected;
+	my($stmt, @bind) = $self->{sql}->delete($TABLE_MEMBER, $where);
+	my $sth = $self->Execute($stmt, \@bind);
+	return $sth && $sth->rows();
 }
 
-# 根据姓名查 id level sex
-sub QueryByName
+# 查找简介，入参 id ，返回简单字符串，不存在时返回空串
+sub QueryBrief
 {
-	my ($self, $name) = @_;
-	set_error("OK");
+	my ($self, $id) = @_;
+	return '' if !$id;
 
-	my $dbh = $self->{dbh};
-
-	wlog("select ... where name = '$name'");
-	my $result = $dbh->selectrow_hashref(
-		'SELECT F_id, F_level, F_sex, F_name FROM t_family_member WHERE F_name = ?', undef, $name)
-		or set_error("No member who named: $name");
-
-	return $result;
+	my $where = { F_id => $id };
+	my($stmt, @bind) = $self->{sql}->select($TABLE_BRIEF, ['F_text'], $where);
+	my $sth = $self->Execute($stmt, \@bind) or return '';
+	my $result = $sth->fetchrow_arrayref;
+	return $result && $result->[0];
 }
 
-sub InsertMember
+# 查找是否有简介，入参 id ，返回true/false
+sub HaveBrief
 {
-	my ($self, $new_member) = @_;
-	set_error();
+	my ($self, $id) = @_;
+	return 0 if !$id;
 
-	my $dbh = $self->{dbh};
-	my $sql = "INSERT INTO t_family_member SET F_name = '$new_member->{F_name}', F_sex = $new_member->{F_sex}, F_level = $new_member->{F_level}, ";
-	if ($new_member->{F_father}) {
-		$sql .= "F_father = '$new_member->{F_father}', ";
-	}
-	if ($new_member->{F_mother}) {
-		$sql .= "F_mother = '$new_member->{F_mother}', ";
-	}
-	if ($new_member->{F_partner}) {
-		$sql .= "F_partner = '$new_member->{F_partner}', ";
-	}
-	if ($new_member->{F_birthday}) {
-		$sql .= "F_birthday = '$new_member->{F_birthday}', ";
-	}
-	if ($new_member->{F_deathday}) {
-		$sql .= "F_deathday = '$new_member->{F_deathday}', ";
-	}
-
-	$sql .= "F_create_time = now(), F_update_time = now()";
-	wlog($sql);
-	$dbh->do($sql) or return error(0, "Fail to inser member: " . $dbh->errstr);
-	return 1;
+	my $where = { F_id => $id };
+	my($stmt, @bind) = $self->{sql}->select($TABLE_BRIEF, ['F_id'], $where);
+	my $sth = $self->Execute($stmt, \@bind) or return 0;
+	my $result = $sth->fetchrow_arrayref;
+	return $result && $result->[0];
 }
 
-sub SelectAll
+# 增加简介，入参 id 与 text 字符串，返回影响行数
+sub CreateBrief
 {
-	my ($self) = @_;
-	my $dbh = $self->{dbh};
+	my ($self, $id, $text) = @_;
+	return 0 if !$text || !$id;
 
-	my $fields = join(', ', @FIELD_MEMBER);
-	my $sql = "SELECT $fields FROM t_family_member";
-	my $result = $dbh->selectall_arrayref( $sql, { Slice => {} });
-	foreach my $rs (@$result) {
-		foreach my $fd (@FIELD_MEMBER) {
-			$rs->{$fd} //= 'NULL';
-			if ($fd eq 'F_sex') {
-				if ($rs->{$fd} == 1) {
-					$rs->{$fd} = '男';
-				}
-				else {
-					$rs->{$fd} = '女';
-				}
-			}
-		}
-	}
-	return $result;
+	my $fieldvals = { F_id => $id, F_text => $text };
+	my($stmt, @bind) = $self->{sql}->insert($TABLE_BRIEF, $fieldvals);
+	my $sth = $self->Execute($stmt, \@bind);
+	return $sth && $sth->rows();
 }
 
-sub PrintAll
+# 修改简介，入参 id 与 text 字符串，返回影响行数
+sub ModifyBrief
 {
-	my ($self) = @_;
+	my ($self, $id, $text) = @_;
+	return 0 if !$text || !$id;
 
-	my $result = $self->SelectAll();
-	my $fields_head = join("\t ", @FIELD_MEMBER);
-	print "$fields_head\n";
-	foreach my $rs (@$result) {
-		foreach my $fd (@FIELD_MEMBER) {
-			print $rs->{$fd} . "\t";
-		}
-		print "\n";
-	}
-	
-	my $count = scalar @$result;
-	wlog("All member count: $count");
-	return $result;
+	my $fieldvals = { F_text => $text };
+	my $where = { F_id => $id };
+	my($stmt, @bind) = $self->{sql}->update($TABLE_BRIEF, $fieldvals, $where);
+	my $sth = $self->Execute($stmt, \@bind);
+	return $sth && $sth->rows();
 }
+
+# 修改或增加简介，入参 id 与 text 字符串
+sub ReplaceBrief
+{
+	my ($self, $id, $text) = @_;
+	if ($self->HaveBrief($id)) {
+		return $self->ModifyBrief($id, $text);
+	}
+	else {
+		return $self->CreateBrief($id, $text);
+	}
+}
+
+# 删除简介，入参 id ，返回影响行数
+sub RemoveBrief
+{
+	my ($self, $id) = @_;
+	return 0 if !$id;
+
+	my $where = { F_id => $id };
+	my($stmt, @bind) = $self->{sql}->delete($TABLE_BRIEF, $where);
+	my $sth = $self->Execute($stmt, \@bind);
+	return $sth && $sth->rows();
+}
+
 
 ##-- MAIN --##
 sub main
@@ -277,17 +245,11 @@ sub main
 	# $WebLog::to_std = 1;
 	wlog("log start");
 
-	my ($name) = @_;
-	set_error("NO ERROR");
 	my $db = FamilyDB->new();
-	my $rs = $db->QueryByName($name) or warn $error;
-	wlog("id: $rs->{F_id}; sex: " . $rs->{F_sex});
-
-	$db->PrintAll();
 	$db->Disconnect();
-	wlog("pm error: $error");
+	wlog("pm error: $db->{error}");
 	wlog("log end");
-	print WebLog::buff_as_web();
+	WebLog::instance()->output_std();
 }
 
 ##-- END --##
