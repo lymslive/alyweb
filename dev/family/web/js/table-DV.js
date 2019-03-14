@@ -48,7 +48,7 @@ var $DV = {
 		},
 
 		// 只看某页，传入 #id
-		see: function(_toid){
+		see: function(_toid, _hasperson){
 			if (this.curid == _toid) {
 				return false;
 			}
@@ -65,7 +65,7 @@ var $DV = {
 			});
 
 			// 首次进入个人详情页，默认展示顶级祖先
-			if (_toid == '#pg2-person') {
+			if (_toid == '#pg2-person' && !_hasperson) {
 				if (!$DD.Person.curid) {
 					this.checkPerson($DD.Person.DEFAULT);
 				}
@@ -79,7 +79,7 @@ var $DV = {
 		// 查看某个人详情
 		checkPerson: function(_id) {
 			if (this.curid != '#pg2-person') {
-				this.see('#pg2-person');
+				this.see('#pg2-person', true);
 			}
 			return $DV.Person.checkout(_id);
 		},
@@ -390,7 +390,11 @@ var $DV = {
 			if (Data.curid == _id) {
 				return false;
 			}
+			// 关闭操作表单
 			$DV.Operate.close();
+			if ($('#modify-brief').css('display') != 'none') {
+				$('a[href=#modify-brief]').click();
+			}
 			Data.lookinTable(_id);
 			// todo: 未能先拉全表时？
 			var lackoff = $DD.Person.notinTable();
@@ -525,7 +529,7 @@ var $DV = {
 			}
 
 			// 简介
-			if (_force || Data.canUpdate((Data.BRIEF)) {
+			if (_force || Data.canUpdate(Data.BRIEF)) {
 				$('#member-brief>p').first().html(Data.brief);
 			}
 
@@ -919,17 +923,32 @@ var $DV = {
 		},
 
 		submitBrief: function() {
-			if (!this.refid) {
+			if (!$DD.Person.curid) {
 				return false;
 			}
 			var text = $('#formBrief textarea').val();
-			var id = this.refid;
+			if (text == $DD.Person.brief) {
+				console.log('没有修改简介内容');
+				return false;
+			}
+			var id = $DD.Person.curid;
 			var create = 0;
 			if (!$DD.Person.brief) {
 				create = 1;
 			}
 			$DJ.reqBrief(id, text, create);
 		},
+
+		// 关闭表单
+		closeBrief: function(_succ) {
+			if ($('#formBrief textarea').val()) {
+				$('#formBrief textarea').val('');
+			}
+			if ($('#modify-brief').css('display') != 'none') {
+				$('a[href=#modify-brief]').click();
+			}
+		},
+
 		// 避免最后一个逗号
 		LAST_PRETECT: 0
 	},

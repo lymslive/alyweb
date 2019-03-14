@@ -21,7 +21,8 @@
 				已登陆：<span class="data"></span><a href="#" class="to-login">换名登陆</a>
 			</div>
 			<form id="formLogin" class="foldOff">
-				<input type="text" size="10" name="login_id"/>
+				<label>登陆用户<input type="text" name="loginuid" size="10"/></label>
+				<label>登陆口令<input type="password" name="loginkey" size="10"/></label>
 				<input type="submit" value="登陆"/>
 			</form>
 			<div id="login-msg">
@@ -111,13 +112,14 @@
 			<div>
 				<h3><a href="#member-brief" class="foldClose">生平简介</a></h3>
 				<div id="member-brief">
-					<p>（暂未支持，但是是将显示在这）</p>
+					<p>（当前没有简介，可修改增加）</p>
 					<h4><a href="#modify-brief" class="foldClose">修改简介</a></h4>
 					<div id="modify-brief">
 						<form id="formBrief">
-							<textarea name="brief" rows="10" cols="30" >（简介暂未支持）</textarea><br>
+							<textarea name="brief" rows="10" cols="30" ></textarea><br>
 							<input type="submit" value="提交修改"/>
 							<input type="reset" value="取消修改"/>
+							<label>操作口令<input type="password" name="operkey" size="10"/></label><br>
 						</form>
 					</div>
 				</div>

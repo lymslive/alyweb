@@ -727,7 +727,7 @@ sub query_single
 =markdown handle_query_brief()
 	查询简介
 	req = { id }
-	res = { F_text }
+	res = { F_id, F_text }
 =cut
 sub handle_query_brief
 {
@@ -737,13 +737,13 @@ sub handle_query_brief
 	my $text = $db->QueryBrief($id);
 	return ('ERR_DBI_FAILED', $db->{error}) if ($db->{error});
 
-	return (0, {F_text => $text});
+	return (0, {F_id => $id, F_text => $text});
 }
 
 =markdown handle_create_brief()
 	创建简介
 	req = { id, text }
-	res = { id, affected }
+	res = { F_id, affected }
 =cut
 sub handle_create_brief
 {
@@ -755,14 +755,14 @@ sub handle_create_brief
 	my $affected = $db->CreateBrief($id, $text);
 	return ('ERR_DBI_FAILED', $db->{error}) if ($db->{error});
 
-	return (0, {id => $id, affected => $affected});
+	return (0, {F_id => $id, affected => $affected});
 }
 
 =markdown handle_modify_brief()
 	修改简介
 	req = { id, text, create }
 	如果指定 create 则在原无简介记录时也尝试新建
-	res = { id, affected }
+	res = { F_id, affected }
 =cut
 sub handle_modify_brief
 {
@@ -776,13 +776,13 @@ sub handle_modify_brief
 		: $db->ModifyBrief($id, $text);
 	return ('ERR_DBI_FAILED', $db->{error}) if ($db->{error});
 
-	return (0, {id => $id, affected => $affected});
+	return (0, {F_id => $id, affected => $affected});
 }
 
 =markdown handle_remove_brief()
 	删除简介
 	req = { id }
-	res = { id, affected }
+	res = { F_id, affected }
 =cut
 sub handle_remove_brief
 {
@@ -792,5 +792,5 @@ sub handle_remove_brief
 	my $affected = $db->RemoveBrief($id);
 	return ('ERR_DBI_FAILED', $db->{error}) if ($db->{error});
 
-	return (0, {id => $id, affected => $affected});
+	return (0, {F_id => $id, affected => $affected});
 }

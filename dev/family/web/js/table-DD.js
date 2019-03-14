@@ -3,11 +3,13 @@
 var $DD = {
 	// 常量
 	API_URL: '/dev/family/japi.cgi',
-	HELP_URL: '/dev/family/web/doc-help.htm',
+	HELP_URL: '/dev/family/web/doc/help.htm',
 	TAN: '谭',
 	LEVEL: ['辈', '年', '芳', '和', '积', '祥', '生'],
 	SEX: ['女♀', '男♂'],
 	NULL: '',
+	OPERATE_KEY: 'Tan@2019',
+	LOGIN_KEY: '123456',
 
 	Mapid: {},
 	getName: function(id) {
@@ -210,6 +212,7 @@ var $DD = {
 			this.children = null;
 			this.parents = null;
 			this.sibling = null;
+			this.brief = '';
 			this.clearUpdate();
 		},
 
@@ -358,8 +361,8 @@ var $DD = {
 		},
 
 		onBriefRes: function(_resData, _reqData) {
-			var id = _resData.id;
-			var text = _resData.text;
+			var id = _resData.F_id;
+			var text = _resData.F_text;
 			var affected = _resData.affected;
 
 			if (!text && affected) {
@@ -376,6 +379,7 @@ var $DD = {
 					this.brief = text;
 					this.markUpdate(this.BRIEF);
 					$DV.Person.update();
+					$DV.Operate.closeBrief(true);
 				}
 			}
 			else {

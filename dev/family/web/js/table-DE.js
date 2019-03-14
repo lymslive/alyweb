@@ -11,9 +11,14 @@ var $DE = {
 				foldin.show();
 				$(this).removeClass('foldClose');
 				$(this).addClass('foldOpen');
-				// 特殊处理，表单自动选择第一个
+
+				// 特殊处理，操作表单自动选择第一个
 				if (href == '#divOperate') {
 					$('#to-modify').click();
+				}
+				// 修改简介时，自动载入原简介
+				else if (href == '#modify-brief') {
+					$('#formBrief textarea').val($DD.Person.brief);
 				}
 			}
 			else {
@@ -43,6 +48,11 @@ var $DE = {
 
 	// 各种表单初始化
 	initForm: function() {
+		// 设置默认公用密码
+		$('#formOperate input:password').val($DD.OPERATE_KEY);
+		$('#formBrief input:password').val($DD.OPERATE_KEY);
+		$('#formLogin input:password').val($DD.LOGIN_KEY);
+
 		// 修改表单事件
 		$('#formOperate input:radio[name=operate]').change(function(_evt){
 			$DV.Operate.change();

@@ -18,6 +18,7 @@ var $DJ = {
 	requestAPI: function(req, callback) {
 		var opt = this.reqOption(req);
 		$DV.log('api req = ' + opt.data);
+		console.log('api req = ' + opt.data);
 		var ajx = $.ajax($DD.API_URL, opt)
 			.done(function(res, textStatus, jqXHR) {
 				// api 返回的 res 直接解析为 json
