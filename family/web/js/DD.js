@@ -2,8 +2,8 @@
 // 数据
 var $DD = {
 	// 常量
-	API_URL: '/dev/family/japi.cgi',
-	HELP_URL: '/dev/family/web/doc/help.htm',
+	API_URL: '/family/japi.cgi',
+	HELP_URL: '/family/web/doc/help.htm',
 	TAN: '谭',
 	LEVEL: ['辈', '年', '芳', '和', '积', '祥', '生'],
 	SEX: ['女♀', '男♂'],

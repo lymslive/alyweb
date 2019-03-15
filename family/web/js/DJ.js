@@ -143,9 +143,3 @@ var $DOC = {
 $(document).ready(function() {
 	$DOC.INIT();
 });
-
-/* 备注：
- * 跳转到指定地方：
- * var scroll_offset = $('#pos').offset()
- * $("body,html").animate({scrollTo:scroll_offset.top})
- */
