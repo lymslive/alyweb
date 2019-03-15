@@ -844,8 +844,6 @@ var $DV = {
 				reqData.requery = 1;
 				req.api = 'modify';
 				req.data = reqData;
-				console.log(req);
-				$DV.log(req);
 				$DJ.reqModify(req);
 			}
 			else if (op == 'append') {
@@ -909,8 +907,6 @@ var $DV = {
 				reqData.requery = 1;
 				req.api = 'create';
 				req.data = reqData;
-				console.log(req);
-				$DV.log(req);
 				$DJ.reqAppend(req);
 			}
 			else {
@@ -970,12 +966,6 @@ var $DV = {
 		},
 	},
 
-	log: function(_msg) {
-		if (typeof(_msg) == 'object') {
-			_msg = JSON.stringify(_msg);
-		}
-		$('#debug-log').append("<p>" + _msg + "</p>");
-	},
 	LAST_PRETECT: true
 };
 

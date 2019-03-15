@@ -17,13 +17,12 @@ var $DJ = {
 	// 的实质 data 部分
 	requestAPI: function(req, callback) {
 		var opt = this.reqOption(req);
-		$DV.log('api req = ' + opt.data);
-		console.log('api req = ' + opt.data);
+		$LOG('api req = ' + opt.data);
 		var ajx = $.ajax($DD.API_URL, opt)
 			.done(function(res, textStatus, jqXHR) {
 				// api 返回的 res 直接解析为 json
 				if (res.error) {
-					$DV.log('api err = ' + res.error);
+					$LOG('api err = ' + res.error);
 				}
 				else {
 					callback(res.data, req.data);
@@ -133,11 +132,21 @@ var $DOC = {
 	EVENT: $DE,
 	AJAX: $DJ,
 
+	divLog: '#debug-log',
+
 	INIT: function() {
 		this.EVENT.onLoad();
 		this.VIEW.Page.init();
 		this.AJAX.requestAll();
 	}
+};
+
+var $LOG = function(_msg) {
+	if (typeof(_msg) == 'object') {
+		_msg = JSON.stringify(_msg);
+	}
+	$($DOC.divLog).append("<p>" + _msg + "</p>");
+	console.log(_msg);
 };
 
 $(document).ready(function() {
