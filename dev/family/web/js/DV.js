@@ -31,6 +31,18 @@ var $DV = {
 			var html = `<a href="#p${_id}" title="${title}" class="${css}">${name}</a>`;
 			return html;
 		},
+
+		// 跳转到某位置
+		jumpLink: function(_sid) {
+			location.href = _sid;
+		},
+
+		// 生成快速登陆链接
+		quickLoginLink: function(_id) {
+			var html = `<a href="#" class="quicklogin" title="点击用此id登陆">${_id}</a>`;
+			return html;
+		}
+
 	},
 
 	Page: {
@@ -192,11 +204,7 @@ var $DV = {
 			;
 
 			var $td = $("<td></td>\n");
-			var $link = $('<a></a>')
-				.html(id)
-				.attr('id', 'm' + id)
-				.attr('href', '#p' + id)
-				.attr('class', 'rowid')
+			var $link = $($DV.Fun.quickLoginLink(id))
 				.appendTo($td);
 			$tr.append($td);
 
@@ -252,6 +260,10 @@ var $DV = {
 			// 为当前行附加事件属性
 			$tr.find('td a.toperson').click(function(_evt) {
 				$DE.gotoPerson($(this));
+				_evt.preventDefault();
+			});
+			$tr.find('td a.quicklogin').click(function(_evt) {
+				$DV.Login.quick($(this).html());
 				_evt.preventDefault();
 			});
 
@@ -423,8 +435,13 @@ var $DV = {
 					level = '第 ' + level + ' 代旁系';
 				}
 
-				var text = id + ' | ' + name + ' | ' + level;
-				$('#mine-info').html(text);
+				var idLink = $DV.Fun.quickLoginLink(id);
+				var text = idLink + ' | ' + name + ' | ' + level;
+				$('#mine-info').html(text)
+					.find('a.quicklogin').click(function(_evt) {
+						$DV.Login.quick($(this).html());
+						_evt.preventDefault();
+					});
 
 				if (Data.mine.F_birthday) {
 					var text = '';
@@ -918,6 +935,7 @@ var $DV = {
 			return false;// 测试不提交
 		},
 
+		// 提交修改简介
 		submitBrief: function() {
 			if (!$DD.Person.curid) {
 				return false;
@@ -932,16 +950,63 @@ var $DV = {
 			if (!$DD.Person.brief) {
 				create = 1;
 			}
-			$DJ.reqBrief(id, text, create);
+			var key = $('#formBrief input:password').val();
+			if (!key) {
+				return;
+			}
+			$DJ.reqBrief({api: 'modify_brief',
+				data: {id: id, text: text, create: create},
+				sess: $DD.Login.reqSess(key)
+			});
 		},
 
-		// 关闭表单
+		// 关闭简介表单
 		closeBrief: function(_succ) {
 			if ($('#formBrief textarea').val()) {
 				$('#formBrief textarea').val('');
 			}
 			if ($('#modify-brief').css('display') != 'none') {
 				$('a[href=#modify-brief]').click();
+			}
+		},
+
+		// 提交修改密码
+		submitPasswd: function() {
+			var $form = $('#formPasswd');
+			var keytype = $form.find('input:radio[name=keytype]:checked').val();
+			if (!keytype) {
+				return;
+			}
+			var id = $form.find('input[name=mine_id]').val();
+			var oldkey = $form.find('input[name=oldkey]').val();
+			var newkey = $form.find('input[name=newkey]').val();
+			var seckey = $form.find('input[name=seckey]').val();
+
+			if (newkey != seckey) {
+				$('#divPasswd div.operate-warn').html('新密码与确认密码不相同，请核查');
+				return;
+			}
+			if (newkey == oldkey) {
+				$('#divPasswd div.operate-warn').html('新密码与旧密码相同，没有修改');
+				return;
+			}
+
+			$DJ.reqPasswd({api: 'modify_passwd',
+				data: {
+					id: id,
+					keytype: keytype,
+					oldkey: oldkey,
+					newkey: newkey
+				},
+				sess: $DD.Login.reqSess()
+			});
+		},
+
+		// 关闭修改密码表单
+		closePasswd: function() {
+			$('#formPasswd').trigger('reset');
+			if ($('#divPasswd').css('display') != 'none') {
+				$('a[href=#divPasswd]').click();
 			}
 		},
 
@@ -964,6 +1029,56 @@ var $DV = {
 				$DJ.reqHelp();
 			}
 		},
+	},
+
+	// 登陆界面
+	Login: {
+		formSID: '#formLogin',
+
+		onSubmit: function() {
+			var user = $('#formLogin input[name=loginuid]').val();
+			var key  = $('#formLogin input[name=loginkey]').val();
+			if (!user || !key) {
+				return;
+			}
+			var reqData = {};
+			var id = parseInt(user) || 0;
+			if (!id) {
+				reqData.name = user;
+			}
+			else {
+				reqData.id = user;
+			}
+			reqData.key = key;
+			return $DJ.reqLogin(reqData);
+		},
+
+		// 登陆成功
+		onSucc: function() {
+			$(this.formSID).hide();
+			$('#not-login').hide();
+			$('#has-login').show();
+			var link = $DV.Fun.linktoPerson($DD.Table.Hash[$DD.Login.id]);
+			$('#has-login span.data').html(link);
+			$('$login-msg').html('');
+		},
+
+		// 登陆失败
+		onFail: function(_msg) {
+			$('$login-msg').html(_msg);
+		},
+
+		// 快速根据某个 id 登陆
+		// 自动输入 id ，定位到密码框
+		quick: function(_id) {
+			if (!_id) {
+				return;
+			}
+			$('#formLogin input[name=loginuid]').val(_id);
+			$('#formLogin').show();
+			$('#formLogin input[name=loginkey]').val('').focus();
+			$DV.jumpLink('#login-bar');
+		}
 	},
 
 	LAST_PRETECT: true

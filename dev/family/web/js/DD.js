@@ -11,6 +11,13 @@ var $DD = {
 	OPERATE_KEY: 'Tan@2019',
 	LOGIN_KEY: '123456',
 
+	Tip: {
+		operaCtrl: '只有以当前成员或其直系亲属登陆才有修改权限',
+		ontLogin: '您没有登陆',
+		modifyPasswdOnlySelf: '只能修改自己的密码',
+		LAST_PRETECT: 1
+	},
+
 	Mapid: {},
 	getName: function(id) {
 		return this.Mapid[id];
@@ -19,6 +26,7 @@ var $DD = {
 		return this.Table.Hash[id];
 	},
 
+	// 从服务器查得的数据表
 	Table: {
 		Title: ['编号', '姓名', '性别', '代际', '父亲', '母亲', '配偶', '生日', '忌日'],
 		List: [],
@@ -51,9 +59,11 @@ var $DD = {
 
 		// 更新服务器数据回调，包含修改自己与增加子女
 		modify: function(_resData, _reqData) {
-			if (!_resData.id || !_reqData.id || _resData.id != _reqData.id) {
-				console.log('请求响应数据不对');
-				return;
+			if (_resData.modified) {
+				if (!_resData.id || !_reqData.id || _resData.id != _reqData.id) {
+					console.log('请求响应数据不对');
+					return;
+				}
 			}
 
 			var id = _resData.id;
@@ -314,7 +324,9 @@ var $DD = {
 			}
 			else {
 				// 直接请求查询简介了
-				$DJ.reqBrief(_id);
+				$DJ.reqBrief({api: 'query_brief',
+					data: {id: _id},
+				});
 			}
 
 			return this.update;
@@ -360,6 +372,7 @@ var $DD = {
 			return this.update;
 		},
 
+		// 查询可修改简介成功回调
 		onBriefRes: function(_resData, _reqData) {
 			var id = _resData.F_id;
 			var text = _resData.F_text;
@@ -387,7 +400,104 @@ var $DD = {
 			}
 		},
 
+		// 检查是否有修改权限
+		canOperate: function(_only_self) {
+			var person = this.curid;
+			var user = $DD.Login.id;
+			if (!user || !person) {
+				return false;
+			}
+			if (user == person) {
+				return true;
+			}
+			if (_only_self) {
+				return false;
+			}
+			if (this.isParent(user)) {
+				return true;
+			}
+			if (this.isChild(user)) {
+				return true;
+			}
+			if (this.isPartner(user)) {
+				return true;
+			}
+			return false;
+		},
+
+		// 检查是否直接父母
+		isParent: function(_user) {
+			if (this.parents && this.parents[0] && this.parents[0].F_id == _user) {
+				return true;
+			}
+			return false;
+		},
+
+		// 检查是否元配
+		isParent: function(_user) {
+			if (this.partner && this.partner.F_id == _user) {
+				return true;
+			}
+			return false;
+		},
+
+		// 检查是否其中一个孩子
+		isChild: function(_user) {
+			if (this.children) {
+				for (var i = 0; i < this.children.length; ++i) {
+					if (this.children[i].F_id == _user) {
+						return true;
+					}
+				}
+			}
+			return false;
+		},
+
 		LAST_PRETECT: true
+	},
+
+	// 登陆信息
+	Login: {
+		id: 0,
+		token: '',
+		loginKey: '',
+		operaKey: '',
+
+		// 登陆成功回调
+		callback: function(_resData, _reqData) {
+			this.id = _resData.id;
+			this.token = _resData.token;
+			$DD.Table.Hash[this.id] = _resData.mine;
+			$DV.Login.onSucc();
+		},
+
+		// 打包会话信息，用于其他 api 请求
+		reqSess: function(_key) {
+			var key = _key || this.operaKey;
+			return {
+				id: this.id,
+				token: this.token,
+				opera_key: key
+			};
+		},
+
+		// 修改密码回调
+		onModifyPasswd: function(_resData, _reqData) {
+			if (_resData.id == this.id) {
+				if (_reqData.keytype == 'loginkey') {
+					this.loginKey = _reqData.newkey;
+				}
+				else if (_reqData.keytype == 'operakey') {
+					this.operaKey = _reqData.newkey;
+				}
+				else {
+					console.log('密码类型不对');
+				}
+				$('#divPasswd div.operate-warn').html('新密码修改成功，请牢记');
+			}
+		},
+
+		_: 1
 	},
 
 	LAST_PRETECT: true

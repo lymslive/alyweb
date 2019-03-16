@@ -3,27 +3,21 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width"/>
-		<!--
-		-->
 		<link rel="stylesheet" href="css/app.css"/>
-		<script src="http://code.jquery.com/jquery-2.1.0.js"></script>
-		<script src="js/DD.js"></script>
-		<script src="js/DV.js"></script>
-		<script src="js/DE.js"></script>
-		<script src="js/DJ.js"></script>
 		<title> 澄江谭氏家谱电子系统 </title>
 	</head>
 	<body>
 
 		<div id="login-bar">
-			<div id="not-login"><a href="#" class="to-login">未登陆</a></div>
+			<div id="not-login"><a href="#formLogin" class="to-login">未登陆</a></div>
 			<div id="has-login" class="foldOff">
-				已登陆：<span class="data"></span><a href="#" class="to-login">换名登陆</a>
+				已登陆：<span class="data"></span><a href="#formLogin" class="to-login">换名登陆</a>
 			</div>
 			<form id="formLogin" class="foldOff">
-				<label>登陆用户<input type="text" name="loginuid" size="10"/></label>
-				<label>登陆口令<input type="password" name="loginkey" size="10"/></label>
+				<label>登陆用户<input type="text" name="loginuid" size="10" required="required"/></label>
+				<label>登陆口令<input type="password" name="loginkey" size="10" required="required"/></label>
 				<input type="submit" value="登陆"/>
+				<input type="button" name="close" value="关闭"/>
 			</form>
 			<div id="login-msg">
 			</div>
@@ -115,11 +109,12 @@
 					<p>（当前没有简介，可修改增加）</p>
 					<h4><a href="#modify-brief" class="foldClose">修改简介</a></h4>
 					<div id="modify-brief">
+						<div class="operate-warn operate-control"></div>
 						<form id="formBrief">
 							<textarea name="brief" rows="10" cols="30" ></textarea><br>
 							<input type="submit" value="提交修改"/>
 							<input type="reset" value="取消修改"/>
-							<label>操作口令<input type="password" name="operkey" size="10"/></label><br>
+							<label>操作口令<input type="password" name="operakey" size="10" required="required"/></label><br>
 						</form>
 					</div>
 				</div>
@@ -146,10 +141,11 @@
 				</div>
 				<h3><a href="#divOperate" class="foldClose">修改资料</a></h3>
 				<div id="divOperate">
+					<div class="operate-warn operate-control"></div>
 					<form id="formOperate">
 						<label>修改资料<input type="radio" name="operate" value="modify" id="to-modify"/></label>　
 						<label>添加子女<input type="radio" name="operate" value="append" id="to-append"/></label>　
-						<label>操作口令<input type="password" name="operkey" value="123456" size="10"/></label><br>
+						<label>操作口令<input type="password" name="operakey" value="123456" size="10" required="required"/></label><br>
 						<a href="#mine_id" class="input-unlock">编号</a>
 						<input type="text" name="mine_id" value="" size="12"/>　
 						<a href="#mine_name" class="input-unlock">姓名</a>
@@ -165,7 +161,7 @@
 						<label>生日<input type="date" name="birthday" value=""/></label>　
 						<label>忌日<input type="date" name="deathday" value=""/></label><br>
 						<input type="submit" value="提交操作"/>
-						<input type="button" value="取消操作" id="oper-close"/>
+						<input type="button" value="关闭取消" id="oper-close"/>
 						<div id="oper-error" class="operate-warn">
 						</div>
 					</form>
@@ -185,6 +181,22 @@
 					</div>
 				</div> <!-- divOperate -->
 			</div>
+
+			<h3><a href="#divPasswd" class="foldClose">修改密码</a></h3>
+			<div id="divPasswd">
+				<div class="operate-warn operate-control"></div>
+				<form id="formPasswd">
+					<label>登陆密码<input type="radio" name="keytype" value="loginkey"/></label>　
+					<label>操作密码<input type="radio" name="keytype" value="operakey"/></label><br>
+					<a href="#mine_id" class="input-unlock">用户编号</a>
+					<input type="text" name="mine_id" value="" size="10"/><br>
+					<label>输入旧密码<input type="password" name="oldkey" size="10" required="required"/></label><br>
+					<label>输入新密码<input type="password" name="newkey" size="10" required="required"/></label><br>
+					<label>确认新密码<input type="password" name="seckey" size="10" required="required"/></label><br>
+					<input type="submit" value="提交操作"/>
+					<input type="button" value="关闭取消" name="close"/>
+				</form>
+			</div>
 		</div> <!-- #pg2-person -->
 
 		<div id="pg3-help" class="page">
@@ -203,5 +215,11 @@
 				<p>网页加载完成</p>
 			</div>
 		</div>
+
+		<script src="http://code.jquery.com/jquery-2.1.0.js"></script>
+		<script src="js/DD.js"></script>
+		<script src="js/DV.js"></script>
+		<script src="js/DE.js"></script>
+		<script src="js/DJ.js"></script>
 	</body>
 </html>

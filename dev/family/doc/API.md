@@ -11,11 +11,20 @@
 
 请求是一个 json 对象，其基本格式为：
 ```
-{"api":"api_name","data":{...}}
+{"api":"api_name","data":{...}, sess:{...}}
 ```
 
 * `api` 为接口名称，字符串
 * `data` 为具体接口参数，嵌套 json 对象，根据不同接口名而不同，见具体接口的文档
+* `sess` 为与会话有关的信息
+
+会话对象 sess 在会涉及修改数据库时必需，在查询与登陆时可不提供。允许字段：
+
+* `id` 登陆者 id
+* `token` 会话标记
+* `opera_key` 操作密码
+
+其中 token 在登陆时获得。
 
 示例，查询所有数据：
 ```
@@ -42,6 +51,12 @@ curl -d '{"api":"query","data":{"all":1}}'
 * modify
 * remove
 * member_relations
+* query_brief
+* create_brief
+* modify_brief
+* remove_brief
+* login
+* modify_passwd
 
 其中，前面四个单个词的接口名基本增删改查接口。后面两个单词的为扩展接口，为方便
 业务而专门提供的。
@@ -132,6 +147,7 @@ curl -d '{"api":"query","data":{"all":1}}'
 
 #### 响应参数：res.data
 
+* `created` 新建插入的行数
 * `id` 新插入成员的 id
 * `partner_id` 新增或被修改的配偶 id
 * `records` 在请求了 `requery` 时返回重查的数据，1条或2条记录的数组
@@ -200,3 +216,74 @@ curl -d '{"api":"query","data":{"all":1}}'
 * `children` 记录数组，由自身的孩子组成；
 * `partner` 记录数组，一般是一条记录，但也可能入库多次婚配的情况；
 * `sibling` 记录数组，由同系兄弟姐妹组成；
+
+### 查询简介 query_brief
+
+简介设计为在另一个表存储，故而提供另一套接口。
+简介文本在数据库设计最多保存 1024 字节，汉字约 340 个。
+
+#### 请求参数 req.data
+
+* `id` 成员 id，根据 id 查询简介
+
+#### 响应参数 res.data
+
+* `F_id` 原样返回请求的 `id`
+* `F_text` 简介文本
+
+### 创建简介 create_brief
+
+#### 请求参数 req.data
+
+* `id` 成员 id
+* `text` 成员简介
+
+#### 响应参数 res.data
+
+* `F_id` 原样返回请求的 `id`
+* `affected` 提示数据库操作影响的行
+
+### 修改简介 modify_brief
+
+#### 请求参数 req.data
+* `id` 成员 id
+* `text` 成员简介
+* `create` 如果提供这个值，当不存在简介时也直接创建
+
+#### 响应参数 res.data
+* `F_id` 原样返回请求的 `id`
+* `affected` 提示数据库操作影响的行
+
+### 删除简介 remove_brief
+
+#### 请求参数 req.data
+* `id` 成员 id
+
+#### 响应参数 res.data
+* `F_id` 原样返回请求的 `id`
+* `affected` 提示数据库操作影响的行
+
+### 登陆接口 login
+
+#### 请求参数 req.data
+* `id` 按成员 id 登陆
+* `name` 按成员姓名登陆，存在重名时会失败
+* `key` 登陆密码
+
+#### 响应参数 res.data
+* `id` 原样返回 id 或按 name 查询的 id
+* `token` 作为会话标记的 token
+* `mine` 自己的一行数据
+
+### 修改密码 modify_passwd
+
+#### 请求参数 req.data
+
+* `id` 成员 id
+* `keytype` 密码类型，字符串，loginkey 或 operakey ，登陆或操作密码
+* `oldkdy` 旧密码
+* `newkey` 新密码
+
+#### 响应参数 res.data
+* `id` 原样返回请求的 `id`
+* `affected` 提示数据库操作影响的行，可表示修改是否成功

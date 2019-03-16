@@ -14,11 +14,33 @@ var $DE = {
 
 				// 特殊处理，操作表单自动选择第一个
 				if (href == '#divOperate') {
-					$('#to-modify').click();
+					if ($DD.Person.canOperate()) {
+						$('#divOperate div.operate-control').html('');
+						$('#to-modify').click();
+					}
+					else {
+						$('#divOperate div.operate-control').html($DD.Tip.operaCtrl);
+					}
 				}
 				// 修改简介时，自动载入原简介
 				else if (href == '#modify-brief') {
-					$('#formBrief textarea').val($DD.Person.brief);
+					if ($DD.Person.canOperate()) {
+						$('#modify-brief div.operate-control').html('');
+						$('#formBrief textarea').val($DD.Person.brief);
+					}
+					else {
+						$('#modify-brief div.operate-control').html($DD.Tip.operaCtrl);
+					}
+				}
+				// 修改密码时，自动填入id
+				else if (href == '#divPasswd') {
+					if ($DD.Person.canOperate('only_self')) {
+						$('#divPasswd div.operate-control').html('');
+						$DV.Operate.lock($('#formPasswd input:text[name=mine_id]'), $DD.Login.id);
+					}
+					else {
+						$('#divPasswd div.operate-control').html($DD.Tip.modifyPasswdOnlySelf);
+					}
 				}
 			}
 			else {
@@ -44,6 +66,23 @@ var $DE = {
 			$(this).click(onClick);
 			$(this).attr('title', '折叠/展开');
 		});
+
+		// 简单折叠，不必修改链接的样式
+		var simpleFold = function(_evt) {
+			var href = $(this).attr('href');
+			var foldin = $(href);
+			var display = foldin.css('display');
+			if (display == 'none') {
+				foldin.show();
+			}
+			else {
+				foldin.hide();
+			}
+			_evt.preventDefault();
+		};
+
+		$('#not-login>a.to-login').click(simpleFold);
+		$('#has-login>a.to-login').click(simpleFold);
 	},
 
 	// 各种表单初始化
@@ -63,6 +102,9 @@ var $DE = {
 		});
 
 		$('#formOperate').submit(function(_evt) {
+			if (!$DD.Person.canOperate()) {
+				return;
+			}
 			_evt.preventDefault();
 			return $DV.Operate.submit(_evt);
 		});
@@ -72,6 +114,13 @@ var $DE = {
 			var href = $(this).attr('href');
 			var name = href.substring(1);
 			var $input = $(`#formOperate input:text[name=${name}]`);
+			$DV.Operate.unlock($input);
+			_evt.preventDefault();
+		});
+		$('#formPasswd a.input-unlock').click(function(_evt) {
+			var href = $(this).attr('href');
+			var name = href.substring(1);
+			var $input = $(`#formPasswd input:text[name=${name}]`);
 			$DV.Operate.unlock($input);
 			_evt.preventDefault();
 		});
@@ -117,11 +166,32 @@ var $DE = {
 			return false;
 		});
 
+		$('#formLogin input[name=close]').click(function(_evt) {
+			$('#formLogin').hide();
+		});
+
 		// 简介表单
 		$('#formBrief').submit(function(_evt) {
+			if (!$DD.Person.canOperate()) {
+				return;
+			}
 			_evt.preventDefault();
 			$DV.Operate.submitBrief();
 			return false;
+		});
+
+		// 修改密码表单
+		$('#formPasswd').submit(function(_evt) {
+			if (!$DD.Person.canOperate('only_self')) {
+				return;
+			}
+			_evt.preventDefault();
+			$DV.Operate.submitPasswd();
+			return false;
+		});
+
+		$('#formPasswd input[name=close]').click(function() {
+			$DV.Operate.closePasswd();
 		});
 	},
 
