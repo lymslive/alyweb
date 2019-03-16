@@ -853,8 +853,8 @@ var $DV = {
 				}
 
 				if (Object.keys(reqData).length <= 1) {
-					console.log('没有更新任何资料 keys');
-					$error.html('没有更新任何资料 keys');
+					console.log('没有更新任何资料');
+					$error.html('没有更新任何资料');
 					return false;
 				}
 
@@ -866,6 +866,10 @@ var $DV = {
 			else if (op == 'append') {
 				if (mine_name) {
 					reqData.name = mine_name;
+					if ($DD.Person.hasChildName(mine_name)) {
+						$error.html('已经有重名孩子，请确认不要重复输入');
+						return false;
+					}
 				}
 				else {
 					console.log('新增后代必须填姓名');

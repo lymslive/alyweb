@@ -453,6 +453,18 @@ var $DD = {
 			return false;
 		},
 
+		// 检查是否其中一个孩子
+		hasChildName: function(_name) {
+			if (this.children) {
+				for (var i = 0; i < this.children.length; ++i) {
+					if (this.children[i].F_name == _name) {
+						return true;
+					}
+				}
+			}
+			return false;
+		},
+
 		LAST_PRETECT: true
 	},
 
