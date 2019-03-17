@@ -7,4 +7,4 @@ CREATE TABLE `t_member_passwd` (
 	`F_last_login` datetime NOT NULL COMMENT '上次登陆时间',
 	`F_update_time` timestamp NOT NULL COMMENT '记录更新时间',
 	PRIMARY KEY (`F_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='成员简介表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='成员密码管理表';

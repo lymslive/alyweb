@@ -270,6 +270,8 @@ curl -d '{"api":"query","data":{"all":1}}'
 * `name` 按成员姓名登陆，存在重名时会失败
 * `key` 登陆密码
 
+如果首次登陆，初始登陆密码与操作密码都假设为与 id 相同。
+
 #### 响应参数 res.data
 * `id` 原样返回 id 或按 name 查询的 id
 * `token` 作为会话标记的 token

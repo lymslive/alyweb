@@ -78,7 +78,10 @@ var $DV = {
 
 			// 首次进入个人详情页，默认展示顶级祖先
 			if (_toid == '#pg2-person' && !_hasperson) {
-				if (!$DD.Person.curid) {
+				if ($DD.Login.id) {
+					this.checkPerson($DD.Login.id);
+				}
+				else if (!$DD.Person.curid) {
 					this.checkPerson($DD.Person.DEFAULT);
 				}
 			}
@@ -262,10 +265,7 @@ var $DV = {
 				$DE.gotoPerson($(this));
 				_evt.preventDefault();
 			});
-			$tr.find('td a.quicklogin').click(function(_evt) {
-				$DV.Login.quick($(this).html());
-				_evt.preventDefault();
-			});
+			$tr.find('td a.quicklogin').click($DE.onQuickLogin);
 
 			$tr.mouseover(function() {
 				$(this).addClass("over");
@@ -438,10 +438,7 @@ var $DV = {
 				var idLink = $DV.Fun.quickLoginLink(id);
 				var text = idLink + ' | ' + name + ' | ' + level;
 				$('#mine-info').html(text)
-					.find('a.quicklogin').click(function(_evt) {
-						$DV.Login.quick($(this).html());
-						_evt.preventDefault();
-					});
+					.find('a.quicklogin').click($DE.onQuickLogin);
 
 				if (Data.mine.F_birthday) {
 					var text = '';
@@ -650,7 +647,7 @@ var $DV = {
 
 		// 关闭所有
 		close: function() {
-			if (!this.refid) {
+			if ($('#divOperate').css('display') == 'none') {
 				return;
 			}
 			$('#formOperate').trigger('reset');
@@ -1063,13 +1060,14 @@ var $DV = {
 			$('#not-login').hide();
 			$('#has-login').show();
 			var link = $DV.Fun.linktoPerson($DD.Table.Hash[$DD.Login.id]);
-			$('#has-login span.data').html(link);
-			$('$login-msg').html('');
+			var $link = $(link).click($DE.onSeePerson);
+			$('#has-login span.data').html($link);
+			$('#login-msg').html('');
 		},
 
 		// 登陆失败
 		onFail: function(_msg) {
-			$('$login-msg').html(_msg);
+			$('#login-msg').html(_msg);
 		},
 
 		// 快速根据某个 id 登陆
@@ -1078,10 +1076,13 @@ var $DV = {
 			if (!_id) {
 				return;
 			}
+			if ($DD.Login.id && $DD.Login.id == _id) {
+				return;
+			}
 			$('#formLogin input[name=loginuid]').val(_id);
 			$('#formLogin').show();
 			$('#formLogin input[name=loginkey]').val('').focus();
-			$DV.jumpLink('#login-bar');
+			$DV.Fun.jumpLink('#login-bar');
 		}
 	},
 

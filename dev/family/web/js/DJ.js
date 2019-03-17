@@ -26,7 +26,7 @@ var $DJ = {
 					$DJ.resError(res, req);
 				}
 				else {
-					callback(res.data, req.data);
+					callback(res.data, req.data, res, req);
 				}
 			})
 			.fail(this.resFail)
@@ -36,11 +36,17 @@ var $DJ = {
 
 	// 服务端 api 返回错误码
 	resError: function(_res, _req) {
-		// todo:
+		var api = _req.api;
+		if (api === 'login') {
+			console.log('登陆失败');
+			var msg = _res.errmsg || '登陆失败';
+			msg = '服务器反馈：' + msg;
+			$DV.Login.onFail(msg);
+		}
 	},
 
     resFail: function(jqXHR, textStatus, errorThrown) {
-        alert('ajax fails!'  +  jqXHR.status + textStatus);
+        alert('从服务器获取数据失败'  +  jqXHR.status + textStatus);
     },
     resAlways: function(data, textStatus, jqXHR) {
         console.log('ajax finish with status: ' + textStatus);
@@ -120,7 +126,7 @@ var $DJ = {
 			api: 'login',
 			data: _reqData
 		};
-		this.login = this.requestAPI(_req, function(_resData, _reqData) {
+		this.login = this.requestAPI(req, function(_resData, _reqData) {
 			$DD.Login.callback(_resData, _reqData);
 		});
 	},
@@ -145,10 +151,10 @@ var $DOC = {
 	divLog: '#debug-log',
 
 	INIT: function() {
+		$LOG.init(this.divLog);
 		this.EVENT.onLoad();
 		this.VIEW.Page.init();
 		this.AJAX.requestAll();
-		$LOG.init(this.divLog);
 	}
 };
 
@@ -169,13 +175,13 @@ $LOG.init = function(_div) {
 };
 
 $LOG.open = function() {
-	if (this.div !=== 'body') {
+	if (this.div !== 'body') {
 		$(this.div).show();
 	}
 };
 
 $LOG.close = function() {
-	if (this.div !=== 'body') {
+	if (this.div !== 'body') {
 		$(this.div).hide();
 	}
 };

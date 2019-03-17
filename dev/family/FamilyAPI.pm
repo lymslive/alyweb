@@ -817,8 +817,9 @@ sub randToken
   req = {id, name, key}
   res = {id, token, mine}
   可按 id 或 name 登陆，但返回 id ，同时返回整行数据
+  初始密码与 id 一样
 =cut
-sub handel_login
+sub handle_login
 {
 	my ($db, $jreq) = @_;
 
@@ -847,13 +848,19 @@ sub handel_login
 	my @fields = qw(F_id F_login_key F_token);
 	my $record = $db->QueryPasswd($id, \@fields);
 
+	# 取数据库保存的密码比对，初始假设为 id 并保存
+	my $key_db;
 	if ($record) {
-		my $key_db = $record->{F_login_key};
-		if ($key_db && $key != $key_db) {
-			return ('ERR_LOGIN_PASS_WRONG');
-		}
+		$key_db = $record->{F_login_key};
 		$token = $record->{F_token};
 	}
+	else {
+		$key_db = $id;
+	}
+	if ($key_db && $key ne $key_db) {
+		return ('ERR_LOGIN_PASS_WRONG');
+	}
+
 	if ($token) {
 		$token++;
 		# 极端情况：字母位数增加，超过 mysql 字段限，能否安全截断？
@@ -867,6 +874,8 @@ sub handel_login
 	my $fieldvals = {F_token => $token, F_update_time => $now_time, F_last_login => $now_time};
 	# 无密码记录时插入，或修改
 	if (!$record) {
+		$fieldvals->{F_login_key} = $id;
+		$fieldvals->{F_opera_key} = $id;
 		$ret = $db->CreatePasswd($id, $fieldvals);
 	}
 	else {

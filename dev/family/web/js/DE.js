@@ -67,30 +67,34 @@ var $DE = {
 			$(this).attr('title', '折叠/展开');
 		});
 
-		// 简单折叠，不必修改链接的样式
-		var simpleFold = function(_evt) {
+		// 登陆表单简单折叠，不必修改链接的样式
+		var loginFold = function(_evt) {
+			_evt.preventDefault();
 			var href = $(this).attr('href');
 			var foldin = $(href);
 			var display = foldin.css('display');
 			if (display == 'none') {
 				foldin.show();
+				$('#formLogin input:text[name=loginuid]').focus();
+				return 'show';
 			}
 			else {
 				foldin.hide();
+				return 'hide';
 			}
-			_evt.preventDefault();
 		};
 
-		$('#not-login>a.to-login').click(simpleFold);
-		$('#has-login>a.to-login').click(simpleFold);
+		// 显示登陆表单时自己聚焦
+		$('#not-login>a.to-login').click(loginFold);
+		$('#has-login>a.to-login').click(loginFold);
 	},
 
 	// 各种表单初始化
 	initForm: function() {
 		// 设置默认公用密码
-		$('#formOperate input:password').val($DD.OPERATE_KEY);
-		$('#formBrief input:password').val($DD.OPERATE_KEY);
-		$('#formLogin input:password').val($DD.LOGIN_KEY);
+		// $('#formOperate input:password').val($DD.OPERATE_KEY);
+		// $('#formBrief input:password').val($DD.OPERATE_KEY);
+		// $('#formLogin input:password').val($DD.LOGIN_KEY);
 
 		// 修改表单事件
 		$('#formOperate input:radio[name=operate]').change(function(_evt){
@@ -102,10 +106,10 @@ var $DE = {
 		});
 
 		$('#formOperate').submit(function(_evt) {
+			_evt.preventDefault();
 			if (!$DD.Person.canOperate()) {
 				return;
 			}
-			_evt.preventDefault();
 			return $DV.Operate.submit(_evt);
 		});
 
@@ -172,10 +176,10 @@ var $DE = {
 
 		// 简介表单
 		$('#formBrief').submit(function(_evt) {
+			_evt.preventDefault();
 			if (!$DD.Person.canOperate()) {
 				return;
 			}
-			_evt.preventDefault();
 			$DV.Operate.submitBrief();
 			return false;
 		});
@@ -245,6 +249,18 @@ var $DE = {
 			that.gotoPerson($(this));
 			_evt.preventDefault();
 		});
+	},
+
+	// 快速登陆链接 id
+	onQuickLogin: function(_evt) {
+		$DV.Login.quick($(this).html());
+		_evt.preventDefault();
+	},
+
+	// 查看详情人名链接
+	onSeePerson: function(_evt) {
+		$DE.gotoPerson($(this));
+		_evt.preventDefault();
 	},
 
 	// 根据超链接跳到转指定个人详情

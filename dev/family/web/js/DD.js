@@ -47,6 +47,11 @@ var $DD = {
 				var name = this.List[i].F_name;
 				$DD.Mapid[id] = name;
 				this.Hash[id] = this.List[i];
+
+				// 设置顶级祖先为详情页默认查看对象
+				if (this.List[i].F_level == 1) {
+					$DD.Person.DEFAULT = id;
+				}
 			}
 
 			this.total = resData.total;
@@ -434,7 +439,7 @@ var $DD = {
 		},
 
 		// 检查是否元配
-		isParent: function(_user) {
+		isPartner: function(_user) {
 			if (this.partner && this.partner.F_id == _user) {
 				return true;
 			}

@@ -51,9 +51,11 @@ var $DD = {
 
 		// 更新服务器数据回调，包含修改自己与增加子女
 		modify: function(_resData, _reqData) {
-			if (!_resData.id || !_reqData.id || _resData.id != _reqData.id) {
-				console.log('请求响应数据不对');
-				return;
+			if (_resData.modified) {
+				if (!_resData.id || !_reqData.id || _resData.id != _reqData.id) {
+					console.log('请求响应数据不对');
+					return;
+				}
 			}
 
 			var id = _resData.id;
@@ -385,6 +387,18 @@ var $DD = {
 			else {
 				console.log('查询简介失败，可能不存在');
 			}
+		},
+
+		// 检查是否其中一个孩子
+		hasChildName: function(_name) {
+			if (this.children) {
+				for (var i = 0; i < this.children.length; ++i) {
+					if (this.children[i].F_name == _name) {
+						return true;
+					}
+				}
+			}
+			return false;
 		},
 
 		LAST_PRETECT: true
