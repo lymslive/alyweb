@@ -182,7 +182,8 @@ var $DV = {
 				$(this.domid).append(this.hth());
 			}
 
-			var sumary = [$DD.Table.page, $DD.Table.pagemax, $DD.Table.total];
+			var Pager = $DD.Table.Pager;
+			var sumary = [Pager.page, Pager.pagemax, Pager.total];
 			$('#tabSumary span.data').each(function(_idx, _ele) {
 				$(this).html(sumary[_idx]);
 			});
@@ -386,12 +387,129 @@ var $DV = {
 
 		// 分页查询管理
 		Pager: {
-			where: {all: 1},
+			// 响应提交表单
+			onSubmit: function() {
+				var $form = $('#formQuery');
 
-			next: function() {
+				var id = $form.find('input:text[name=id]').val();
+				if (id) {
+					where.id = id;
+				}
+				var name  = $form.find('input:text[name=name]').val();
+				if (name) {
+					where.name = name;
+				}
+				var sex = $form.find('select[name=sex]').val();
+				if (sex) {
+					where.sex = parseInt(sex);
+				}
+
+				// 代际处理
+				var $levelFrom = $form.find('select[name=level-from]');
+				var $levelTo = $form.find('select[name=level-to]');
+				var levelFrom = parseInt($levelFrom.val());
+				var levelTo = parseInt($levelTo.val());
+				if (levelFrom && !levelTo) {
+					where.level = levelFrom;
+				}
+				else if (!levelFrom && levelTo) {
+					where.level = levelTo;
+				}
+				else if (levelFrom && levelTo) {
+					if (levelFrom < levelTo) {
+						where.level = {'-in': [levelFrom, levelTo]};
+					}
+					else if (levelFrom > levelTo) {
+						where.level = {'-in': [levelTo, levelFrom]};
+					}
+					else {
+						where.level = levelFrom;
+					}
+				}
+
+				// 生日
+				var birthdayFrom  = $form.find('input:text[name=birthday-from]').val();
+				var birthdayTo  = $form.find('input:text[name=birthday-to]').val();
+				if (birthdayFrom && !birthdayTo) {
+					where.birthday = {'>=': birthdayFrom};
+				}
+				else if (!birthdayFrom && birthdayTo) {
+					where.birthday = {'<=': birthdayTo};
+				}
+				else if (birthdayFrom && birthdayTo) {
+					where.birthday = {'-in': [birthdayFrom, birthdayTo]};
+				}
+
+				// 数据存到 $DD
+				var that = $DD.Table.Pager;
+				that.where = where;
+				that.fresh = true;
+
+				var page  = $form.find('input:text[name=page]').val();
+				if (page) {
+					that.page = page;
+				}
+				var perpage  = $form.find('input:text[name=perpage]').val();
+				if (perpage) {
+					that.perpage = perpage;
+				}
+
+				return this.doQuery();
 			},
 
-			prev: function() {
+			doQuery: function() {
+				var that = $DD.Table.Pager;
+				var req = {api: 'query'};
+				req.data = {page: that.page, perpage: that.perpage};
+				if (that.where && Object.keys(that.where).length > 0) {
+					req.data.filter = that.where;
+				}
+				else {
+					req.data.all = 1;
+				}
+
+				return $DJ.reqQuery(req);
+			},
+
+			doneQuery: function(_reqData) {
+				$DD.Table.load(_resData);
+				$DV.Table.fill();
+			},
+
+			doNext: function() {
+				var flag = $DD.Table.Pager.next();
+				if (!flag) {
+					return;
+				}
+				if (flag == 'fill') {
+					return $DV.Table.fill();
+				}
+				if (flag == 'query') {
+					return this.doQuery();
+				}
+			},
+
+			doPrev: function() {
+				if ($DD.Table.Pager.prev()) {
+					$DV.Table.fill();
+				}
+			},
+
+			// 勾选父系，自动在姓名域填 '谭%'
+			onCheckbox: function() {
+				var $checkbox = $('#formQuery input:checkbox[name=filter]');
+				var tan = $checkbox[0].checked;
+				if (tan) {
+					$('#formQuery input:text[name=name]').val($DD.Tan + '%');
+				}
+				else {
+					$('#formQuery input:text[name=name]').val('');
+				}
+			},
+
+			// 改变年龄，自动转化为生日
+			onAge: function() {
+				//
 			},
 
 			LAST_PRETECT: true
@@ -1054,7 +1172,7 @@ var $DV = {
 	// 帮助页
 	Help: {
 		pulled: false,
-		
+
 		// 显示帮助页
 		showdoc: function(res) {
 			if (res) {

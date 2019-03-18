@@ -38,37 +38,67 @@ var $DD = {
 		Hash: {}, // 尽可能缓存从服务端查询的记录，以 id 为键
 		List: [], // 当前页列表
 
-		// 服务器返回的统计信息
-		total: 0,
-		page: 0,
-		perpage: 0,
-		pagemax: 1,
-		may_more: false,
-
 		// 分页查询管理
 		Pager: {
 			Hist: [],   // 分页历史保存
 			curidx: 0, // 当前显示第几页
-			where: {},  // 当前分页查询条件
+			where: null,  // 当前分页查询条件
+			fresh: false, // 开始按新条件查询
 
-			equal: function(_where) {
-				return true;
+			// 服务器返回的统计信息
+			total: 0,
+			page: 0,
+			perpage: 0,
+			pagemax: 1,
+			may_more: false,
+
+			saveList: function(_list) {
+				if (this.fresh) {
+					this.Hist = null;
+					this.Hist = [_list];
+					this.fresh = false;
+				}
+				else {
+					this.Hist.push(_list);
+				}
+				this.curidx = this.Hist.length - 1;
 			},
 
-			saveList: function(_list, _where) {
-				if (this.equal(_where)) {
-					this.Hist.push(_list);
-					this.curidx = this.Hist.length;
+			// 下一页，分三种情况返回字符串指示：
+			// fill: 前端内存直接可填充
+			// qurey: 可向后端异步查询下一页
+			// '': 没有更多页了
+			next: function() {
+				this.curidx += 1;
+				if (this.curidx < this.Hist.length) {
+					$DD.Table.List = this.Hist[this.curidx];
+					return 'fill';
 				}
-			}
+				this.curidx -= 1;
+
+				if (this.page < this.pagemax) {
+					this.page += 1;
+					return 'query';
+				}
+
+				return '';
+			},
+
+			// 前一页，返回能否切到之前查过的前一页
+			prev: function() {
+				if (this.curidx > 0) {
+					this.curidx -= 1;
+					$DD.Table.List = this.Hist[this.curidx];
+					return true;
+				}
+				return false;
+			},
+
+			LAST_PRETECT: true
 		},
 
 		// 重新加载从服务端返回的一页数据
 		load: function(_resData) {
-			if (this.List.length > 0) {
-				this.Pager.saveList(this.List, $DV.Pager.where);
-			}
-
 			this.List = _resData.records;
 			// this.Hash = {};
 			for (var i = 0; i < this.List.length; ++i) {
@@ -83,13 +113,16 @@ var $DD = {
 				}
 			}
 
-			this.total = _resData.total;
-			this.page = _resData.page;
-			this.perpage = _resData.perpage;
-			if (this.total > this.perpage && this.total > (this.page-1) * this.perpage + this.List.length) {
-				this.may_more = true;
-				this.pagemax = Math.ceil(this.total/this.perpage);
+			this.Pager.total = _resData.total;
+			this.Pager.page = _resData.page;
+			this.Pager.perpage = _resData.perpage;
+			this.Pager.pagemax = Math.ceil(this.Pager.total/this.Pager.perpage);
+			if (this.Pager.pagemax > this.Pager.page) {
+				this.Pager.may_more = true;
 			}
+
+			// 保存页历史
+			this.Pager.saveList(this.List);
 		},
 
 		// 更新服务器数据回调，包含修改自己与增加子女

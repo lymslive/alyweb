@@ -68,16 +68,16 @@
 				</table>
 				<!-- 多于10行时表底再加一行表头，动态增加的少量行再加于其下 -->
 				<!-- 再给出总计，如果服务器数据太多，可能再加翻页信息 -->
-				<div id="tabSumary" class="foldOff atright">
+				<div id="tabSumary" class="atcenter">
 					<span id="table-prev-page"><a href="#">
 						◀前一页
 					</a></span>
-					第 <span class="data"></span>/<span class="data"></span>页
+					第 <span class="data">1</span>/<span class="data">1</span>页
 					<span id="table-next-page"><a href="#">
 						后一页▶
 					</a></span>
 					<br>
-					总计 <span class="data"></span> 成员
+					总计 <span class="data">1</span> 成员
 				</div>
 			</div>
 			<h3><a href="#divQuery" class="foldClose">高级查询</a></h3>
@@ -106,9 +106,12 @@
 					</label>或<br>
 					<label>年龄<input type="text" name="age-from" size="10"/> 至 <input type="text" name="age-to" size="10"/>
 					</label><br>
+					<label>每页数量<input type="text" name="perpage" value="100" size="5"/></label>
+					<label>跳选页数<input type="text" name="page" value="1" size="5"/></label><br>
 					<input type="submit" value="提交查询"/>
 					<input type="reset" value="默认查询"/>
 					<input type="button" value="关闭取消" name="close"/>
+					<div class="operate-warn"></div>
 				</form>
 			</div>
 		</div>

@@ -84,10 +84,8 @@ var $DJ = {
 	// 默认拉取所有数据
 	requestAll: function() {
 		var req = {"api":"query","data":{"all":1}};
-		this.table = this.requestAPI(req, function(_resData, _reqData) {
-			$DD.Table.load(_resData);
-			$DV.Table.fill();
-			$DE.onFillTable();
+		this.query = this.requestAPI(req, function(_resData, _reqData) {
+			$DV.Table.Pager.doneQuery(_resData);
 			$DJ.reqPartnerAll();
 		});
 	},
@@ -106,6 +104,19 @@ var $DJ = {
 			$DD.Table.storePartner(_resData, _reqData);
 			$DV.Table.updateName();
 		});
+	},
+
+	// 请求查询
+	reqQuery: function(_req) {
+		if (!_req.api || _req.api != 'query') {
+			console.log('请求参数不对');
+			return false;
+		}
+		var form = 'formQuery';
+		var msg = {suc: '查询完成'};
+		this.query = this.requestAPI(_req, function(_resData, _reqData) {
+			$DV.Table.Pager.doneQuery(_resData);
+		}, form, msg);
 	},
 
 	// 请求修改
