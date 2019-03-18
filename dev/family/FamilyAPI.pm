@@ -874,11 +874,13 @@ sub handle_login
 	my $fieldvals = {F_token => $token, F_update_time => $now_time, F_last_login => $now_time};
 	# 无密码记录时插入，或修改
 	if (!$record) {
+		wlog('create passwd for firstly login');
 		$fieldvals->{F_login_key} = $id;
 		$fieldvals->{F_opera_key} = $id;
 		$ret = $db->CreatePasswd($id, $fieldvals);
 	}
 	else {
+		wlog('update token');
 		$ret = $db->ModifyPasswd($id, $fieldvals);
 	}
 

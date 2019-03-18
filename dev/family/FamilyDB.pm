@@ -262,7 +262,7 @@ sub QueryPasswd
 sub CreatePasswd
 {
 	my ($self, $id, $fieldvals) = @_;
-	return 0 if !$id || $fieldvals;
+	return 0 if !$id || !$fieldvals;
 
 	$fieldvals->{F_id} = $id;
 	my($stmt, @bind) = $self->{sql}->insert($TABLE_PASSWD, $fieldvals);
@@ -274,7 +274,7 @@ sub CreatePasswd
 sub ModifyPasswd
 {
 	my ($self, $id, $fieldvals) = @_;
-	return 0 if !$id || $fieldvals;
+	return 0 if !$id || !$fieldvals;
 
 	my $where = { F_id => $id };
 	my($stmt, @bind) = $self->{sql}->update($TABLE_PASSWD, $fieldvals, $where);

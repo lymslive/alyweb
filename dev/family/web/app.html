@@ -18,9 +18,8 @@
 				<label>登陆口令<input type="password" name="loginkey" size="10" required="required"/></label>
 				<input type="submit" value="登陆"/>
 				<input type="button" name="close" value="关闭"/>
+				<div id="login-msg" class="operate-warn"></div>
 			</form>
-			<div id="login-msg" class="operate-warn">
-			</div>
 		</div>
 
 		<h1 class="atcenter">澄江谭氏家谱电子系统</h1>
@@ -51,7 +50,7 @@
 					</label>
 					<input type="reset" value="撤销" id="filter-rollback"/>
 					<input type="submit" value="刷新"/>
-					<br>
+					<div class="operate-warn"></div>
 				</form>
 				<!-- 表格需拉取服务器数据填充，可能覆盖重填 -->
 				<table id="tabMember">
@@ -89,8 +88,7 @@
 					<span id="mine-info">10025 | 谭水龙 | 第 4 代直系</span> 
 					<input type="submit" value="查找其他"/>
 					<input size="5" type="text" name="mine" required="required"/>
-					<span class="operate-warn">
-					</span>
+					<div class="operate-warn"></div>
 				</form>
 			</div>
 			<hr>
@@ -109,8 +107,8 @@
 					<p>（当前没有简介，可修改增加）</p>
 					<h4><a href="#modify-brief" class="foldClose">修改简介</a></h4>
 					<div id="modify-brief">
-						<div class="operate-warn operate-control"></div>
 						<form id="formBrief">
+							<div class="operate-warn"></div>
 							<textarea name="brief" rows="10" cols="30" ></textarea><br>
 							<input type="submit" value="提交修改"/>
 							<input type="reset" value="取消修改"/>
@@ -141,11 +139,11 @@
 				</div>
 				<h3><a href="#divOperate" class="foldClose">修改资料</a></h3>
 				<div id="divOperate">
-					<div class="operate-warn operate-control"></div>
 					<form id="formOperate">
+						<div class="operate-warn"></div>
 						<label>修改资料<input type="radio" name="operate" value="modify" id="to-modify"/></label>　
 						<label>添加子女<input type="radio" name="operate" value="append" id="to-append"/></label>　
-						<label>操作口令<input type="password" name="operakey" value="123456" size="10" required="required"/></label><br>
+						<label>操作口令<input type="password" name="operakey" size="10" required="required"/></label><br>
 						<a href="#mine_id" class="input-unlock">编号</a>
 						<input type="text" name="mine_id" value="" size="12"/>　
 						<a href="#mine_name" class="input-unlock">姓名</a>
@@ -162,8 +160,6 @@
 						<label>忌日<input type="date" name="deathday" value=""/></label><br>
 						<input type="submit" value="提交操作"/>
 						<input type="button" value="关闭取消" id="oper-close"/>
-						<div id="oper-error" class="operate-warn">
-						</div>
 					</form>
 					<div id="tip-modify" class="foldOff operate-tips">
 						<ul>
@@ -184,8 +180,8 @@
 
 			<h3><a href="#divPasswd" class="foldClose">修改密码</a></h3>
 			<div id="divPasswd">
-				<div class="operate-warn operate-control"></div>
 				<form id="formPasswd">
+					<div class="operate-warn"></div>
 					<label>登陆密码<input type="radio" name="keytype" value="loginkey"/></label>　
 					<label>操作密码<input type="radio" name="keytype" value="operakey"/></label><br>
 					<a href="#mine_id" class="input-unlock">用户编号</a>

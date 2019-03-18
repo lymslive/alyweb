@@ -653,7 +653,7 @@ var $DV = {
 			$('#formOperate').trigger('reset');
 			$('#divOperate div.operate-tips').hide();
 			$('#formOperate input:radio[name=operate]').parent('label').removeClass('radio-checked');
-			$('#oper-error').html('');
+			$('#formOperate div.operate-warn').html('');
 			$('a[href=#divOperate]').click();
 			this.refid = 0;
 		},
@@ -797,7 +797,7 @@ var $DV = {
 
 			var reqData = {};
 			var req = {};
-			var $error = $('#oper-error');
+			var $error = $form.find('div.operate-warn');
 			if (op == 'modify') {
 				if (!mine_id || mine_id != this.refid) {
 					console.log('id 不匹配');

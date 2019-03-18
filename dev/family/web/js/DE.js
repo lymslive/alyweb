@@ -12,34 +12,35 @@ var $DE = {
 				$(this).removeClass('foldClose');
 				$(this).addClass('foldOpen');
 
-				// 特殊处理，操作表单自动选择第一个
+				// 特殊处理显示表单的情况
+				// 操作表单自动选择第一个
 				if (href == '#divOperate') {
 					if ($DD.Person.canOperate()) {
-						$('#divOperate div.operate-control').html('');
+						$('#divOperate div.operate-warn').html('');
 						$('#to-modify').click();
 					}
 					else {
-						$('#divOperate div.operate-control').html($DD.Tip.operaCtrl);
+						$('#divOperate div.operate-warn').html($DD.Tip.operaCtrl);
 					}
 				}
 				// 修改简介时，自动载入原简介
 				else if (href == '#modify-brief') {
 					if ($DD.Person.canOperate()) {
-						$('#modify-brief div.operate-control').html('');
+						$('#modify-brief div.operate-warn').html('');
 						$('#formBrief textarea').val($DD.Person.brief);
 					}
 					else {
-						$('#modify-brief div.operate-control').html($DD.Tip.operaCtrl);
+						$('#modify-brief div.operate-warn').html($DD.Tip.operaCtrl);
 					}
 				}
 				// 修改密码时，自动填入id
 				else if (href == '#divPasswd') {
 					if ($DD.Person.canOperate('only_self')) {
-						$('#divPasswd div.operate-control').html('');
+						$('#divPasswd div.operate-warn').html('');
 						$DV.Operate.lock($('#formPasswd input:text[name=mine_id]'), $DD.Login.id);
 					}
 					else {
-						$('#divPasswd div.operate-control').html($DD.Tip.modifyPasswdOnlySelf);
+						$('#divPasswd div.operate-warn').html($DD.Tip.modifyPasswdOnlySelf);
 					}
 				}
 			}
@@ -76,6 +77,7 @@ var $DE = {
 			if (display == 'none') {
 				foldin.show();
 				$('#formLogin input:text[name=loginuid]').focus();
+				$('#formLogin div.operate-warn').html('');
 				return 'show';
 			}
 			else {
