@@ -175,7 +175,7 @@ var $DJ = {
 	// 请求修改密码
 	reqPasswd: function(_req) {
 		var form = 'formPasswd';
-		var msg = {err: '修改密码失败', suc: '修改密码成功'};
+		var msg = {err: '修改密码失败', suc: '修改密码成功，请牢记'};
 		this.brief = this.requestAPI(_req, function(_resData, _reqData) {
 			$DD.Login.onModifyPasswd(_resData, _reqData);
 		}, form, msg);

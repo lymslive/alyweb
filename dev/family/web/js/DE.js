@@ -160,7 +160,8 @@ var $DE = {
 		var $levelFrom = $('#formFilter select[name=level-from]');
 		var $levelTo = $('#formFilter select[name=level-to]');
 		$DD.LEVEL.forEach(function(_item, _idx) {
-			var html = `<option value="${_idx}">${_item}</option>`;
+			var item = _idx > 0 ? (_idx + ' ' + _item) : _item;
+			var html = `<option value="${_idx}">${item}</option>`;
 			$levelFrom.append(html);
 			$levelTo.append(html);
 		});
@@ -229,19 +230,15 @@ var $DE = {
 
 	// 填充完表格注册事件
 	onFillTable: function() {
-		var that = this;
-
-		$('td a.rowid').click(function(_evt) {
-			_evt.preventDefault();
-		});
-
-		$('#tabSumary').show();
-		$('#table-prev-page').click(function(_evt) {
-			_evt.preventDefault();
-		});
-		$('#table-next-page').click(function(_evt) {
-			_evt.preventDefault();
-		});
+		if ($('#tabSumary').css('display') == 'none') {
+			$('#tabSumary').show();
+			$('#table-prev-page').click(function(_evt) {
+				_evt.preventDefault();
+			});
+			$('#table-next-page').click(function(_evt) {
+				_evt.preventDefault();
+			});
+		}
 	},
 
 	// 个人详情填充完毕注册事件

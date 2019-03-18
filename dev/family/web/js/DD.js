@@ -5,7 +5,7 @@ var $DD = {
 	API_URL: '/dev/family/japi.cgi',
 	HELP_URL: '/dev/family/web/doc/help.htm',
 	TAN: '谭',
-	LEVEL: ['辈', '年', '芳', '和', '积', '祥', '生'],
+	LEVEL: ['辈份', '年', '芳', '和', '积', '祥', '生'],
 	SEX: ['女♀', '男♂'],
 	NULL: '',
 	OPERATE_KEY: 'Tan@2019',
@@ -16,6 +16,12 @@ var $DD = {
 		ontLogin: '您没有登陆',
 		modifyPasswdOnlySelf: '只能修改自己的密码',
 		LAST_PRETECT: 1
+	},
+
+	Fun: {
+		objcmp: function(_lhs, _rhs) {
+			return true;
+		}
 	},
 
 	Mapid: {},
@@ -29,18 +35,41 @@ var $DD = {
 	// 从服务器查得的数据表
 	Table: {
 		Title: ['编号', '姓名', '性别', '代际', '父亲', '母亲', '配偶', '生日', '忌日'],
-		List: [],
-		Hash: {},
+		Hash: {}, // 尽可能缓存从服务端查询的记录，以 id 为键
+		List: [], // 当前页列表
 
 		// 服务器返回的统计信息
 		total: 0,
 		page: 0,
 		perpage: 0,
+		pagemax: 1,
 		may_more: false,
 
-		// 重新加载全表数据
-		load: function(resData) {
-			this.List = resData.records;
+		// 分页查询管理
+		Pager: {
+			Hist: [],   // 分页历史保存
+			curidx: 0, // 当前显示第几页
+			where: {},  // 当前分页查询条件
+
+			equal: function(_where) {
+				return true;
+			},
+
+			saveList: function(_list, _where) {
+				if (this.equal(_where)) {
+					this.Hist.push(_list);
+					this.curidx = this.Hist.length;
+				}
+			}
+		},
+
+		// 重新加载从服务端返回的一页数据
+		load: function(_resData) {
+			if (this.List.length > 0) {
+				this.Pager.saveList(this.List, $DV.Pager.where);
+			}
+
+			this.List = _resData.records;
 			// this.Hash = {};
 			for (var i = 0; i < this.List.length; ++i) {
 				var id = this.List[i].F_id;
@@ -54,11 +83,12 @@ var $DD = {
 				}
 			}
 
-			this.total = resData.total;
-			this.page = resData.page;
-			this.perpage = resData.perpage;
+			this.total = _resData.total;
+			this.page = _resData.page;
+			this.perpage = _resData.perpage;
 			if (this.total > this.perpage && this.total > (this.page-1) * this.perpage + this.List.length) {
 				this.may_more = true;
+				this.pagemax = Math.ceil(this.total/this.perpage);
 			}
 		},
 
@@ -119,6 +149,9 @@ var $DD = {
 				$DV.Person.update();
 				$DV.Person.Table.expandDown();
 			}
+
+			// 重置未锁定的输入域
+			$DV.Operate.resetNolock();
 		},
 
 		// 增量修改或存储一行数据
@@ -217,7 +250,7 @@ var $DD = {
 		canUpdate: function(_bit) {
 			return this.update & _bit;
 		},
-		clearUpdate() {
+		clearUpdate: function() {
 			this.update = 0;
 		},
 
@@ -377,7 +410,7 @@ var $DD = {
 			return this.update;
 		},
 
-		// 查询可修改简介成功回调
+		// 查询和修改简介成功回调
 		onBriefRes: function(_resData, _reqData) {
 			var id = _resData.F_id;
 			var text = _resData.F_text;
@@ -510,8 +543,8 @@ var $DD = {
 				else {
 					console.log('密码类型不对');
 				}
-				$('#divPasswd div.operate-warn').html('新密码修改成功，请牢记');
 			}
+			$('#formPasswd').trigger('reset');
 		},
 
 		_: 1

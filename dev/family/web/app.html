@@ -69,15 +69,47 @@
 				<!-- 多于10行时表底再加一行表头，动态增加的少量行再加于其下 -->
 				<!-- 再给出总计，如果服务器数据太多，可能再加翻页信息 -->
 				<div id="tabSumary" class="foldOff atright">
-					总计 <span class="data"></span> 条记录；
-					当前第 <span class="data"></span> 页，共<span class="data"></span>页。
 					<span id="table-prev-page"><a href="#">
 						◀前一页
 					</a></span>
+					第 <span class="data"></span>/<span class="data"></span>页
 					<span id="table-next-page"><a href="#">
 						后一页▶
 					</a></span>
+					<br>
+					总计 <span class="data"></span> 成员
 				</div>
+			</div>
+			<h3><a href="#divQuery" class="foldClose">高级查询</a></h3>
+			<div id="divQuery">
+				<form id="formQuery">
+					<div class="operate-warn"></div>
+					<label>编号<input type="text" name="id" size="10"/></label>
+					<label>姓名<input type="text" name="name" size="10"/></label><br>
+					<label>只含父系<input type="checkbox" name="filter" value="tan"/></label>
+					<label>包含配偶<input type="checkbox" name="filter" value="partner"/></label><br>
+					<label>代际
+						<select name="level-from">
+						</select> 至
+						<select name="level-to">
+						</select>
+					</label>
+					<label>性别
+						<select name="sex">
+							<option value="">选择</option>
+							<option value="1">男</option>
+							<option value="0">女</option>
+						</select>
+					</label>
+					<br>
+					<label>生日<input type="date" name="birthday-from" size="10"/> 至 <input type="date" name="birthday-to" size="10"/>
+					</label>或<br>
+					<label>年龄<input type="text" name="age-from" size="10"/> 至 <input type="text" name="age-to" size="10"/>
+					</label><br>
+					<input type="submit" value="提交查询"/>
+					<input type="reset" value="默认查询"/>
+					<input type="button" value="关闭取消" name="close"/>
+				</form>
 			</div>
 		</div>
 

@@ -29,6 +29,8 @@ my $MESSAGE_REF = {
 	ERR_ARGNO_TEXT => '16. 参数错误，缺少简介文本',
 	ERR_LOGIN_PASS_WRONG => '17. 登陆密码不对',
 	ERR_OPERA_PASS_WRONG => '18. 操作密码不对',
+	ERR_ARGNO_SESS => '19. 参数错误，缺少会话信息',
+	ERR_OPERA_TOKEN_WRONG => '20. 会话不匹配',
 };
 
 sub error_msg
@@ -57,7 +59,8 @@ my $HANDLER = {
 };
 
 # 请求入口，分发响应函数
-# req = {api => '接口名', data => {实际请求数据}}
+# req = {api => '接口名', data => {实际请求数据}, sess=>{会话及操作密码}}
+# 修改数据库操作将验证 sess
 sub handle_request
 {
 	my ($jreq) = @_;
@@ -70,6 +73,15 @@ sub handle_request
 		or return response('ERR_SYSNO_API');
 
 	my $db = FamilyDB->new();
+
+	if ($api =~ /create|modify|remove/i) {
+		my $sess = $jreq->{sess} or return response('ERR_ARGNO_SESS');
+		my $error = check_session($db, $sess);
+		if ($error) {
+			return ($error);
+		}
+	}
+
 	my ($error, $res_data) = $handler->($db, $req_data);
 	$db->Disconnect();
 
@@ -950,3 +962,26 @@ sub handle_modify_passwd
 	return (0, {id => $id, affected => $ret});
 }
 
+# 验证会话与操作密码，入参 jreq = req.sess
+sub check_session
+{
+	my ($db, $jreq) = @_;
+	
+	my $id = $jreq->{id} || return ('ERR_ARGNO_ID');
+
+	my @fields = qw(F_id F_opera_key F_token);
+	my $record = $db->QueryPasswd($id, \@fields);
+	if ($record) {
+		if ($jreq->{opera_key} && $jreq->{opera_key} != $record->{F_opera_key}) {
+			return ('ERR_OPERA_PASS_WRONG');
+		}
+		if ($jreq->{token} && $jreq->{token} != $record->{F_token}) {
+			return ('ERR_OPERA_TOKEN_WRONG');
+		}
+	}
+	else {
+		wlog("密码表没有记录：$id，正常登陆应该产生记录的");
+	}
+
+	return 0;
+}

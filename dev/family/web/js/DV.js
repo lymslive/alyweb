@@ -182,7 +182,7 @@ var $DV = {
 				$(this.domid).append(this.hth());
 			}
 
-			var sumary = [$DD.Table.total, $DD.Table.page, Math.ceil($DD.Table.total/$DD.Table.perpage)];
+			var sumary = [$DD.Table.page, $DD.Table.pagemax, $DD.Table.total];
 			$('#tabSumary span.data').each(function(_idx, _ele) {
 				$(this).html(sumary[_idx]);
 			});
@@ -322,6 +322,7 @@ var $DV = {
 				this.tan = $checkbox[0].checked;
 				this.man = $checkbox[1].checked;
 				$DV.Table.fill();
+				this.showCount(true);
 			},
 
 			onSelection: function() {
@@ -330,6 +331,17 @@ var $DV = {
 				this.levelFrom = parseInt($levelFrom.val());
 				this.levelTo = parseInt($levelTo.val());
 				$DV.Table.fill();
+				this.showCount(true);
+			},
+
+			showCount: function(_filtered) {
+				if (!_filtered) {
+					$('#formFilter div.operate-warn').html('');
+				}
+				else {
+					var msg = '当前页筛选：' + $DV.Table.rows + '/' + $DD.Table.list.length + '成员';
+					$('#formFilter div.operate-warn').html(msg);
+				}
 			},
 
 			checkTan: function(_row) {
@@ -360,6 +372,7 @@ var $DV = {
 					this.tan = this.man = false;
 					this.levelFrom = this.levelTo = 0;
 					$DV.Table.fill();
+					this.showCount(false);
 					$('#formFilter').trigger('reset');
 				}
 			},
@@ -369,6 +382,19 @@ var $DV = {
 					console.log('已拉取所有数据，无需请求');
 				}
 			}
+		},
+
+		// 分页查询管理
+		Pager: {
+			where: {all: 1},
+
+			next: function() {
+			},
+
+			prev: function() {
+			},
+
+			LAST_PRETECT: true
 		},
 
 		LAST_PRETECT: true
@@ -777,6 +803,16 @@ var $DV = {
 			$input.removeClass('input-lock');
 		},
 
+		// 重置没有锁定的输入域
+		resetNolock: function() {
+			$('#formOperate input:text').each(function(_idx, _ele) {
+				if (!$(this).attr('readonly')) {
+					$(this).val('')
+				}
+			});
+			$('#formOperate input[type=date]').val('');
+		},
+
 		submit: function(evt) {
 			if (!this.refid) {
 				console.log('逻辑错误：没有参考个人信息');
@@ -842,10 +878,10 @@ var $DV = {
 						}
 					}
 				}
-				if (birthday) {
+				if (birthday && birthday != jold.F_birthday) {
 					reqData.birthday = birthday;
 				}
-				if (deathday) {
+				if (deathday && deathday != jold.F_deathday) {
 					reqData.deathday = deathday;
 				}
 
@@ -1062,12 +1098,6 @@ var $DV = {
 			var link = $DV.Fun.linktoPerson($DD.Table.Hash[$DD.Login.id]);
 			var $link = $(link).click($DE.onSeePerson);
 			$('#has-login span.data').html($link);
-			$('#login-msg').html('');
-		},
-
-		// 登陆失败
-		onFail: function(_msg) {
-			$('#login-msg').html(_msg);
 		},
 
 		// 快速根据某个 id 登陆
