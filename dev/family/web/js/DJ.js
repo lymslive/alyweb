@@ -36,7 +36,7 @@ var $DJ = {
 			.done(function(_res, _textStatus, _jqXHR) {
 				// api 返回的 res 直接解析为 json
 				if (_res.error) {
-					$LOG('api err = ' + _res.error + '; errmsg' + _res.errmsg);
+					$LOG('api err = ' + _res.error + '; errmsg = ' + _res.errmsg);
 					// $DJ.resError(_res, _req);
 					if (_form && _msg && _msg.err) {
 						$msg.html(_msg.err);

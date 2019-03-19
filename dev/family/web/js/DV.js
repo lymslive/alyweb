@@ -379,9 +379,7 @@ var $DV = {
 			},
 
 			onSubmit: function() {
-				if (!$DD.Table.may_more) {
-					console.log('已拉取所有数据，无需请求');
-				}
+				// 只前端过滤当前页，不涉及服务器
 			}
 		},
 
@@ -390,6 +388,7 @@ var $DV = {
 			// 响应提交表单
 			onSubmit: function() {
 				var $form = $('#formQuery');
+				var where = {};
 
 				var id = $form.find('input:text[name=id]').val();
 				if (id) {
@@ -417,19 +416,36 @@ var $DV = {
 				}
 				else if (levelFrom && levelTo) {
 					if (levelFrom < levelTo) {
-						where.level = {'-in': [levelFrom, levelTo]};
+						where.level = {'-between': [levelFrom, levelTo]};
 					}
 					else if (levelFrom > levelTo) {
-						where.level = {'-in': [levelTo, levelFrom]};
+						where.level = {'-between': [levelTo, levelFrom]};
 					}
 					else {
 						where.level = levelFrom;
 					}
 				}
 
+				var partner = $form.find('input:checkbox[value=partner]')[0].checked;
+				if (partner) {
+					if (where.level) {
+						if (typeof(where.level) == 'number') {
+							where.level = [where.level, -where.level];
+						}
+						else if (typeof(where.level) == 'object') {
+							var partnerFrom = -where.level['-between'][1];
+							var partnerTo = -where.level['-between'][0];
+							where.level = [where.level, {'-between': [partnerFrom, partnerTo]}];
+						}
+					}
+					else {
+						where.level = {'!=': 0};
+					}
+				}
+
 				// 生日
-				var birthdayFrom  = $form.find('input:text[name=birthday-from]').val();
-				var birthdayTo  = $form.find('input:text[name=birthday-to]').val();
+				var birthdayFrom  = $form.find('input[name=birthday-from]').val();
+				var birthdayTo  = $form.find('input[name=birthday-to]').val();
 				if (birthdayFrom && !birthdayTo) {
 					where.birthday = {'>=': birthdayFrom};
 				}
@@ -437,7 +453,23 @@ var $DV = {
 					where.birthday = {'<=': birthdayTo};
 				}
 				else if (birthdayFrom && birthdayTo) {
-					where.birthday = {'-in': [birthdayFrom, birthdayTo]};
+					where.birthday = {'-between': [birthdayFrom, birthdayTo]};
+				}
+
+				if (!where.birthday) {
+					var ageTo = $form.find('input:text[name=age-to]').val();
+					var ageFrom = $form.find('input:text[name=age-from]').val();
+					ageTo = parseInt(ageTo);
+					ageFrom = parseInt(ageFrom);
+					if (ageFrom && ageTo) {
+						where.age = [ageFrom, ageTo];
+					}
+					else if (!ageFrom && ageTo) {
+						where.age = ageTo; // 服务器接口，一个参数指年龄上限
+					}
+					else if (ageFrom && !ageTo) {
+						where.age = [ageFrom, 100];
+					}
 				}
 
 				// 数据存到 $DD
@@ -445,11 +477,13 @@ var $DV = {
 				that.where = where;
 				that.fresh = true;
 
-				var page  = $form.find('input:text[name=page]').val();
+				var page  = $form.find('input[name=page]').val();
+				page = parseInt(page);
 				if (page) {
 					that.page = page;
 				}
-				var perpage  = $form.find('input:text[name=perpage]').val();
+				var perpage  = $form.find('input[name=perpage]').val();
+				perpage = parseInt(perpage);
 				if (perpage) {
 					that.perpage = perpage;
 				}
@@ -468,10 +502,11 @@ var $DV = {
 					req.data.all = 1;
 				}
 
+				// console.log('req = ' + JSON.stringify(req));
 				return $DJ.reqQuery(req);
 			},
 
-			doneQuery: function(_reqData) {
+			doneQuery: function(_resData) {
 				$DD.Table.load(_resData);
 				$DV.Table.fill();
 			},
@@ -496,20 +531,33 @@ var $DV = {
 			},
 
 			// 勾选父系，自动在姓名域填 '谭%'
-			onCheckbox: function() {
-				var $checkbox = $('#formQuery input:checkbox[name=filter]');
-				var tan = $checkbox[0].checked;
-				if (tan) {
-					$('#formQuery input:text[name=name]').val($DD.Tan + '%');
+			onCheckbox: function(_checkbox) {
+				var val = _checkbox.value;
+				if (val == 'tan') {
+					// console.log('check tan');
+					if (_checkbox.checked) {
+						$('#formQuery input:text[name=name]').val($DD.TAN + '%');
+					}
+					else {
+						$('#formQuery input:text[name=name]').val('');
+					}
 				}
-				else {
-					$('#formQuery input:text[name=name]').val('');
+				else if (val == 'partner') {
+					// console.log('check partner');
 				}
 			},
 
 			// 改变年龄，自动转化为生日
-			onAge: function() {
-				//
+			onAge: function(_ele) {
+				// console.log('age changed: ' + _ele.name);
+				var age = parseInt(_ele.value);
+				if (!age || age < 1) {
+					return;
+				}
+				age--;
+				var now = new Date();
+				now.setFullYear(now.getFullYear() - age);
+				// 设 date 域似乎有点问题
 			},
 
 			LAST_PRETECT: true
@@ -560,6 +608,11 @@ var $DV = {
 		update: function(_force) {
 			var Data = $DD.Person;
 			if (!Data.update && !_force) {
+				console.log('没有标记更新');
+				return false;
+			}
+			if (!Data.mine) {
+				console.log('缺少个人基本数据');
 				return false;
 			}
 

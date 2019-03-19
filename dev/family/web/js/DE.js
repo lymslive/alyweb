@@ -179,14 +179,14 @@ var $DE = {
 			});
 
 			$form.find('input:checkbox[name=filter]').change(function(_evt){
-				$DV.Table.Pager.onCheckbox();
+				$DV.Table.Pager.onCheckbox(this);
 			});
 
 			$form.find('input:text[name=age-from]').change(function(_evt){
-				$DV.Table.Pager.onAge();
+				$DV.Table.Pager.onAge(this);
 			});
 			$form.find('input:text[name=age-to]').change(function(_evt){
-				$DV.Table.Pager.onAge();
+				$DV.Table.Pager.onAge(this);
 			});
 
 			// 添加辈份选项

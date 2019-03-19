@@ -154,8 +154,8 @@ sub handle_query
 	my $fields = $jreq->{fields};
 
 	# 计算 limit 分页上下限
-	my $page = $jreq->{page} || 1;
-	my $perpage = $jreq->{perpage} || 100;
+	my $page = 0 + $jreq->{page} || 1;
+	my $perpage = 0 + $jreq->{perpage} || 100;
 	my $lb = ($page-1) * $perpage;
 	my $ub = ($page) * $perpage;
 	my $limit = "$lb,$ub";
@@ -183,9 +183,9 @@ sub handle_query
 		if ($filter->{birthday}) {
 			my $birthday = $filter->{birthday};
 			if (ref($birthday) eq 'ARRAY') {
-				$where->{F_birthday} = {-in => $birthday};
+				$where->{F_birthday} = {-between => $birthday};
 			}
-			else {
+			elsif (!ref($birthday)) {
 				$where->{F_birthday} = {'>=' => $birthday};
 			}
 		}
@@ -193,9 +193,9 @@ sub handle_query
 		if ($filter->{deathday}) {
 			my $deathday = $filter->{deathday};
 			if (ref($deathday) eq 'ARRAY') {
-				$where->{F_deathday} = {-in => $deathday};
+				$where->{F_deathday} = {-between => $deathday};
 			}
-			else {
+			elsif (!ref($deathday)) {
 				$where->{F_deathday} = {'<=' => $deathday};
 			}
 		}
@@ -205,9 +205,9 @@ sub handle_query
 			if (ref($age) eq 'ARRAY') {
 				my $birth_from = DateTime->now->add(years => -$age->[1]);
 				my $birth_to = DateTime->now->add(years => -$age->[0]);
-				$where->{F_birthday} = {-in => [$birth_from, $birth_to]};
+				$where->{F_birthday} = {-between => [$birth_from, $birth_to]};
 			}
-			else {
+			elsif (!ref($age)) {
 				my $birth_from = DateTime->now->add(years => -$age->[0]);
 				$where->{F_bithathday} = {'>=' => $birth_from};
 			}
