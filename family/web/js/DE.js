@@ -114,7 +114,7 @@ var $DE = {
 			});
 
 			// 强制解锁已自动填充的表单域
-			$form.find('a.input-unlock').click({form: $from}, this.unlockInput);
+			$form.find('a.input-unlock').click({form: $form}, this.unlockInput);
 		},
 
 		unlockInput: function(_evt) {
@@ -215,7 +215,7 @@ var $DE = {
 				$DV.Operate.closePasswd();
 			});
 
-			$form.find('a.input-unlock').click({form: $from}, this.unlockInput);
+			$form.find('a.input-unlock').click({form: $form}, this.unlockInput);
 		},
 
 		// 快捷搜索成员表单
