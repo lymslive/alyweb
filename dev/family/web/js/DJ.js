@@ -86,23 +86,6 @@ var $DJ = {
 		var req = {"api":"query","data":{"all":1}};
 		this.query = this.requestAPI(req, function(_resData, _reqData) {
 			$DV.Table.Pager.doneQuery(_resData);
-			$DJ.reqPartnerAll();
-		});
-	},
-
-	// 查询配偶
-	reqPartnerAll: function() {
-		var req = {"api":"query",
-			"data":{
-				"filter":{
-					"level":{"<":0},  // 代际负为旁系
-					"partner":{">":0},// 确实关联一个成员
-				}
-			}
-		};
-		this.partner = this.requestAPI(req, function(_resData, _reqData) {
-			$DD.Table.storePartner(_resData, _reqData);
-			$DV.Table.updateName();
 		});
 	},
 
