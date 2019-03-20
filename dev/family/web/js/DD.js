@@ -50,7 +50,6 @@ var $DD = {
 			page: 0,
 			perpage: 0,
 			pagemax: 1,
-			may_more: false,
 
 			saveList: function(_list) {
 				if (this.fresh) {
@@ -113,12 +112,11 @@ var $DD = {
 				}
 			}
 
-			this.Pager.total = _resData.total;
 			this.Pager.page = _resData.page;
 			this.Pager.perpage = _resData.perpage;
-			this.Pager.pagemax = Math.ceil(this.Pager.total/this.Pager.perpage);
-			if (this.Pager.pagemax > this.Pager.page) {
-				this.Pager.may_more = true;
+			if (_resData.page <= 1) {
+				this.Pager.total = _resData.total;
+				this.Pager.pagemax = Math.ceil(this.Pager.total/this.Pager.perpage);
 			}
 
 			// 保存页历史

@@ -113,7 +113,7 @@ var $DJ = {
 			return false;
 		}
 		var form = 'formQuery';
-		var msg = {suc: '查询完成'};
+		var msg = {suc: '查询完成，结果列于上表'};
 		this.query = this.requestAPI(_req, function(_resData, _reqData) {
 			$DV.Table.Pager.doneQuery(_resData);
 		}, form, msg);
@@ -244,8 +244,3 @@ $(document).ready(function() {
 	$DOC.INIT();
 });
 
-/* 备注：
- * 跳转到指定地方：
- * var scroll_offset = $('#pos').offset()
- * $("body,html").animate({scrollTo:scroll_offset.top})
- */

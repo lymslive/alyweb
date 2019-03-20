@@ -183,7 +183,7 @@ var $DV = {
 			}
 
 			var Pager = $DD.Table.Pager;
-			var sumary = [Pager.page, Pager.pagemax, Pager.total];
+			var sumary = [Pager.curidx+1, Pager.pagemax, Pager.total];
 			$('#tabSumary span.data').each(function(_idx, _ele) {
 				$(this).html(sumary[_idx]);
 			});
@@ -426,23 +426,6 @@ var $DV = {
 					}
 				}
 
-				var partner = $form.find('input:checkbox[value=partner]')[0].checked;
-				if (partner) {
-					if (where.level) {
-						if (typeof(where.level) == 'number') {
-							where.level = [where.level, -where.level];
-						}
-						else if (typeof(where.level) == 'object') {
-							var partnerFrom = -where.level['-between'][1];
-							var partnerTo = -where.level['-between'][0];
-							where.level = [where.level, {'-between': [partnerFrom, partnerTo]}];
-						}
-					}
-					else {
-						where.level = {'!=': 0};
-					}
-				}
-
 				// 生日
 				var birthdayFrom  = $form.find('input[name=birthday-from]').val();
 				var birthdayTo  = $form.find('input[name=birthday-to]').val();
@@ -509,6 +492,7 @@ var $DV = {
 			doneQuery: function(_resData) {
 				$DD.Table.load(_resData);
 				$DV.Table.fill();
+				location.href='#pg1-table';
 			},
 
 			doNext: function() {
@@ -545,19 +529,6 @@ var $DV = {
 				else if (val == 'partner') {
 					// console.log('check partner');
 				}
-			},
-
-			// 改变年龄，自动转化为生日
-			onAge: function(_ele) {
-				// console.log('age changed: ' + _ele.name);
-				var age = parseInt(_ele.value);
-				if (!age || age < 1) {
-					return;
-				}
-				age--;
-				var now = new Date();
-				now.setFullYear(now.getFullYear() - age);
-				// 设 date 域似乎有点问题
 			},
 
 			LAST_PRETECT: true

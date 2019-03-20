@@ -158,7 +158,7 @@ sub handle_query
 	my $perpage = 0 + $jreq->{perpage} || 100;
 	my $lb = ($page-1) * $perpage;
 	my $ub = ($page) * $perpage;
-	my $limit = "$lb,$ub";
+	my $limit = "$lb,$perpage";
 
 	# 默认不选姓名为 '0' 与旁系
 	my $where = {};
@@ -223,7 +223,7 @@ sub handle_query
 	$jres->{page} = $page;
 	$jres->{perpage} = $perpage;
 	my $total = scalar(@{$records});
-	if ($total >= $perpage) {
+	if ($page <= 1 && $total >= $perpage) {
 		$total= $db->Count($where);
 	}
 	$jres->{total} = $total;

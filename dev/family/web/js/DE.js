@@ -182,13 +182,6 @@ var $DE = {
 				$DV.Table.Pager.onCheckbox(this);
 			});
 
-			$form.find('input:text[name=age-from]').change(function(_evt){
-				$DV.Table.Pager.onAge(this);
-			});
-			$form.find('input:text[name=age-to]').change(function(_evt){
-				$DV.Table.Pager.onAge(this);
-			});
-
 			// 添加辈份选项
 			this.fillLevel($form);
 		},
