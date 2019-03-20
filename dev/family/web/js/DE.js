@@ -114,11 +114,12 @@ var $DE = {
 			});
 
 			// 强制解锁已自动填充的表单域
-			$form.find('a.input-unlock').click(this.unlockInput);
+			$form.find('a.input-unlock').click({form: $from}, this.unlockInput);
 		},
 
 		unlockInput: function(_evt) {
 			_evt.preventDefault();
+			var $form = _evt.data.form;
 			var href = $(this).attr('href');
 			var name = href.substring(1);
 			var $input = $form.find(`input:text[name=${name}]`);
@@ -214,7 +215,7 @@ var $DE = {
 				$DV.Operate.closePasswd();
 			});
 
-			$form.find('a.input-unlock').click(this.unlockInput);
+			$form.find('a.input-unlock').click({form: $from}, this.unlockInput);
 		},
 
 		// 快捷搜索成员表单

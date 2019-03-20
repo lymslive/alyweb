@@ -31,6 +31,18 @@ var $DV = {
 			var html = `<a href="#p${_id}" title="${title}" class="${css}">${name}</a>`;
 			return html;
 		},
+
+		// 跳转到某位置
+		jumpLink: function(_sid) {
+			location.href = _sid;
+		},
+
+		// 生成快速登陆链接
+		quickLoginLink: function(_id) {
+			var html = `<a href="#" class="quicklogin" title="点击用此id登陆">${_id}</a>`;
+			return html;
+		}
+
 	},
 
 	Page: {
@@ -66,7 +78,10 @@ var $DV = {
 
 			// 首次进入个人详情页，默认展示顶级祖先
 			if (_toid == '#pg2-person' && !_hasperson) {
-				if (!$DD.Person.curid) {
+				if ($DD.Login.id) {
+					this.checkPerson($DD.Login.id);
+				}
+				else if (!$DD.Person.curid) {
 					this.checkPerson($DD.Person.DEFAULT);
 				}
 			}
@@ -167,7 +182,8 @@ var $DV = {
 				$(this.domid).append(this.hth());
 			}
 
-			var sumary = [$DD.Table.total, $DD.Table.page, Math.ceil($DD.Table.total/$DD.Table.perpage)];
+			var Pager = $DD.Table.Pager;
+			var sumary = [Pager.curidx+1, Pager.pagemax, Pager.total];
 			$('#tabSumary span.data').each(function(_idx, _ele) {
 				$(this).html(sumary[_idx]);
 			});
@@ -192,11 +208,7 @@ var $DV = {
 			;
 
 			var $td = $("<td></td>\n");
-			var $link = $('<a></a>')
-				.html(id)
-				.attr('id', 'm' + id)
-				.attr('href', '#p' + id)
-				.attr('class', 'rowid')
+			var $link = $($DV.Fun.quickLoginLink(id))
 				.appendTo($td);
 			$tr.append($td);
 
@@ -254,6 +266,7 @@ var $DV = {
 				$DE.gotoPerson($(this));
 				_evt.preventDefault();
 			});
+			$tr.find('td a.quicklogin').click($DE.onQuickLogin);
 
 			$tr.mouseover(function() {
 				$(this).addClass("over");
@@ -310,6 +323,7 @@ var $DV = {
 				this.tan = $checkbox[0].checked;
 				this.man = $checkbox[1].checked;
 				$DV.Table.fill();
+				this.showCount(true);
 			},
 
 			onSelection: function() {
@@ -318,6 +332,17 @@ var $DV = {
 				this.levelFrom = parseInt($levelFrom.val());
 				this.levelTo = parseInt($levelTo.val());
 				$DV.Table.fill();
+				this.showCount(true);
+			},
+
+			showCount: function(_filtered) {
+				if (!_filtered) {
+					$('#formFilter div.operate-warn').html('');
+				}
+				else {
+					var msg = '当前页筛选：' + $DV.Table.rows + '/' + $DD.Table.list.length + '成员';
+					$('#formFilter div.operate-warn').html(msg);
+				}
 			},
 
 			checkTan: function(_row) {
@@ -348,15 +373,165 @@ var $DV = {
 					this.tan = this.man = false;
 					this.levelFrom = this.levelTo = 0;
 					$DV.Table.fill();
+					this.showCount(false);
 					$('#formFilter').trigger('reset');
 				}
 			},
 
 			onSubmit: function() {
-				if (!$DD.Table.may_more) {
-					console.log('已拉取所有数据，无需请求');
-				}
+				// 只前端过滤当前页，不涉及服务器
 			}
+		},
+
+		// 分页查询管理
+		Pager: {
+			// 响应提交表单
+			onSubmit: function() {
+				var $form = $('#formQuery');
+				var where = {};
+
+				var id = $form.find('input:text[name=id]').val();
+				if (id) {
+					where.id = id;
+				}
+				var name  = $form.find('input:text[name=name]').val();
+				if (name) {
+					where.name = name;
+				}
+				var sex = $form.find('select[name=sex]').val();
+				if (sex) {
+					where.sex = parseInt(sex);
+				}
+
+				// 代际处理
+				var $levelFrom = $form.find('select[name=level-from]');
+				var $levelTo = $form.find('select[name=level-to]');
+				var levelFrom = parseInt($levelFrom.val());
+				var levelTo = parseInt($levelTo.val());
+				if (levelFrom && !levelTo) {
+					where.level = levelFrom;
+				}
+				else if (!levelFrom && levelTo) {
+					where.level = levelTo;
+				}
+				else if (levelFrom && levelTo) {
+					if (levelFrom < levelTo) {
+						where.level = {'-between': [levelFrom, levelTo]};
+					}
+					else if (levelFrom > levelTo) {
+						where.level = {'-between': [levelTo, levelFrom]};
+					}
+					else {
+						where.level = levelFrom;
+					}
+				}
+
+				// 生日
+				var birthdayFrom  = $form.find('input[name=birthday-from]').val();
+				var birthdayTo  = $form.find('input[name=birthday-to]').val();
+				if (birthdayFrom && !birthdayTo) {
+					where.birthday = {'>=': birthdayFrom};
+				}
+				else if (!birthdayFrom && birthdayTo) {
+					where.birthday = {'<=': birthdayTo};
+				}
+				else if (birthdayFrom && birthdayTo) {
+					where.birthday = {'-between': [birthdayFrom, birthdayTo]};
+				}
+
+				if (!where.birthday) {
+					var ageTo = $form.find('input:text[name=age-to]').val();
+					var ageFrom = $form.find('input:text[name=age-from]').val();
+					ageTo = parseInt(ageTo);
+					ageFrom = parseInt(ageFrom);
+					if (ageFrom && ageTo) {
+						where.age = [ageFrom, ageTo];
+					}
+					else if (!ageFrom && ageTo) {
+						where.age = ageTo; // 服务器接口，一个参数指年龄上限
+					}
+					else if (ageFrom && !ageTo) {
+						where.age = [ageFrom, 100];
+					}
+				}
+
+				// 数据存到 $DD
+				var that = $DD.Table.Pager;
+				that.where = where;
+				that.fresh = true;
+
+				var page  = $form.find('input[name=page]').val();
+				page = parseInt(page);
+				if (page) {
+					that.page = page;
+				}
+				var perpage  = $form.find('input[name=perpage]').val();
+				perpage = parseInt(perpage);
+				if (perpage) {
+					that.perpage = perpage;
+				}
+
+				return this.doQuery();
+			},
+
+			doQuery: function() {
+				var that = $DD.Table.Pager;
+				var req = {api: 'query'};
+				req.data = {page: that.page, perpage: that.perpage};
+				if (that.where && Object.keys(that.where).length > 0) {
+					req.data.filter = that.where;
+				}
+				else {
+					req.data.all = 1;
+				}
+
+				// console.log('req = ' + JSON.stringify(req));
+				return $DJ.reqQuery(req);
+			},
+
+			doneQuery: function(_resData) {
+				$DD.Table.load(_resData);
+				$DV.Table.fill();
+				location.href='#pg1-table';
+			},
+
+			doNext: function() {
+				var flag = $DD.Table.Pager.next();
+				if (!flag) {
+					return;
+				}
+				if (flag == 'fill') {
+					return $DV.Table.fill();
+				}
+				if (flag == 'query') {
+					return this.doQuery();
+				}
+			},
+
+			doPrev: function() {
+				if ($DD.Table.Pager.prev()) {
+					$DV.Table.fill();
+				}
+			},
+
+			// 勾选父系，自动在姓名域填 '谭%'
+			onCheckbox: function(_checkbox) {
+				var val = _checkbox.value;
+				if (val == 'tan') {
+					// console.log('check tan');
+					if (_checkbox.checked) {
+						$('#formQuery input:text[name=name]').val($DD.TAN + '%');
+					}
+					else {
+						$('#formQuery input:text[name=name]').val('');
+					}
+				}
+				else if (val == 'partner') {
+					// console.log('check partner');
+				}
+			},
+
+			LAST_PRETECT: true
 		},
 
 		LAST_PRETECT: true
@@ -404,6 +579,11 @@ var $DV = {
 		update: function(_force) {
 			var Data = $DD.Person;
 			if (!Data.update && !_force) {
+				console.log('没有标记更新');
+				return false;
+			}
+			if (!Data.mine) {
+				console.log('缺少个人基本数据');
 				return false;
 			}
 
@@ -423,8 +603,10 @@ var $DV = {
 					level = '第 ' + level + ' 代旁系';
 				}
 
-				var text = id + ' | ' + name + ' | ' + level;
-				$('#mine-info').html(text);
+				var idLink = $DV.Fun.quickLoginLink(id);
+				var text = idLink + ' | ' + name + ' | ' + level;
+				$('#mine-info').html(text)
+					.find('a.quicklogin').click($DE.onQuickLogin);
 
 				if (Data.mine.F_birthday) {
 					var text = '';
@@ -633,13 +815,13 @@ var $DV = {
 
 		// 关闭所有
 		close: function() {
-			if (!this.refid) {
+			if ($('#divOperate').css('display') == 'none') {
 				return;
 			}
 			$('#formOperate').trigger('reset');
 			$('#divOperate div.operate-tips').hide();
 			$('#formOperate input:radio[name=operate]').parent('label').removeClass('radio-checked');
-			$('#oper-error').html('');
+			$('#formOperate div.operate-warn').html('');
 			$('a[href=#divOperate]').click();
 			this.refid = 0;
 		},
@@ -763,6 +945,16 @@ var $DV = {
 			$input.removeClass('input-lock');
 		},
 
+		// 重置没有锁定的输入域
+		resetNolock: function() {
+			$('#formOperate input:text').each(function(_idx, _ele) {
+				if (!$(this).attr('readonly')) {
+					$(this).val('')
+				}
+			});
+			$('#formOperate input[type=date]').val('');
+		},
+
 		submit: function(evt) {
 			if (!this.refid) {
 				console.log('逻辑错误：没有参考个人信息');
@@ -783,7 +975,7 @@ var $DV = {
 
 			var reqData = {};
 			var req = {};
-			var $error = $('#oper-error');
+			var $error = $form.find('div.operate-warn');
 			if (op == 'modify') {
 				if (!mine_id || mine_id != this.refid) {
 					console.log('id 不匹配');
@@ -828,10 +1020,10 @@ var $DV = {
 						}
 					}
 				}
-				if (birthday) {
+				if (birthday && birthday != jold.F_birthday) {
 					reqData.birthday = birthday;
 				}
-				if (deathday) {
+				if (deathday && deathday != jold.F_deathday) {
 					reqData.deathday = deathday;
 				}
 
@@ -844,8 +1036,6 @@ var $DV = {
 				reqData.requery = 1;
 				req.api = 'modify';
 				req.data = reqData;
-				console.log(req);
-				$DV.log(req);
 				$DJ.reqModify(req);
 			}
 			else if (op == 'append') {
@@ -913,8 +1103,6 @@ var $DV = {
 				reqData.requery = 1;
 				req.api = 'create';
 				req.data = reqData;
-				console.log(req);
-				$DV.log(req);
 				$DJ.reqAppend(req);
 			}
 			else {
@@ -926,6 +1114,7 @@ var $DV = {
 			return false;// 测试不提交
 		},
 
+		// 提交修改简介
 		submitBrief: function() {
 			if (!$DD.Person.curid) {
 				return false;
@@ -940,16 +1129,63 @@ var $DV = {
 			if (!$DD.Person.brief) {
 				create = 1;
 			}
-			$DJ.reqBrief(id, text, create);
+			var key = $('#formBrief input:password').val();
+			if (!key) {
+				return;
+			}
+			$DJ.reqBrief({api: 'modify_brief',
+				data: {id: id, text: text, create: create},
+				sess: $DD.Login.reqSess(key)
+			});
 		},
 
-		// 关闭表单
+		// 关闭简介表单
 		closeBrief: function(_succ) {
 			if ($('#formBrief textarea').val()) {
 				$('#formBrief textarea').val('');
 			}
 			if ($('#modify-brief').css('display') != 'none') {
 				$('a[href=#modify-brief]').click();
+			}
+		},
+
+		// 提交修改密码
+		submitPasswd: function() {
+			var $form = $('#formPasswd');
+			var keytype = $form.find('input:radio[name=keytype]:checked').val();
+			if (!keytype) {
+				return;
+			}
+			var id = $form.find('input[name=mine_id]').val();
+			var oldkey = $form.find('input[name=oldkey]').val();
+			var newkey = $form.find('input[name=newkey]').val();
+			var seckey = $form.find('input[name=seckey]').val();
+
+			if (newkey != seckey) {
+				$('#divPasswd div.operate-warn').html('新密码与确认密码不相同，请核查');
+				return;
+			}
+			if (newkey == oldkey) {
+				$('#divPasswd div.operate-warn').html('新密码与旧密码相同，没有修改');
+				return;
+			}
+
+			$DJ.reqPasswd({api: 'modify_passwd',
+				data: {
+					id: id,
+					keytype: keytype,
+					oldkey: oldkey,
+					newkey: newkey
+				},
+				sess: $DD.Login.reqSess()
+			});
+		},
+
+		// 关闭修改密码表单
+		closePasswd: function() {
+			$('#formPasswd').trigger('reset');
+			if ($('#divPasswd').css('display') != 'none') {
+				$('a[href=#divPasswd]').click();
 			}
 		},
 
@@ -960,7 +1196,7 @@ var $DV = {
 	// 帮助页
 	Help: {
 		pulled: false,
-		
+
 		// 显示帮助页
 		showdoc: function(res) {
 			if (res) {
@@ -974,12 +1210,54 @@ var $DV = {
 		},
 	},
 
-	log: function(_msg) {
-		if (typeof(_msg) == 'object') {
-			_msg = JSON.stringify(_msg);
+	// 登陆界面
+	Login: {
+		formSID: '#formLogin',
+
+		onSubmit: function() {
+			var user = $('#formLogin input[name=loginuid]').val();
+			var key  = $('#formLogin input[name=loginkey]').val();
+			if (!user || !key) {
+				return;
+			}
+			var reqData = {};
+			var id = parseInt(user) || 0;
+			if (!id) {
+				reqData.name = user;
+			}
+			else {
+				reqData.id = user;
+			}
+			reqData.key = key;
+			return $DJ.reqLogin(reqData);
+		},
+
+		// 登陆成功
+		onSucc: function() {
+			$(this.formSID).hide();
+			$('#not-login').hide();
+			$('#has-login').show();
+			var link = $DV.Fun.linktoPerson($DD.Table.Hash[$DD.Login.id]);
+			var $link = $(link).click($DE.onSeePerson);
+			$('#has-login span.data').html($link);
+		},
+
+		// 快速根据某个 id 登陆
+		// 自动输入 id ，定位到密码框
+		quick: function(_id) {
+			if (!_id) {
+				return;
+			}
+			if ($DD.Login.id && $DD.Login.id == _id) {
+				return;
+			}
+			$('#formLogin input[name=loginuid]').val(_id);
+			$('#formLogin').show();
+			$('#formLogin input[name=loginkey]').val('').focus();
+			$DV.Fun.jumpLink('#login-bar');
 		}
-		$('#debug-log').append("<p>" + _msg + "</p>");
 	},
+
 	LAST_PRETECT: true
 };
 

@@ -5,11 +5,24 @@ var $DD = {
 	API_URL: '/family/japi.cgi',
 	HELP_URL: '/family/web/doc/help.htm',
 	TAN: '谭',
-	LEVEL: ['辈', '年', '芳', '和', '积', '祥', '生'],
+	LEVEL: ['辈份', '年', '芳', '和', '积', '祥', '生'],
 	SEX: ['女♀', '男♂'],
 	NULL: '',
 	OPERATE_KEY: 'Tan@2019',
 	LOGIN_KEY: '123456',
+
+	Tip: {
+		operaCtrl: '只有以当前成员或其直系亲属登陆才有修改权限',
+		ontLogin: '您没有登陆',
+		modifyPasswdOnlySelf: '只能修改自己的密码',
+		LAST_PRETECT: 1
+	},
+
+	Fun: {
+		objcmp: function(_lhs, _rhs) {
+			return true;
+		}
+	},
 
 	Mapid: {},
 	getName: function(id) {
@@ -19,34 +32,95 @@ var $DD = {
 		return this.Table.Hash[id];
 	},
 
+	// 从服务器查得的数据表
 	Table: {
 		Title: ['编号', '姓名', '性别', '代际', '父亲', '母亲', '配偶', '生日', '忌日'],
-		List: [],
-		Hash: {},
+		Hash: {}, // 尽可能缓存从服务端查询的记录，以 id 为键
+		List: [], // 当前页列表
 
-		// 服务器返回的统计信息
-		total: 0,
-		page: 0,
-		perpage: 0,
-		may_more: false,
+		// 分页查询管理
+		Pager: {
+			Hist: [],   // 分页历史保存
+			curidx: 0, // 当前显示第几页
+			where: null,  // 当前分页查询条件
+			fresh: false, // 开始按新条件查询
 
-		// 重新加载全表数据
-		load: function(resData) {
-			this.List = resData.records;
+			// 服务器返回的统计信息
+			total: 0,
+			page: 0,
+			perpage: 0,
+			pagemax: 1,
+
+			saveList: function(_list) {
+				if (this.fresh) {
+					this.Hist = null;
+					this.Hist = [_list];
+					this.fresh = false;
+				}
+				else {
+					this.Hist.push(_list);
+				}
+				this.curidx = this.Hist.length - 1;
+			},
+
+			// 下一页，分三种情况返回字符串指示：
+			// fill: 前端内存直接可填充
+			// qurey: 可向后端异步查询下一页
+			// '': 没有更多页了
+			next: function() {
+				this.curidx += 1;
+				if (this.curidx < this.Hist.length) {
+					$DD.Table.List = this.Hist[this.curidx];
+					return 'fill';
+				}
+				this.curidx -= 1;
+
+				if (this.page < this.pagemax) {
+					this.page += 1;
+					return 'query';
+				}
+
+				return '';
+			},
+
+			// 前一页，返回能否切到之前查过的前一页
+			prev: function() {
+				if (this.curidx > 0) {
+					this.curidx -= 1;
+					$DD.Table.List = this.Hist[this.curidx];
+					return true;
+				}
+				return false;
+			},
+
+			LAST_PRETECT: true
+		},
+
+		// 重新加载从服务端返回的一页数据
+		load: function(_resData) {
+			this.List = _resData.records;
 			// this.Hash = {};
 			for (var i = 0; i < this.List.length; ++i) {
 				var id = this.List[i].F_id;
 				var name = this.List[i].F_name;
 				$DD.Mapid[id] = name;
 				this.Hash[id] = this.List[i];
+
+				// 设置顶级祖先为详情页默认查看对象
+				if (this.List[i].F_level == 1) {
+					$DD.Person.DEFAULT = id;
+				}
 			}
 
-			this.total = resData.total;
-			this.page = resData.page;
-			this.perpage = resData.perpage;
-			if (this.total > this.perpage && this.total > (this.page-1) * this.perpage + this.List.length) {
-				this.may_more = true;
+			this.Pager.page = _resData.page;
+			this.Pager.perpage = _resData.perpage;
+			if (_resData.page <= 1) {
+				this.Pager.total = _resData.total;
+				this.Pager.pagemax = Math.ceil(this.Pager.total/this.Pager.perpage);
 			}
+
+			// 保存页历史
+			this.Pager.saveList(this.List);
 		},
 
 		// 更新服务器数据回调，包含修改自己与增加子女
@@ -106,6 +180,9 @@ var $DD = {
 				$DV.Person.update();
 				$DV.Person.Table.expandDown();
 			}
+
+			// 重置未锁定的输入域
+			$DV.Operate.resetNolock();
 		},
 
 		// 增量修改或存储一行数据
@@ -204,7 +281,7 @@ var $DD = {
 		canUpdate: function(_bit) {
 			return this.update & _bit;
 		},
-		clearUpdate() {
+		clearUpdate: function() {
 			this.update = 0;
 		},
 
@@ -316,7 +393,9 @@ var $DD = {
 			}
 			else {
 				// 直接请求查询简介了
-				$DJ.reqBrief(_id);
+				$DJ.reqBrief({api: 'query_brief',
+					data: {id: _id},
+				});
 			}
 
 			return this.update;
@@ -362,6 +441,7 @@ var $DD = {
 			return this.update;
 		},
 
+		// 查询和修改简介成功回调
 		onBriefRes: function(_resData, _reqData) {
 			var id = _resData.F_id;
 			var text = _resData.F_text;
@@ -389,6 +469,59 @@ var $DD = {
 			}
 		},
 
+		// 检查是否有修改权限
+		canOperate: function(_only_self) {
+			var person = this.curid;
+			var user = $DD.Login.id;
+			if (!user || !person) {
+				return false;
+			}
+			if (user == person) {
+				return true;
+			}
+			if (_only_self) {
+				return false;
+			}
+			if (this.isParent(user)) {
+				return true;
+			}
+			if (this.isChild(user)) {
+				return true;
+			}
+			if (this.isPartner(user)) {
+				return true;
+			}
+			return false;
+		},
+
+		// 检查是否直接父母
+		isParent: function(_user) {
+			if (this.parents && this.parents[0] && this.parents[0].F_id == _user) {
+				return true;
+			}
+			return false;
+		},
+
+		// 检查是否元配
+		isPartner: function(_user) {
+			if (this.partner && this.partner.F_id == _user) {
+				return true;
+			}
+			return false;
+		},
+
+		// 检查是否其中一个孩子
+		isChild: function(_user) {
+			if (this.children) {
+				for (var i = 0; i < this.children.length; ++i) {
+					if (this.children[i].F_id == _user) {
+						return true;
+					}
+				}
+			}
+			return false;
+		},
+
 		// 检查是否其中一个孩子
 		hasChildName: function(_name) {
 			if (this.children) {
@@ -402,6 +535,50 @@ var $DD = {
 		},
 
 		LAST_PRETECT: true
+	},
+
+	// 登陆信息
+	Login: {
+		id: 0,
+		token: '',
+		loginKey: '',
+		operaKey: '',
+
+		// 登陆成功回调
+		callback: function(_resData, _reqData) {
+			this.id = _resData.id;
+			this.token = _resData.token;
+			$DD.Table.Hash[this.id] = _resData.mine;
+			$DV.Login.onSucc();
+		},
+
+		// 打包会话信息，用于其他 api 请求
+		reqSess: function(_key) {
+			var key = _key || this.operaKey;
+			return {
+				id: this.id,
+				token: this.token,
+				opera_key: key
+			};
+		},
+
+		// 修改密码回调
+		onModifyPasswd: function(_resData, _reqData) {
+			if (_resData.id == this.id) {
+				if (_reqData.keytype == 'loginkey') {
+					this.loginKey = _reqData.newkey;
+				}
+				else if (_reqData.keytype == 'operakey') {
+					this.operaKey = _reqData.newkey;
+				}
+				else {
+					console.log('密码类型不对');
+				}
+			}
+			$('#formPasswd').trigger('reset');
+		},
+
+		_: 1
 	},
 
 	LAST_PRETECT: true

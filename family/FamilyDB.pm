@@ -24,6 +24,8 @@ my $TABLE_MEMBER = 't_family_member';
 my @FIELD_MEMBER = qw(F_id F_name F_sex F_level F_father F_mother F_partner F_birthday F_deathday);
 
 my $TABLE_BRIEF = 't_member_brief';
+my $TABLE_PASSWD = 't_member_passwd';
+
 =head1 对象封装
 =cut
 
@@ -96,7 +98,7 @@ sub Query
 		$stmt .= " LIMIT $limit";
 	}
 
-	my $sth = $self->Execute($stmt, \@bind) or return 0;
+	my $sth = $self->Execute($stmt, \@bind) or return undef;
 	my $result = $sth->fetchall_arrayref({});
 	return $result;
 }
@@ -162,6 +164,9 @@ sub Remove
 	my $sth = $self->Execute($stmt, \@bind);
 	return $sth && $sth->rows();
 }
+
+=head1 brief table operate
+=cut
 
 # 查找简介，入参 id ，返回简单字符串，不存在时返回空串
 sub QueryBrief
@@ -238,6 +243,44 @@ sub RemoveBrief
 	return $sth && $sth->rows();
 }
 
+=head1 passwd table operate
+=cut
+
+# 查询密码表，入参 id 与字段列表，返回记录或 undef
+sub QueryPasswd
+{
+	my ($self, $id, $fields) = @_;
+	
+	my $where = { F_id => $id };
+	my($stmt, @bind) = $self->{sql}->select($TABLE_PASSWD, $fields, $where);
+	my $sth = $self->Execute($stmt, \@bind) or return undef;
+	my $result = $sth->fetchrow_hashref;
+	return $result
+}
+
+# 增加密码记录，入参 id 与其他字段值
+sub CreatePasswd
+{
+	my ($self, $id, $fieldvals) = @_;
+	return 0 if !$id || !$fieldvals;
+
+	$fieldvals->{F_id} = $id;
+	my($stmt, @bind) = $self->{sql}->insert($TABLE_PASSWD, $fieldvals);
+	my $sth = $self->Execute($stmt, \@bind);
+	return $sth && $sth->rows();
+}
+
+# 修改密码记录，入参 id 与其他字段值
+sub ModifyPasswd
+{
+	my ($self, $id, $fieldvals) = @_;
+	return 0 if !$id || !$fieldvals;
+
+	my $where = { F_id => $id };
+	my($stmt, @bind) = $self->{sql}->update($TABLE_PASSWD, $fieldvals, $where);
+	my $sth = $self->Execute($stmt, \@bind);
+	return $sth && $sth->rows();
+}
 
 ##-- MAIN --##
 sub main

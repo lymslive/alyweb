@@ -27,6 +27,10 @@ my $MESSAGE_REF = {
 	ERR_PARENT_DISMATCH => '14. 父母辈份不匹配',
 	ERR_MEMBER_LACKED => '15. 不存在成员ID',
 	ERR_ARGNO_TEXT => '16. 参数错误，缺少简介文本',
+	ERR_LOGIN_PASS_WRONG => '17. 登陆密码不对',
+	ERR_OPERA_PASS_WRONG => '18. 操作密码不对',
+	ERR_ARGNO_SESS => '19. 参数错误，缺少会话信息',
+	ERR_OPERA_TOKEN_WRONG => '20. 会话不匹配',
 };
 
 sub error_msg
@@ -49,10 +53,14 @@ my $HANDLER = {
 	create_brief => \& handle_create_brief,
 	modify_brief => \& handle_modify_brief,
 	remove_brief => \& handle_remove_brief,
+
+	login => \&handle_login,
+	modify_passwd => \&handle_modify_passwd,
 };
 
 # 请求入口，分发响应函数
-# req = {api => '接口名', data => {实际请求数据}}
+# req = {api => '接口名', data => {实际请求数据}, sess=>{会话及操作密码}}
+# 修改数据库操作将验证 sess
 sub handle_request
 {
 	my ($jreq) = @_;
@@ -65,6 +73,15 @@ sub handle_request
 		or return response('ERR_SYSNO_API');
 
 	my $db = FamilyDB->new();
+
+	if ($api =~ /create|modify|remove/i) {
+		my $sess = $jreq->{sess} or return response('ERR_ARGNO_SESS');
+		my $error = check_session($db, $sess);
+		if ($error) {
+			return ($error);
+		}
+	}
+
 	my ($error, $res_data) = $handler->($db, $req_data);
 	$db->Disconnect();
 
@@ -137,11 +154,11 @@ sub handle_query
 	my $fields = $jreq->{fields};
 
 	# 计算 limit 分页上下限
-	my $page = $jreq->{page} || 1;
-	my $perpage = $jreq->{perpage} || 100;
+	my $page = 0 + $jreq->{page} || 1;
+	my $perpage = 0 + $jreq->{perpage} || 100;
 	my $lb = ($page-1) * $perpage;
 	my $ub = ($page) * $perpage;
-	my $limit = "$lb,$ub";
+	my $limit = "$lb,$perpage";
 
 	# 默认不选姓名为 '0' 与旁系
 	my $where = {};
@@ -166,9 +183,9 @@ sub handle_query
 		if ($filter->{birthday}) {
 			my $birthday = $filter->{birthday};
 			if (ref($birthday) eq 'ARRAY') {
-				$where->{F_birthday} = {-in => $birthday};
+				$where->{F_birthday} = {-between => $birthday};
 			}
-			else {
+			elsif (!ref($birthday)) {
 				$where->{F_birthday} = {'>=' => $birthday};
 			}
 		}
@@ -176,9 +193,9 @@ sub handle_query
 		if ($filter->{deathday}) {
 			my $deathday = $filter->{deathday};
 			if (ref($deathday) eq 'ARRAY') {
-				$where->{F_deathday} = {-in => $deathday};
+				$where->{F_deathday} = {-between => $deathday};
 			}
-			else {
+			elsif (!ref($deathday)) {
 				$where->{F_deathday} = {'<=' => $deathday};
 			}
 		}
@@ -188,9 +205,9 @@ sub handle_query
 			if (ref($age) eq 'ARRAY') {
 				my $birth_from = DateTime->now->add(years => -$age->[1]);
 				my $birth_to = DateTime->now->add(years => -$age->[0]);
-				$where->{F_birthday} = {-in => [$birth_from, $birth_to]};
+				$where->{F_birthday} = {-between => [$birth_from, $birth_to]};
 			}
-			else {
+			elsif (!ref($age)) {
 				my $birth_from = DateTime->now->add(years => -$age->[0]);
 				$where->{F_bithathday} = {'>=' => $birth_from};
 			}
@@ -206,7 +223,7 @@ sub handle_query
 	$jres->{page} = $page;
 	$jres->{perpage} = $perpage;
 	my $total = scalar(@{$records});
-	if ($total >= $perpage) {
+	if ($page <= 1 && $total >= $perpage) {
 		$total= $db->Count($where);
 	}
 	$jres->{total} = $total;
@@ -285,6 +302,7 @@ sub handle_create
 		wlog("Expect to insert just one row: $ret");
 	}
 
+	$jres->{created} = $ret;
 	if ($jreq->{id}) {
 		$jres->{id} = $jreq->{id};
 	}
@@ -298,6 +316,7 @@ sub handle_create
 		my ($ret_err, $ret_id) = modify_partner($db, $jreq);
 		if (!$ret_err) {
 			$jres->{partner_id} = $ret_id;
+			$jres->{created} += 1;
 		}
 	}
 
@@ -793,4 +812,176 @@ sub handle_remove_brief
 	return ('ERR_DBI_FAILED', $db->{error}) if ($db->{error});
 
 	return (0, {F_id => $id, affected => $affected});
+}
+
+=head1 passwd table operate
+=cut
+
+# 返回 32 位随机 token ，由大写 A-Z 组成
+my @LETTER = ('A' .. 'Z');
+sub randToken
+{
+	return join '', map{$LETTER[int rand @LETTER]} (1..32);
+}
+
+=markdown handel_login()
+  登陆
+  req = {id, name, key}
+  res = {id, token, mine}
+  可按 id 或 name 登陆，但返回 id ，同时返回整行数据
+  初始密码与 id 一样
+=cut
+sub handle_login
+{
+	my ($db, $jreq) = @_;
+
+	my $where = {};
+	$where->{F_id} = $jreq->{id} if $jreq->{id};
+	$where->{F_name} = $jreq->{name} if $jreq->{name};
+
+	# 最多查两行
+	my $records = $db->Query(undef, $where, 2);
+	return ('ERR_DBI_FAILED', $db->{error}) if ($db->{error});
+
+	if (scalar @$records > 1) {
+		return ('ERR_NAME_DUPED');
+	}
+	if (scalar @$records < 1) {
+		return ('ERR_MEMBER_LACKED');
+	}
+
+	my $mine = $records->[0];
+	my $id = $mine->{F_id};
+
+	# 验证密码
+	my $key = $jreq->{key};
+	my $token = '';
+
+	my @fields = qw(F_id F_login_key F_token);
+	my $record = $db->QueryPasswd($id, \@fields);
+
+	# 取数据库保存的密码比对，初始假设为 id 并保存
+	my $key_db;
+	if ($record) {
+		$key_db = $record->{F_login_key};
+		$token = $record->{F_token};
+	}
+	else {
+		$key_db = $id;
+	}
+	if ($key_db && $key ne $key_db) {
+		return ('ERR_LOGIN_PASS_WRONG');
+	}
+
+	if ($token) {
+		$token++;
+		# 极端情况：字母位数增加，超过 mysql 字段限，能否安全截断？
+	}
+	else {
+		$token = randToken();
+	}
+
+	my $ret;
+	my $now_time = now_time_str();
+	my $fieldvals = {F_token => $token, F_update_time => $now_time, F_last_login => $now_time};
+	# 无密码记录时插入，或修改
+	if (!$record) {
+		wlog('create passwd for firstly login');
+		$fieldvals->{F_login_key} = $id;
+		$fieldvals->{F_opera_key} = $id;
+		$ret = $db->CreatePasswd($id, $fieldvals);
+	}
+	else {
+		wlog('update token');
+		$ret = $db->ModifyPasswd($id, $fieldvals);
+	}
+
+	if (!$ret) {
+		wlog('修改密码表的 token 失败');
+	}
+
+	return (0, {id => $id, token => $token, mine => $mine});
+}
+
+=markdown handle_modify_passwd()
+  修改密码
+  req = { id, keytype, oldkey, newkey }
+    keytype 取值：loginkey 或 operakey
+  res = { id, affected }
+    原样返回 id 及影响行数
+=cut
+sub handle_modify_passwd
+{
+	my ($db, $jreq) = @_;
+	my $id = $jreq->{id} || return ('ERR_ARGNO_ID');
+	my $type = $jreq->{keytype} || return ('ERR_ARGUMENT', '缺少密码类型');
+	if (!$jreq->{oldkey} || !$jreq->{newkey}) {
+		return ('ERR_ARGUMENT', '不能修改空密码');
+	}
+
+	my $now_time = now_time_str();
+	my $fieldvals = {F_update_time => $now_time};
+	my $oldkey_db;
+	my $ret;
+	if ($type eq 'loginkey') {
+		$fieldvals->{F_login_key} = $jreq->{newkey};
+		my $record = $db->QueryPasswd($id, ['F_login_key']);
+		if ($record) {
+			$oldkey_db = $record->{F_login_key};
+			if ($oldkey_db && $oldkey_db != $jreq->{oldkey}) {
+				return ('ERR_LOGIN_PASS_WRONG');
+			}
+			$ret = $db->ModifyPasswd($id, $fieldvals);
+		}
+		else {
+			$ret = $db->CreatePasswd($id, $fieldvals);
+		}
+	}
+	elsif ($type eq 'operakey') {
+		$fieldvals->{F_opera_key} = $jreq->{newkey};
+		my $record = $db->QueryPasswd($id, ['F_opera_key']);
+		if ($record) {
+			$oldkey_db = $record->{F_opera_key};
+			if ($oldkey_db && $oldkey_db != $jreq->{oldkey}) {
+				return ('ERR_OPERA_PASS_WRONG');
+			}
+			$ret = $db->ModifyPasswd($id, $fieldvals);
+		}
+		else {
+			$ret = $db->CreatePasswd($id, $fieldvals);
+		}
+	}
+	else {
+		return ('ERR_ARGUMENT', '密码类型错误');
+	}
+
+	if (!$ret) {
+		wlog('修改密码表失败');
+	}
+
+	return (0, {id => $id, affected => $ret});
+}
+
+# 验证会话与操作密码，入参 jreq = req.sess
+sub check_session
+{
+	my ($db, $jreq) = @_;
+	
+	my $id = $jreq->{id} || return ('ERR_ARGNO_ID');
+
+	my @fields = qw(F_id F_opera_key F_token);
+	my $record = $db->QueryPasswd($id, \@fields);
+	if ($record) {
+		if ($jreq->{opera_key} && $jreq->{opera_key} != $record->{F_opera_key}) {
+			return ('ERR_OPERA_PASS_WRONG');
+		}
+		if ($jreq->{token} && $jreq->{token} != $record->{F_token}) {
+			return ('ERR_OPERA_TOKEN_WRONG');
+		}
+	}
+	else {
+		wlog("密码表没有记录：$id，正常登陆应该产生记录的");
+	}
+
+	return 0;
 }
