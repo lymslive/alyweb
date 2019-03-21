@@ -38,7 +38,7 @@ sub main
 				wlog('增加子女：' . $child->{name});
 				my $reqData = {father_name => $parent};
 				$reqData->{name} = $child->{name} if $child->{name};
-				$reqData->{sex} = $child->{sex} if defined($child->{sex});
+				$reqData->{sex} = $child->{sex} if $child->{sex};
 				$reqData->{partner} = $child->{partner} if $child->{partner};
 				$reqData->{sibold} = $child->{sibold} if $child->{sibold};
 				$reqData->{birthday} = $child->{birthday} if $child->{birthday};

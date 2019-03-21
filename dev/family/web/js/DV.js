@@ -7,7 +7,7 @@ var $DV = {
 			var id = _row.F_id;
 			var name = _row.F_name;
 			var sex = _row.F_sex;
-			if (_suffix && sex < 2) {
+			if (_suffix && sex <= 2) {
 				name += $DD.SEX[sex].substring(1);
 			}
 			// var html = '<a href="#p' + id + '" title="' + id + '">' + name + '</a>';
@@ -311,13 +311,13 @@ var $DV = {
 					$('#formFilter div.operate-warn').html('');
 				}
 				else {
-					var msg = '当前页筛选：' + $DV.Table.rows + '/' + $DD.Table.list.length + '成员';
+					var msg = '当前页筛选：' + $DV.Table.rows + '/' + $DD.Table.List.length + '成员';
 					$('#formFilter div.operate-warn').html(msg);
 				}
 			},
 
 			checkSex: function(_row) {
-				return  this.sex !== -1 || _row.F_sex === this.sex;
+				return !this.sex || _row.F_sex === this.sex;
 			},
 
 			// 判断代际是否在中间，如果只选了一个，则按相等判断
@@ -363,7 +363,7 @@ var $DV = {
 					where.name = name;
 				}
 				var sex = $form.find('select[name=sex]').val();
-				if (sex != -1) {
+				if (sex) {
 					where.sex = parseInt(sex);
 				}
 
@@ -538,7 +538,7 @@ var $DV = {
 				var name = Data.mine.F_name;
 				var sex = Data.mine.F_sex;
 				var level = Data.mine.F_level;
-				if (sex < 2) {
+				if (sex <= 2) {
 					name += $DD.SEX[sex].substring(1);
 				}
 				level = '第 +' + level + ' 代子孙';
@@ -807,12 +807,12 @@ var $DV = {
 					var value = this.refid + '/' + rowdata.F_name;
 					this.lock($('#formOperate input:text[name=father]'), value);
 				}
-				else if (rowdata.F_sex == 0) {
+				else if (rowdata.F_sex == 2) {
 					// 女儿不添加子女
 					$('#formOperate div.operate-warn').html('不能记录女儿的后代');
 				}
 				else {
-					console.log('男1女0，错误性别：' + rowdata.F_sex);
+					console.log('男1女2，错误性别：' + rowdata.F_sex);
 				}
 
 				this.unlock($('#formOperate input:text[name=partner]'));
@@ -860,6 +860,8 @@ var $DV = {
 			var partner = $form.find('input[name=partner]').val();
 			var birthday = $form.find('input[name=birthday]').val();
 			var deathday = $form.find('input[name=deathday]').val();
+			mine_id = parseInt(mine_id);
+			sex = parseInt(sex);
 
 			var reqData = {};
 			var req = {};

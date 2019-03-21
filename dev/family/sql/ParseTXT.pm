@@ -79,7 +79,7 @@ sub parse_child
 			$child->{sex} = 1;
 		}
 		elsif ($lead =~ /女/) {
-			$child->{sex} = 0;
+			$child->{sex} = 2;
 		}
 		else {
 			$child->{sex} = 1;
@@ -100,7 +100,7 @@ sub parse_child
 				next;
 			}
 			elsif ($str =~ /女/) {
-				$child->{sex} = 0;
+				$child->{sex} = 2;
 				next;
 			}
 		}
@@ -128,12 +128,12 @@ sub parse_child
 			}
 		}
 		elsif ($str =~ /(?:嫁)?夫(.+)$/) {
-			if ($child->{sex} == 0) {
+			if ($child->{sex} == 2) {
 				$child->{partner} = $1;
 			}
 			else {
 				$child->{partner} = $1;
-				$child->{sex} = 0;
+				$child->{sex} = 2;
 			}
 		}
 	}

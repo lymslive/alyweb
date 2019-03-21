@@ -3,7 +3,7 @@
 CREATE TABLE `t_family_member` (
 	`F_id` int(10) unsigned NOT NULL AUTO_INCREMENT COMMENT '递增ID',
 	`F_name` varchar(16) NOT NULL COMMENT '姓名',
-	`F_sex` tinyint(4) NOT NULL COMMENT '性别，0女，1男',
+	`F_sex` tinyint(4) NOT NULL COMMENT '性别，1男2女',
 	`F_level` smallint(6) NOT NULL COMMENT '代际辈份',
 	`F_father` int(10) unsigned DEFAULT NULL COMMENT '父亲ID',
 	`F_partner` varchar(16) DEFAULT NULL COMMENT '配偶姓名',

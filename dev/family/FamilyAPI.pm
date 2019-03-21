@@ -126,7 +126,7 @@ sub response
     filter => { 筛选条件
     id => 单个 id 或 [多个 id 列表]
     name => 姓名
-    sex => 性别 1/0
+    sex => 性别 1/2
     level => 代际
     father => 父亲
 	sibold =>
@@ -270,8 +270,8 @@ sub handle_create
 
 	my $mine_name = $jreq->{name}
 		or return ('ERR_ARGNO_NAME');
-	my $mine_sex = $jreq->{sex} // -1;
-	if ($mine_sex != 1 && $mine_sex != 0) {
+	my $mine_sex = $jreq->{sex} // 0;
+	if ($mine_sex != 1 && $mine_sex != 2) {
 		return ('ERR_ARGNO_SEX');
 	}
 
@@ -367,7 +367,7 @@ sub handle_modify
 
 	my $fieldvals = {};
 	$fieldvals->{F_name} = $jreq->{name} if defined($jreq->{name});
-	if (defined($jreq->{sex}) && ($jreq->{sex} == 1 || $jreq->{sex} == 0)) {
+	if (defined($jreq->{sex}) && ($jreq->{sex} == 1 || $jreq->{sex} == 2)) {
 		$fieldvals->{F_sex} = $jreq->{sex};
 	}
 	$fieldvals->{F_father} = $jreq->{father} if $jreq->{father};
