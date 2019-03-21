@@ -32,6 +32,7 @@ my $MESSAGE_REF = {
 	ERR_ARGNO_SESS => '19. 参数错误，缺少会话信息',
 	ERR_OPERA_TOKEN_WRONG => '20. 会话不匹配',
 	ERR_ONLY_FATHER => '21. 只记录父系后代',
+	ERR_ALREADY_ROOT => '22. 已经存在始祖了',
 };
 
 sub error_msg
@@ -78,7 +79,7 @@ sub handle_request
 		return response('ERR_DBI_FAILED', $db->{error});
 	}
 
-	if ($api =~ /create|modify|remove/i) {
+	if ($api =~ /create|modify|remove/i && !$jreq->{admin}) {
 		my $sess = $jreq->{sess} or return response('ERR_ARGNO_SESS');
 		my $error = check_session($db, $sess);
 		if ($error) {
@@ -250,6 +251,7 @@ sub handle_query
     deathday => 忌日
     // desc => 简介文字
 	requery => 重新查询插入的数据
+	root => 是否先祖，插入先祖时不检查父亲，level 设 1
   }
  
   响应：
@@ -273,8 +275,18 @@ sub handle_create
 		return ('ERR_ARGNO_SEX');
 	}
 
-	$error = check_parent($db, $jreq);
-	return ($error) if $error;
+	if (!$jreq->{root}) {
+		$error = check_parent($db, $jreq);
+		return ($error) if $error;
+	}
+	else {
+		my $has_root = $db->Count({F_level => 1});
+		if ($has_root) {
+			return ('ERR_ALREADY_ROOT');
+		}
+		$jreq->{level} = 1;
+		delete $jreq->{father};
+	}
 
 	my $fieldvals = {};
 	$fieldvals->{F_name} = $mine_name;

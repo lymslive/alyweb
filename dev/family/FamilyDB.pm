@@ -12,7 +12,8 @@ use WebLog;
 =cut
 
 my $HOST = '47.106.142.119';
-my $DBNAME = 'db_family';
+# my $DBNAME = 'db_family';
+my $DBNAME = 'db_fatree';
 
 my $driver = 'mysql';
 my $dsn = "host=$HOST;database=$DBNAME";
