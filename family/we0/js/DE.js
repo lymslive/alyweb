@@ -129,6 +129,11 @@ var $DE = {
 		// 过滤表单
 		Filter: function() {
 			var $form = $('#formFilter');
+			$form.submit(function(_evt) {
+				_evt.preventDefault();
+				$DV.Table.Filter.onSubmit();
+				return false;
+			});
 
 			$('#filter-rollback').click(function() {
 				$DV.Table.Filter.onReset();
@@ -159,8 +164,7 @@ var $DE = {
 
 		// 高级查询表单
 		Query: function() {
-			// var $form = $('#formQuery');
-			var $form = $('#formFilter');
+			var $form = $('#formQuery');
 			$form.submit(function(_evt) {
 				_evt.preventDefault();
 				$DV.Table.Pager.onSubmit();
@@ -175,6 +179,12 @@ var $DE = {
 				$DV.Table.Pager.doNext();
 			});
 
+			$form.find('input:checkbox[name=filter]').change(function(_evt){
+				$DV.Table.Pager.onCheckbox(this);
+			});
+
+			// 添加辈份选项
+			this.fillLevel($form);
 		},
 
 		// 登陆表单

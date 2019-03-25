@@ -12,8 +12,7 @@ use WebLog;
 =cut
 
 my $HOST = '47.106.142.119';
-# my $DBNAME = 'db_family';
-my $DBNAME = 'db_fatree';
+my $DBNAME = 'db_family';
 
 my $driver = 'mysql';
 my $dsn = "host=$HOST;database=$DBNAME";
@@ -22,7 +21,7 @@ my $passwd = 'family';
 my $flags = {AutoCommit => 1, mysql_enable_utf8 => 1};
 
 my $TABLE_MEMBER = 't_family_member';
-my @FIELD_MEMBER = qw(F_id F_name F_sex F_level F_father F_partner F_sibold F_birthday F_deathday);
+my @FIELD_MEMBER = qw(F_id F_name F_sex F_level F_father F_mother F_partner F_birthday F_deathday);
 
 my $TABLE_BRIEF = 't_member_brief';
 my $TABLE_PASSWD = 't_member_passwd';

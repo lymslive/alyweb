@@ -2,16 +2,14 @@
 // 数据
 var $DD = {
 	// 常量
-	API_URL: '/family/japi.cgi',
-	HELP_URL: '/family/web/doc/help.htm',
+	API_URL: '/family/we0/japi.cgi',
+	HELP_URL: '/family/we0/doc/help.htm',
 	TAN: '谭',
-	LEVEL: ['辈份', '礼', '让', '万', '年', '芳', '和', '积', '祥', '生'],
-	SEX: ['性别', '男♂', '女♀'],
-	SEX_MALE: 1, SEX_FEMALE: 2,
+	LEVEL: ['辈份', '年', '芳', '和', '积', '祥', '生'],
+	SEX: ['女♀', '男♂'],
 	NULL: '',
 	OPERATE_KEY: 'Tan@2019',
 	LOGIN_KEY: '123456',
-	ROOT: 10001, // 根祖先
 
 	Tip: {
 		operaCtrl: '只有以当前成员或其直系亲属登陆才有修改权限',
@@ -26,39 +24,19 @@ var $DD = {
 		}
 	},
 
-	getName: function(_id) {
-		var row = getRow(_id);
-		return row ? row.F_name : '';
+	Mapid: {},
+	getName: function(id) {
+		return this.Mapid[id];
 	},
-	getRow: function(_id) {
-		return this.Table.Hash[_id];
+	getRow: function(id) {
+		return this.Table.Hash[id];
 	},
 
 	// 从服务器查得的数据表
 	Table: {
-		Title: ['编号', '姓名', '性别', '辈份', '父亲', '配偶', '生日'],
+		Title: ['编号', '姓名', '性别', '代际', '父亲', '母亲', '配偶', '生日', '忌日'],
 		Hash: {}, // 尽可能缓存从服务端查询的记录，以 id 为键
 		List: [], // 当前页列表
-
-		// 更新 Hash
-		hashed: 0,
-		saveHash: function(_row) {
-			var id = _row.F_id;
-			if (!this.Hash[id]) {
-				this.Hash[id] = _row;
-				this.hashed += 1;
-				return _row;
-			}
-			else {
-				var rold = this.Hash[id];
-				for (var field in _row){
-					if (_row.hasOwnProperty(field) && _row[field] !== rold[field]) {
-						rold[field] = _row[field];
-					}
-				}
-				return rold;
-			}
-		},
 
 		// 分页查询管理
 		Pager: {
@@ -121,15 +99,16 @@ var $DD = {
 		// 重新加载从服务端返回的一页数据
 		load: function(_resData) {
 			this.List = _resData.records;
+			// this.Hash = {};
 			for (var i = 0; i < this.List.length; ++i) {
-				var saved = this.saveHash(this.List[i]);
-				if (saved && this.List[i] !== saved) {
-					this.List[i] = saved;
-				}
+				var id = this.List[i].F_id;
+				var name = this.List[i].F_name;
+				$DD.Mapid[id] = name;
+				this.Hash[id] = this.List[i];
 
 				// 设置顶级祖先为详情页默认查看对象
 				if (this.List[i].F_level == 1) {
-					$DD.ROOT = this.List[i].F_id;
+					$DD.Person.DEFAULT = id;
 				}
 			}
 
@@ -148,13 +127,26 @@ var $DD = {
 		modify: function(_resData, _reqData) {
 			if (_resData.modified) {
 				if (!_resData.id || !_reqData.id || _resData.id != _reqData.id) {
-					console.log('修改资料请求响应数据不对');
+					console.log('请求响应数据不对');
 					return;
 				}
 			}
 
 			var id = _resData.id;
-			var mine = _resData.mine;
+			var partner_id = _resData.partner_id;
+			var mine, partner;
+			_resData.records.forEach(function(_item, _idx) {
+				if (_item.F_id == id) {
+					mine = _item;
+				}
+				else if (partner_id && partner_id == _item.F_id) {
+					partner = _item;
+				}
+			});
+
+			if (partner) {
+				this.store(partner);
+			}
 			if (mine) {
 				this.store(mine);
 			}
@@ -164,6 +156,9 @@ var $DD = {
 			}
 
 			// 更新页面表
+			if (partner) {
+				$DV.Table.updateRow(partner);
+			}
 			if (mine) {
 				$DV.Table.updateRow(mine);
 			}
@@ -173,10 +168,11 @@ var $DD = {
 				$DD.Person.fromServer({
 					"id": id,
 					"mine": mine,
+					"partner": partner
 				});
 				$DV.Person.update();
 			}
-			else if ($DD.Person.curid == mine.F_father) {
+			else if ($DD.Person.curid == mine.F_father || $DD.Person.curid == mine.F_mother) {
 				$DD.Person.fromServer({
 					"id": $DD.Person.curid,
 					"children": [mine]
@@ -196,14 +192,20 @@ var $DD = {
 				console.log('数据行不存在 id?');
 				return;
 			}
-			var saved = this.saveHash(_row);
+			this.Hash[id] = _row;
+			if (_row.F_name) {
+				$DD.Mapid[id] = _row.F_name;
+			}
+
+			if (_row.F_level < 0) {
+				console.log('旁系配偶只内部保存，不列出：' + id + _row.F_name);
+				return;
+			}
 
 			var bFound = false;
 			for (var i = 0; i < this.List.length; ++i) {
 				if (this.List[i].F_id == id) {
-					if (saved && this.List[i] !== saved) {
-						this.List[i] = saved;
-					}
+					this.List[i] = _row;
 					bFound = true;
 					break;
 				}
@@ -213,14 +215,41 @@ var $DD = {
 			}
 		},
 
+		// 增量保存旁系配偶，只存在 Hash 中
+		storePartner: function(_resData, _reqData) {
+			var that = this;
+			console.log('将保存配偶信息：' + _resData.records.length);
+			_resData.records.forEach(function(_item, _idx) {
+				var id = _item.F_id;
+				var name = _item.F_name;
+				$DD.Mapid[id] = name;
+				that.Hash[id] = _item;
+			});
+
+			// 可能需要同步更新个人详情页
+			if ($DD.Person.curid && $DD.Person.mine) {
+				var partner_id = $DD.Person.mine.F_partner;
+				if (this.Hash[partner_id]) {
+					var partner = this.Hash[partner_id];
+					if (partner != $DD.Person.partner) {
+						$DD.Person.fromServer({
+							"id": $DD.Person.curid,
+							"partner": parnter
+						});
+						$DV.Person.update();
+					}
+				}
+			}
+		},
+
 		// 在前端内存中查看名字是否有对应 id
 		getIdByName: function(name) {
-			for (var id in this.Hash){
-				if (this.Hash.hasOwnProperty(id) && this.Hash[id].F_name === name) {
+			var id;
+			for (id in this.Hash){
+				if (this.Hash.hasOwnProperty(id) && this.Hash[id].F_name == name) {
 					return id;
 				}
 			}
-			return 0;
 		},
 
 		LAST_PRETECT: 0
@@ -228,8 +257,10 @@ var $DD = {
 
 	// 要查看的个人详情
 	Person: {
+		DEFAULT: 10001,
 		curid: 0,
 		mine: null,
+		partner: null,
 		children: null,
 		parents: null,
 		sibling: null,
@@ -238,7 +269,7 @@ var $DD = {
 		// 更新码
 		update: 0,
 		MINE: 1,
-		// PARTNER: 1<<1,
+		PARTNER: 1<<1,
 		CHILDREN: 1<<2,
 		PARENTS: 1<<3,
 		SIBLING: 1<<4,
@@ -256,6 +287,7 @@ var $DD = {
 
 		reset: function(_id) {
 			this.mine = null;
+			this.partner = null;
 			this.children = null;
 			this.parents = null;
 			this.sibling = null;
@@ -280,6 +312,13 @@ var $DD = {
 				return this.update;
 			}
 
+			// 配偶
+			var partner_id = this.mine.F_partner;
+			if ($DD.Table.Hash[partner_id]) {
+				this.partner = $DD.Table.Hash[partner_id];
+				this.markUpdate(this.PARTNER);
+			}
+
 			// 子女
 			var children = [];
 			var _fid, _frow;
@@ -287,6 +326,9 @@ var $DD = {
 				if ($DD.Table.Hash.hasOwnProperty(_fid)) {
 					_frow = $DD.Table.Hash[_fid];
 					if (mine.F_sex == 1 && _frow.F_father == mine.F_id) {
+						children.push(_frow);
+					}
+					else if (mine.F_sex == 0 && _frow.F_mother == mine.F_id) {
 						children.push(_frow);
 					}
 				}
@@ -301,9 +343,13 @@ var $DD = {
 			var row = mine;
 			while (row) {
 				var father_id = row.F_father;
+				var mother_id = row.F_mother;
 				var parent_one = null;
-				if ($DD.Table.Hash[father_id]) {
+				if ($DD.Table.Hash[father_id] && $DD.Table.Hash[father_id].F_level > 0) {
 					parent_one = $DD.Table.Hash[father_id];
+				}
+				else if ($DD.Table.Hash[mother_id] && $DD.Table.Hash[mother_id].F_level > 0) {
+					parent_one = $DD.Table.Hash[mother_id];
 				}
 				if (parent_one) {
 					parents.push(parent_one);
@@ -327,6 +373,9 @@ var $DD = {
 					if ($DD.Table.Hash.hasOwnProperty(_fid)) {
 						_frow = $DD.Table.Hash[_fid];
 						if (parent_one.F_sex == 1 && _frow.F_father == parent_one.F_id && _frow.F_id != mine.F_id) {
+							sibling.push(_frow);
+						}
+						else if (parent_one.F_sex == 0 && _frow.F_mother == parent_one.F_id && _frow.F_id != mine.F_id) {
 							sibling.push(_frow);
 						}
 					}
@@ -356,6 +405,7 @@ var $DD = {
 		notinTable: function() {
 			return {
 				mine: this.canUpdate(this.MINE) ? 0 : 1,
+				partner: this.canUpdate(this.PARTNER) ? 0 : 1,
 				children: this.canUpdate(this.CHILDREN) ? 0 : 1,
 				parents: this.canUpdate(this.PARENTS) ? 0 : -1,
 				sibling: this.canUpdate(this.SIBLING) ? 0 : 1,
@@ -371,6 +421,10 @@ var $DD = {
 			if (_resData.mine) {
 				this.mine = _resData.mine;
 				this.markUpdate(this.MINE);
+			}
+			if (_resData.partner) {
+				this.partner = _resData.partner;
+				this.markUpdate(this.PARTNER);
 			}
 			if (_resData.children) {
 				if (!this.children) {
@@ -444,12 +498,23 @@ var $DD = {
 			if (this.isChild(user)) {
 				return true;
 			}
+			if (this.isPartner(user)) {
+				return true;
+			}
 			return false;
 		},
 
 		// 检查是否直接父母
 		isParent: function(_user) {
 			if (this.parents && this.parents[0] && this.parents[0].F_id == _user) {
+				return true;
+			}
+			return false;
+		},
+
+		// 检查是否元配
+		isPartner: function(_user) {
+			if (this.partner && this.partner.F_id == _user) {
 				return true;
 			}
 			return false;

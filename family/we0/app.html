@@ -38,14 +38,11 @@
 			<div id="family_table">
 				<form id="formFilter">
 					<!-- 勾选时自动对当前表筛选，点按钮时请求服务器刷新 -->
-					<a href="#divQuery" class="foldClose">筛选：</a>
+					筛选：
 					<!-- 默认会收到多值？ vehicle=Bike&vehicle=Car-->
-					<select name="sex">
-						<option value="">性别</option>
-						<option value="1">男</option>
-						<option value="2">女</option>
-					</select>
-					<label>
+					<label>父系<input type="checkbox" name="filter" value="tan"/></label>
+					<label>男丁<input type="checkbox" name="filter" value="man"/></label>
+					<label>代际
 						<select name="level-from">
 						</select> 至
 						<select name="level-to">
@@ -53,17 +50,6 @@
 					</label>
 					<input type="reset" value="撤销" id="filter-rollback"/>
 					<div class="operate-warn"></div>
-					<div id="divQuery">
-						<label>编号<input type="text" name="id" size="8"/></label>
-						<label>姓名<input type="text" name="name" size="8"/></label>
-						<br>
-						<label>生日
-							<input type="date" name="birthday-from" size="10"/> 至 <input type="date" name="birthday-to" size="10"/>
-						</label>
-						<br>
-						<input type="submit" value="提交查询"/>
-						<label>每页<input type="text" name="perpage" value="100" size="3"/></label>
-					</div>
 				</form>
 				<!-- 表格需拉取服务器数据填充，可能覆盖重填 -->
 				<table id="tabMember">
@@ -71,10 +57,12 @@
 						<th class="fid">编号</th>
 						<th class="fname">姓名</th>
 						<th class="fsex">性别</th>
-						<th class="flevel">辈份</th>
+						<th class="flevel">代际</th>
 						<th class="fname">父亲</th>
+						<th class="fname">母亲</th>
 						<th class="fname">配偶</th>
 						<th class="fdate">生日</th>
+						<th class="fdate">忌日</th>
 					</tr>
 				</table>
 				<!-- 多于10行时表底再加一行表头，动态增加的少量行再加于其下 -->
@@ -90,6 +78,35 @@
 					<br>
 					总计 <span class="data">1</span> 成员
 				</div>
+			</div>
+			<div><a href="#divQuery" class="foldClose">高级查询</a></div>
+			<div id="divQuery">
+				<form id="formQuery">
+					<label>编号<input type="text" name="id" size="10"/></label>
+					<label>姓名<input type="text" name="name" size="10"/></label>
+					<label>只含父系<input type="checkbox" name="filter" value="tan"/></label>
+					<br>
+					<label>代际
+						<select name="level-from">
+						</select> 至
+						<select name="level-to">
+						</select>
+					</label>
+					<label>性别
+						<select name="sex">
+							<option value="">选择</option>
+							<option value="1">男</option>
+							<option value="0">女</option>
+						</select>
+					</label>
+					<br>
+					<label>生日<input type="date" name="birthday-from" size="10"/> 至 <input type="date" name="birthday-to" size="10"/>
+					<br>
+					<input type="submit" value="提交查询"/>
+					<input type="reset" value="默认查询"/>
+					<label>每页<input type="text" name="perpage" value="100" size="3"/></label>
+					<div class="operate-warn"></div>
+				</form>
 			</div>
 		</div>
 
@@ -140,8 +157,10 @@
 						<th class="fsex">性别</th>
 						<th class="flevel">代际</th>
 						<th class="fname">父亲</th>
+						<th class="fname">母亲</th>
 						<th class="fname">配偶</th>
 						<th class="fdate">生日</th>
+						<th class="fdate">忌日</th>
 					</tr>
 				</table>
 				<div id="tabMine-exdp" class="atright">
@@ -159,11 +178,11 @@
 						<a href="#mine_name" class="input-unlock">姓名</a>
 						<input type="text" name="mine_name" value="" size="12"/>　
 						<label>男<input type="radio" name="sex" value="1"/></label>
-						<label>女<input type="radio" name="sex" value="2"/></label><br>
+						<label>女<input type="radio" name="sex" value="0"/></label><br>
 						<a href="#father" class="input-unlock">父亲</a>
 						<input type="text" name="father" value="" size="12"/>　
-						<a href="#sibold" class="input-unlock">兄弟长序</a>
-						<input type="text" name="sibold" value="" size="12"/><br>
+						<a href="#mother" class="input-unlock">母亲</a>
+						<input type="text" name="mother" value="" size="12"/><br>
 						<a href="#partner" class="input-unlock">配偶</a>
 						<input type="text" name="partner" value="" size="12"/><br>
 						<label>生日<input type="date" name="birthday" value=""/></label>　
@@ -173,15 +192,15 @@
 					</form>
 					<div id="tip-modify" class="foldOff operate-tips">
 						<ul>
-							<li>根据当前唯一编号修改资料，可以改包括姓名等其他资料</li>
-							<li>父亲一般在新建成员时提供，请慎重修改</li>
-							<li>默认锁定已确定的信息，但点击输入框前面的标签可解锁修改</li>
+							<li>根据当前唯一编号修改资料，可以改姓名、性别与缺失的资料</li>
+							<li>父母、配偶若要修改时，可填编号或姓名（不重名时）</li>
+							<li>录入配偶时，将自动为配偶增加记录，并设为旁系</li>
 						</ul>
 					</div>
 					<div id="tip-append" class="foldOff operate-tips">
 						<ul>
 							<li>添加子女后时，编号由系统自动分配，作为唯一标志</li>
-							<li>只有男丁方可添加后代，不记录外嫁女儿的后代</li>
+							<li>已自动填入父或母的依托关系</li>
 							<li>一般只要填入姓名、性别即可录入后代，然后去其详情页面再续修改</li>
 						</ul>
 					</div>

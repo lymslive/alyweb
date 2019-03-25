@@ -7,9 +7,10 @@ var $DV = {
 			var id = _row.F_id;
 			var name = _row.F_name;
 			var sex = _row.F_sex;
-			if (_suffix && sex <= 2) {
+			if (_suffix && sex < 2) {
 				name += $DD.SEX[sex].substring(1);
 			}
+			// var html = '<a href="#p' + id + '" title="' + id + '">' + name + '</a>';
 			var html = `<a href="#p${id}" title="${id}" class="toperson">${name}</a>`;
 			return html;
 		},
@@ -19,22 +20,21 @@ var $DV = {
 			var name = _id;
 			var title = _id;
 			var css = 'toperson';
-			var hashName = $DD.getName(_id);
-			if (hashName) {
-				name = hashName;
+			if ($DD.Mapid[_id]) {
+				name = $DD.Mapid[_id];
 			}
 			else {
 				title = '点击查找姓名';
 				css += ' qname';
 			}
+			// var html = '<a href="#p' + _id + '" title="' + title + '">' + name + '</a>';
 			var html = `<a href="#p${_id}" title="${title}" class="${css}">${name}</a>`;
 			return html;
 		},
 
 		// 跳转到某位置
 		jumpLink: function(_sid) {
-			$(_sid)[0].scrollIntoView(true);
-			// location.href = _sid;
+			location.href = _sid;
 		},
 
 		// 生成快速登陆链接
@@ -82,7 +82,7 @@ var $DV = {
 					this.checkPerson($DD.Login.id);
 				}
 				else if (!$DD.Person.curid) {
-					this.checkPerson($DD.ROOT);
+					this.checkPerson($DD.Person.DEFAULT);
 				}
 			}
 			else if (_toid == '#pg3-help') {
@@ -159,9 +159,12 @@ var $DV = {
 				this.empty();
 			}
 			console.log('将填充表格数据行：' + data.length);
-			var $table = $(this.domid);
 			for (var i=0; i<data.length; i++) {
-				if (!this.Filter.checkSex(data[i])) {
+				// 过滤
+				if (!this.Filter.checkTan(data[i])) {
+					continue;
+				}
+				if (!this.Filter.checkMan(data[i])) {
 					continue;
 				}
 				if (!this.Filter.checkLevel(data[i])) {
@@ -173,10 +176,10 @@ var $DV = {
 				if (this.rows % 2 == 0) {
 					$tr.addClass("even");
 				}
-				$table.append($tr);
+				$(this.domid).append($tr);
 			}
 			if (this.rows > this.but_limit) {
-				$table.append(this.hth());
+				$(this.domid).append(this.hth());
 			}
 
 			var Pager = $DD.Table.Pager;
@@ -190,8 +193,9 @@ var $DV = {
 			var id = jrow.F_id;
 			var name = jrow.F_name;
 			var sex = $DD.SEX[jrow.F_sex];
-			var level = jrow.F_level;
+			var level = jrow.F_level > 0 ? '+' + jrow.F_level : '' + jrow.F_level;
 			var father = jrow.F_father || $DD.NULL;
+			var mother = jrow.F_mother || $DD.NULL;
 			var partner = jrow.F_partner || $DD.NULL;
 			var birthday = jrow.F_birthday || $DD.NULL;
 			var deathday = jrow.F_deathday || $DD.NULL;
@@ -215,7 +219,6 @@ var $DV = {
 			$td = $('<td></td>').html(sex);
 			$tr.append($td);
 
-			level = $DD.LEVEL[level];
 			$td = $('<td></td>').html(level);
 			$tr.append($td);
 
@@ -230,14 +233,33 @@ var $DV = {
 			$td = $('<td></td>').html(father);
 			$tr.append($td);
 
+			if (mother) {
+				if ($DD.Table.Hash[mother]) {
+					mother = $DV.Fun.linktoPerson($DD.Table.Hash[mother]);
+				}
+				else {
+					mother = $DV.Fun.linktoPid(mother);
+				}
+			}
+			$td = $('<td></td>').html(mother);
+			$tr.append($td);
+
+			if (partner) {
+				if ($DD.Table.Hash[partner]) {
+					partner = $DV.Fun.linktoPerson($DD.Table.Hash[partner]);
+				}
+				else {
+					partner = $DV.Fun.linktoPid(partner);
+				}
+			}
 			$td = $('<td></td>').html(partner);
 			$tr.append($td);
 
 			$td = $('<td></td>').html(birthday);
 			$tr.append($td);
 
-			// $td = $('<td></td>').html(deathday);
-			// $tr.append($td);
+			$td = $('<td></td>').html(deathday);
+			$tr.append($td);
 
 			// 为当前行附加事件属性
 			$tr.find('td a.toperson').click(function(_evt) {
@@ -281,28 +303,34 @@ var $DV = {
 		updateName: function() {
 			$('td a.qname').each(function(_idx, _element) {
 				var id = $(this).html();
-				var name = $DD.getName(id);
+				var name = $DD.Mapid[id];
 				if (name) {
-					$(this).html(name).attr('title', id).removeClass('qname');
+					$(this).html(name).attr('title', id);
 				}
 			});
 		},
 
 		// 过滤表单
 		Filter: {
-			sex: '',
+			tan: false,
+			man: false,
 			levelFrom: 0,
 			levelTo: 0,
 
-			// 下拉列表变化
+			// 复选框变化
+			onCheckbox: function() {
+				var $checkbox = $('#formFilter input:checkbox[name=filter]');
+				this.tan = $checkbox[0].checked;
+				this.man = $checkbox[1].checked;
+				$DV.Table.fill();
+				this.showCount(true);
+			},
+
 			onSelection: function() {
-				var $form = $('#formFilter');
-				var $levelFrom = $form.find('select[name=level-from]');
-				var $levelTo = $form.find('select[name=level-to]');
-				var $sex = $form.find('select[name=sex]');
+				var $levelFrom = $('#formFilter select[name=level-from]');
+				var $levelTo = $('#formFilter select[name=level-to]');
 				this.levelFrom = parseInt($levelFrom.val());
 				this.levelTo = parseInt($levelTo.val());
-				this.sex = parseInt($sex.val());
 				$DV.Table.fill();
 				this.showCount(true);
 			},
@@ -317,8 +345,12 @@ var $DV = {
 				}
 			},
 
-			checkSex: function(_row) {
-				return !this.sex || _row.F_sex === this.sex;
+			checkTan: function(_row) {
+				return !this.tan || (_row.F_name && _row.F_name.indexOf($DD.TAN) == 0);
+			},
+
+			checkMan: function(_row) {
+				return !this.man || _row.F_sex == 1;
 			},
 
 			// 判断代际是否在中间，如果只选了一个，则按相等判断
@@ -337,8 +369,8 @@ var $DV = {
 
 			// 撤销过滤，显示全表
 			onReset: function() {
-				if (this.sex !== -1 || this.levelFrom || this.levelTo) {
-					this.sex = -1;
+				if (this.tan || this.man || this.levelFrom || this.levelTo) {
+					this.tan = this.man = false;
 					this.levelFrom = this.levelTo = 0;
 					$DV.Table.fill();
 					this.showCount(false);
@@ -346,13 +378,16 @@ var $DV = {
 				}
 			},
 
+			onSubmit: function() {
+				// 只前端过滤当前页，不涉及服务器
+			}
 		},
 
 		// 分页查询管理
 		Pager: {
 			// 响应提交表单
 			onSubmit: function() {
-				var $form = $('#formFilter');
+				var $form = $('#formQuery');
 				var where = {};
 
 				var id = $form.find('input:text[name=id]').val();
@@ -404,8 +439,7 @@ var $DV = {
 					where.birthday = {'-between': [birthdayFrom, birthdayTo]};
 				}
 
-				// 年龄暂不支持
-				if (!where.birthday && 0) {
+				if (!where.birthday) {
 					var ageTo = $form.find('input:text[name=age-to]').val();
 					var ageFrom = $form.find('input:text[name=age-from]').val();
 					ageTo = parseInt(ageTo);
@@ -458,8 +492,7 @@ var $DV = {
 			doneQuery: function(_resData) {
 				$DD.Table.load(_resData);
 				$DV.Table.fill();
-				$DV.Fun.jumpLink('#family_table');
-				// location.href='#pg1-table';
+				location.href='#pg1-table';
 			},
 
 			doNext: function() {
@@ -481,6 +514,23 @@ var $DV = {
 				}
 			},
 
+			// 勾选父系，自动在姓名域填 '谭%'
+			onCheckbox: function(_checkbox) {
+				var val = _checkbox.value;
+				if (val == 'tan') {
+					// console.log('check tan');
+					if (_checkbox.checked) {
+						$('#formQuery input:text[name=name]').val($DD.TAN + '%');
+					}
+					else {
+						$('#formQuery input:text[name=name]').val('');
+					}
+				}
+				else if (val == 'partner') {
+					// console.log('check partner');
+				}
+			},
+
 			LAST_PRETECT: true
 		},
 
@@ -494,8 +544,11 @@ var $DV = {
 			$('#formPerson span.operate-warn').html('');
 			var idname = $('#formPerson input[name=mine]').val();
 			var id = parseInt(idname);
-			if (!id) {
-				var id = $DD.Table.getIdByName(idname);
+			if (isNaN(id)) {
+				var idInHash = $DD.Table.getIdByName(idname);
+				if (idInHash) {
+					id = idInHash;
+				}
 			}
 			if (id && $DD.Table.Hash[id]) {
 				this.checkout(id);
@@ -540,17 +593,21 @@ var $DV = {
 				var name = Data.mine.F_name;
 				var sex = Data.mine.F_sex;
 				var level = Data.mine.F_level;
-				if (sex <= 2) {
+				if (sex < 2) {
 					name += $DD.SEX[sex].substring(1);
 				}
-				level = '第 +' + level + ' 代子孙';
+				if (level > 0) {
+					level = '第 +' + level + ' 代直系';
+				}
+				else {
+					level = '第 ' + level + ' 代旁系';
+				}
 
 				var idLink = $DV.Fun.quickLoginLink(id);
 				var text = idLink + ' | ' + name + ' | ' + level;
 				$('#mine-info').html(text)
 					.find('a.quicklogin').click($DE.onQuickLogin);
 
-				// 生日
 				if (Data.mine.F_birthday) {
 					var text = '';
 					var birthDate = new Date(Data.mine.F_birthday); 
@@ -571,14 +628,18 @@ var $DV = {
 					$('#mine-dates').hide();
 				}
 
-				// 配偶信息
-				if (Data.mine.F_partner) {
-					var html = Data.mine.F_partner;
+			}
+
+			// 配偶信息
+			if (_force || Data.canUpdate(Data.PARTNER)) {
+				if (Data.mine.F_partner && Data.partner) {
+					var html = $DV.Fun.linktoPerson(Data.partner, 1);
 					$('#mine-partner span.data').html(html);
 					$('#mine-partner').show();
 				}
 				else {
 					$('#mine-partner').hide();
+					$('#mine-children').hide();
 				}
 			}
 
@@ -622,6 +683,10 @@ var $DV = {
 					var text = '己是入库的始祖了，有需要请联系管理员升级！';
 					$('#mine-parents span.data').html(text);
 				}
+				else if (Data.mine.F_level < 0) {
+					var text = '旁系配偶不入库！';
+					$('#mine-parents span.data').html(text);
+				}
 			}
 
 			// 兄弟
@@ -660,6 +725,7 @@ var $DV = {
 		Table: {
 			Filled: {
 				mine: false,
+				partner: false,
 				parents: false,
 				children: false,
 				count_up: 0,
@@ -668,7 +734,7 @@ var $DV = {
 				// 清空原数据
 				empty: function() {
 					$('#tabMine tr.rowdata').remove();
-					this.mine = this.parents = this.children = false;
+					this.mine = this.partner = this.parents = this.children = false;
 					this.count_up = this.count_down = 0;
 				}
 			},
@@ -685,6 +751,12 @@ var $DV = {
 				}
 				else {
 					return false;
+				}
+				if (Data.partner) {
+					var $tr = $DV.Table.formatRow(Data.partner);
+					$tr.addClass('mine');
+					$('#tabMine').append($tr);
+					this.Filled.partner = true;
 				}
 				return true;
 			},
@@ -792,9 +864,21 @@ var $DV = {
 				else {
 					this.unlock($('#formOperate input:text[name=father]'));
 				}
+				if (rowdata.F_mother) {
+					var mother = rowdata.F_mother;
+					var id = $DD.getRow(mother).F_id;
+					var name = $DD.getRow(mother).F_name;
+					var value = id + '/' + name;
+					this.lock($('#formOperate input:text[name=mother]'), value);
+				}
+				else {
+					this.unlock($('#formOperate input:text[name=mother]'));
+				}
 				if (rowdata.F_partner) {
 					var partner = rowdata.F_partner;
-					var value = partner;
+					var id = $DD.getRow(partner).F_id;
+					var name = $DD.getRow(partner).F_name;
+					var value = id + '/' + name;
 					this.lock($('#formOperate input:text[name=partner]'), value);
 				}
 				else {
@@ -808,17 +892,40 @@ var $DV = {
 				if (rowdata.F_sex == 1) {
 					var value = this.refid + '/' + rowdata.F_name;
 					this.lock($('#formOperate input:text[name=father]'), value);
+					if (rowdata.F_partner) {
+						var mother = rowdata.F_partner;
+						var id = $DD.getRow(mother).F_id;
+						var name = $DD.getRow(mother).F_name;
+						var value = id + '/' + name;
+						this.lock($('#formOperate input:text[name=mother]'), value);
+					}
+					else {
+						this.unlock($('#formOperate input:text[name=mother]'));
+					}
 				}
-				else if (rowdata.F_sex == 2) {
-					// 女儿不添加子女
-					$('#formOperate div.operate-warn').html('不能记录女儿的后代');
+				else if (rowdata.F_sex == 0) {
+					var value = this.refid + '/' + rowdata.F_name;
+					this.lock($('#formOperate input:text[name=mother]'), value);
+					if (rowdata.F_partner) {
+						var father = rowdata.F_partner;
+						var id = $DD.getRow(father).F_id;
+						var name = $DD.getRow(father).F_name;
+						var value = id + '/' + name;
+						this.lock($('#formOperate input:text[name=father]'), value);
+					}
+					else {
+						this.unlock($('#formOperate input:text[name=father]'));
+					}
 				}
 				else {
-					console.log('男1女2，错误性别：' + rowdata.F_sex);
+					console.log('男1女0，错误性别：' + rowdata.F_sex);
 				}
 
 				this.unlock($('#formOperate input:text[name=partner]'));
 			} 
+			else if(op == 'remove') {
+				console.log('已禁删除操作不该至此');
+			}
 			else {
 				console.log('未定义操作');
 			}
@@ -828,11 +935,13 @@ var $DV = {
 		lock: function($input, value) {
 			$input.val(value);
 			$input.attr('readonly', true);
+			// $input.parent().addClass('input-lock');
 			$input.addClass('input-lock');
 		},
 
 		unlock: function($input) {
 			$input.attr('readonly', false);
+			// $input.parent().removeClass('input-lock');
 			$input.removeClass('input-lock');
 		},
 
@@ -859,17 +968,17 @@ var $DV = {
 			var mine_name = $form.find('input[name=mine_name]').val();
 			var sex = $form.find('input:radio[name=sex]:checked').val();
 			var father = $form.find('input[name=father]').val();
+			var mother = $form.find('input[name=mother]').val();
 			var partner = $form.find('input[name=partner]').val();
 			var birthday = $form.find('input[name=birthday]').val();
 			var deathday = $form.find('input[name=deathday]').val();
-			mine_id = parseInt(mine_id);
-			sex = parseInt(sex);
 
 			var reqData = {};
 			var req = {};
 			var $error = $form.find('div.operate-warn');
 			if (op == 'modify') {
 				if (!mine_id || mine_id != this.refid) {
+					console.log('id 不匹配');
 					$error.html('id 不匹配');
 					return false;
 				}
@@ -890,8 +999,26 @@ var $DV = {
 						reqData.father_id = father_id;
 					}
 				}
-				if (partner && partner != jold.F_partner) {
-					reqData.partner = partner;
+				if (!jold.F_mother && mother) {
+					var mother_id = parseInt(mother);
+					if (isNaN(mother_id)) {
+						reqData.mother_name = mother;
+					}
+					else {
+						reqData.mother_id = mother_id;
+					}
+				}
+				// 配偶允许多个
+				if (partner) {
+					var partner_id = parseInt(partner);
+					if (isNaN(partner_id)) {
+						reqData.partner_name = partner;
+					}
+					else {
+						if (jold.F_partner != partner_id) {
+							reqData.partner_id = partner_id;
+						}
+					}
 				}
 				if (birthday && birthday != jold.F_birthday) {
 					reqData.birthday = birthday;
@@ -901,6 +1028,7 @@ var $DV = {
 				}
 
 				if (Object.keys(reqData).length <= 1) {
+					console.log('没有更新任何资料');
 					$error.html('没有更新任何资料');
 					return false;
 				}
@@ -920,6 +1048,7 @@ var $DV = {
 					}
 				}
 				else {
+					console.log('新增后代必须填姓名');
 					$error.html('新增后代必须填姓名');
 					return false;
 				}
@@ -927,6 +1056,7 @@ var $DV = {
 					reqData.sex = sex;
 				}
 				else {
+					console.log('新增后代必须选性别');
 					$error.html('新增后代必须选性别');
 					return false;
 				}
@@ -940,13 +1070,29 @@ var $DV = {
 						reqData.father_id = father_id;
 					}
 				}
-				else {
-					$error.html('新增后代必须指定父亲');
+				if (mother) {
+					var mother_id = parseInt(mother);
+					if (isNaN(mother_id)) {
+						reqData.mother_name = mother;
+					}
+					else {
+						reqData.mother_id = mother_id;
+					}
+				}
+				if (!father && !mother) {
+					console.log('新增后代必须指定父母之一');
+					$error.html('新增后代必须指定父母之一');
 					return false;
 				}
 
 				if (partner) {
-					reqData.partner = partner;
+					var partner_id = parseInt(partner);
+					if (isNaN(partner_id)) {
+						reqData.partner_name = partner;
+					}
+					else {
+						reqData.partner_id = partner_id;
+					}
 				}
 				if (birthday) {
 					reqData.birthday = birthday;
@@ -962,7 +1108,7 @@ var $DV = {
 				$DJ.reqAppend(req);
 			}
 			else {
-				console.log('未定义操作');
+				console.log('只有修改或增加后代需提交数据');
 			}
 
 			// 检测成功
@@ -1077,7 +1223,7 @@ var $DV = {
 				return;
 			}
 			var reqData = {};
-			var id = parseInt(user);
+			var id = parseInt(user) || 0;
 			if (!id) {
 				reqData.name = user;
 			}
@@ -1110,8 +1256,7 @@ var $DV = {
 			$('#formLogin input[name=loginuid]').val(_id);
 			$('#formLogin').show();
 			$('#formLogin input[name=loginkey]').val('').focus();
-			// $DV.Fun.jumpLink('#login-bar');
-			$('#formLogin div.operate-warn').html('');
+			$DV.Fun.jumpLink('#login-bar');
 		}
 	},
 

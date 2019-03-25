@@ -83,8 +83,8 @@ curl -d '{"api":"query","data":{"all":1}}'
 3. `F_sex` 性别，男 1 女 0
 4. `F_level` 代际，始祖为 1 代，逐代递增，负数为配偶旁系
 5. `F_father` 父亲，引用编号 id
-6. `F_mother` 母亲，引用编号 id
-7. `F_partner` 配偶，引用编号 id
+6. `F_sibold` 兄弟排行
+7. `F_partner` 配偶姓名
 8. `F_birthday` 生日，日期类型，yyyy-mm-dd 格式
 9. `F_deathday` 忌日，日期类型，yyyy-mm-dd 格式
 
@@ -96,8 +96,8 @@ curl -d '{"api":"query","data":{"all":1}}'
 * `sex` 性别，男 1 女 0
 * `level` 代际
 * `father` 父亲 id
-* `mother` 母亲 id
-* `partner` 配偶 id
+* `sibold` 兄弟排行
+* `partner` 配偶姓名
 
 计划支持的扩展条件：
 
@@ -126,10 +126,8 @@ curl -d '{"api":"query","data":{"all":1}}'
 * `sex` 性别
 * `father_name` 父亲姓名，通过姓名查 id，有重名或查不到时报错
 * `father_id` 直接指定父亲 id ，优先级比姓名高
-* `mother_name` 母亲姓名，通过姓名查 id，有重名或查不到时报错
-* `mother_id` 直接指定父亲 id ，优先级比姓名高
-* `partner_name` 提供配偶姓名，同时为配偶增加一条记录
-* `partner_id` 提供配偶 id ，用于给已入库成员修改配偶 id
+* `partner` 提供配偶姓名，同时为配偶增加一条记录
+* `sibold` 指定第几个孩子
 * `birthday` 生日
 * `deathday` 忌日
 * `requery` 重新查询插入的数据，如果请求参数含配偶信息，也返回配偶的记录
@@ -149,8 +147,7 @@ curl -d '{"api":"query","data":{"all":1}}'
 
 * `created` 新建插入的行数
 * `id` 新插入成员的 id
-* `partner_id` 新增或被修改的配偶 id
-* `records` 在请求了 `requery` 时返回重查的数据，1条或2条记录的数组
+* `mine` 在请求了 `requery` 时返回重查的数据
 
 ### 修改接口 modify
 
@@ -163,10 +160,8 @@ curl -d '{"api":"query","data":{"all":1}}'
 * `sex` 性别
 * `father_name` 父亲姓名，通过姓名查 id，有重名或查不到时报错
 * `father_id` 直接指定父亲 id ，优先级比姓名高
-* `mother_name` 母亲姓名，通过姓名查 id，有重名或查不到时报错
-* `mother_id` 直接指定父亲 id ，优先级比姓名高
-* `partner_name` 提供配偶姓名，同时为配偶增加一条记录
-* `partner_id` 提供配偶 id ，用于给已入库成员修改配偶 id
+* `partner` 提供配偶姓名，同时为配偶增加一条记录
+* `sibold` 指定第几个孩子
 * `birthday` 生日
 * `deathday` 忌日
 * `requery` 重新查询插入的数据，如果请求参数含配偶信息，也返回配偶的记录
@@ -175,8 +170,7 @@ curl -d '{"api":"query","data":{"all":1}}'
 
 * `modified` 修改影响的行数
 * `id` 原样返回被修改成员的 id
-* `partner_id` 新增或被修改的配偶 id
-* `records` 在请求了 `requery` 时返回重查的数据，1条或2条记录的数组
+* `mine` 在请求了 `requery` 时返回重查的数据
 
 如果请求中不修改配偶，则也不返回 `partner_id` ，`records` 中也不包含配偶。
 
@@ -201,7 +195,6 @@ curl -d '{"api":"query","data":{"all":1}}'
 * `parents` 直系父（母）辈，数值表示最多上溯查多少代，-1 表示上溯到最顶层，也
   即自身代际 -1 层；
 * `children` 是否查询所有直接后代，儿子或女儿
-* `partner` 是否查询配偶记录
 * `sibling` 是否查询同父或同母（取决于哪方是直系）的兄弟姐妹
 
 请求参数值中，用 1/0 表示是否，0 （或不提供该参数）表示不查询这种关系。
