@@ -5,7 +5,7 @@ var $DD = {
 	API_URL: '/dev/family/japi.cgi',
 	HELP_URL: '/dev/family/web/doc/help.htm',
 	TAN: '谭',
-	LEVEL: ['辈份', '年', '芳', '和', '积', '祥', '生'],
+	LEVEL: ['辈份', '礼', '让', '万', '年', '芳', '和', '积', '祥', '生'],
 	SEX: ['性别', '男♂', '女♀'],
 	SEX_MALE: 1, SEX_FEMALE: 2,
 	NULL: '',
@@ -26,21 +26,39 @@ var $DD = {
 		}
 	},
 
-	// todo: Mapid 冗余
-	// Table.Hash 更新对象值，不要替换对象
-	Mapid: {},
-	getName: function(id) {
-		return this.Mapid[id];
+	getName: function(_id) {
+		var row = getRow(_id);
+		return row ? row.F_name : '';
 	},
-	getRow: function(id) {
-		return this.Table.Hash[id];
+	getRow: function(_id) {
+		return this.Table.Hash[_id];
 	},
 
 	// 从服务器查得的数据表
 	Table: {
-		Title: ['编号', '姓名', '性别', '代际', '父亲', '配偶', '生日'],
+		Title: ['编号', '姓名', '性别', '辈份', '父亲', '配偶', '生日'],
 		Hash: {}, // 尽可能缓存从服务端查询的记录，以 id 为键
 		List: [], // 当前页列表
+
+		// 更新 Hash
+		hashed: 0,
+		saveHash: function(_row) {
+			var id = _row.F_id;
+			if (!this.Hash[id]) {
+				this.Hash[id] = _row;
+				this.hashed += 1;
+				return _row;
+			}
+			else {
+				var rold = this.Hash[id];
+				for (var field in _row){
+					if (_row.hasOwnProperty(field) && _row[field] !== rold[field]) {
+						rold[field] = _row[field];
+					}
+				}
+				return rold;
+			}
+		},
 
 		// 分页查询管理
 		Pager: {
@@ -103,16 +121,15 @@ var $DD = {
 		// 重新加载从服务端返回的一页数据
 		load: function(_resData) {
 			this.List = _resData.records;
-			// this.Hash = {};
 			for (var i = 0; i < this.List.length; ++i) {
-				var id = this.List[i].F_id;
-				var name = this.List[i].F_name;
-				$DD.Mapid[id] = name;
-				this.Hash[id] = this.List[i];
+				var saved = this.saveHash(this.List[i]);
+				if (saved && this.List[i] !== saved) {
+					this.List[i] = saved;
+				}
 
 				// 设置顶级祖先为详情页默认查看对象
 				if (this.List[i].F_level == 1) {
-					$DD.ROOT = id;
+					$DD.ROOT = this.List[i].F_id;
 				}
 			}
 
@@ -137,7 +154,6 @@ var $DD = {
 			}
 
 			var id = _resData.id;
-			var partner_id = _resData.partner_id;
 			var mine = _resData.mine;
 			if (mine) {
 				this.store(mine);
@@ -163,7 +179,7 @@ var $DD = {
 			else if ($DD.Person.curid == mine.F_father) {
 				$DD.Person.fromServer({
 					"id": $DD.Person.curid,
-					"children": mine
+					"children": [mine]
 				});
 				$DV.Person.update();
 				$DV.Person.Table.expandDown();
@@ -180,20 +196,14 @@ var $DD = {
 				console.log('数据行不存在 id?');
 				return;
 			}
-			this.Hash[id] = _row;
-			if (_row.F_name) {
-				$DD.Mapid[id] = _row.F_name;
-			}
-
-			if (_row.F_level < 0) {
-				console.log('旁系配偶只内部保存，不列出：' + id + _row.F_name);
-				return;
-			}
+			var saved = this.saveHash(_row);
 
 			var bFound = false;
 			for (var i = 0; i < this.List.length; ++i) {
 				if (this.List[i].F_id == id) {
-					this.List[i] = _row;
+					if (saved && this.List[i] !== saved) {
+						this.List[i] = saved;
+					}
 					bFound = true;
 					break;
 				}
@@ -363,7 +373,17 @@ var $DD = {
 				this.markUpdate(this.MINE);
 			}
 			if (_resData.children) {
-				this.children = _resData.children;
+				if (!this.children) {
+					this.children = _resData.children;
+				}
+				else {
+					var that = this;
+					_resData.children.forEach(function(_item, _idx) {
+						if (!$DD.Person.isChild(_item.F_id)) {
+							that.children.push(_item);
+						}
+					});
+				}
 				this.markUpdate(this.CHILDREN);
 			}
 			if (_resData.parents) {

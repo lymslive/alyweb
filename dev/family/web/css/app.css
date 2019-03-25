@@ -45,14 +45,22 @@ li.curr-page {
 	text-decoration: underline;
 }
 
+h1 {
+	margin-bottom: 0.5em;
+	font-family: "KaiTi_GB2312";
+}
+
 div.page, h2 {
 	clear:both;
-	margin-top: 2em;
+	margin-top: 2.5em;
 }
 
 /* 表格 */
 table {
 	border-collapse: collapse;
+	align: center;
+	text-align: center;
+	width: 100%;
 }
 
 tr.even {
@@ -82,7 +90,7 @@ tr.mine {
 	background-color: #C2C8D4;
 }
 
-/* 表头设置 */
+/* 表头设置
 
 th.fid {
 	width: 3em;
@@ -99,7 +107,7 @@ th.fsex {
 th.flevel {
 	width: 3em;
 }
-
+*/
 /* 折叠设置 */
 .foldOff {
 	display: none;
@@ -166,8 +174,8 @@ a.foldClose:hover {
 }
 
 /* 文章样式 */
-#article h1 { font-size: 20px; margin-top: 30px; margin-top: 0px; text-align:center; }
-#article h2 { font-size: 18px; }
+#article h1 { font-size: 20px; margin-top: 3em; margin-bottom: 0; text-align:center; }
+#article h2 { font-size: 18px; margin-top: 0em; }
 #article h3 { font-size: 16px; }
 #article h4 { font-size: 14px; }
 #article h5 { font-size: 12px; }

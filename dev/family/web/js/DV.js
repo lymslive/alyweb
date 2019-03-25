@@ -10,7 +10,6 @@ var $DV = {
 			if (_suffix && sex <= 2) {
 				name += $DD.SEX[sex].substring(1);
 			}
-			// var html = '<a href="#p' + id + '" title="' + id + '">' + name + '</a>';
 			var html = `<a href="#p${id}" title="${id}" class="toperson">${name}</a>`;
 			return html;
 		},
@@ -20,21 +19,22 @@ var $DV = {
 			var name = _id;
 			var title = _id;
 			var css = 'toperson';
-			if ($DD.Mapid[_id]) {
-				name = $DD.Mapid[_id];
+			var hashName = $DD.getName(_id);
+			if (hashName) {
+				name = hashName;
 			}
 			else {
 				title = '点击查找姓名';
 				css += ' qname';
 			}
-			// var html = '<a href="#p' + _id + '" title="' + title + '">' + name + '</a>';
 			var html = `<a href="#p${_id}" title="${title}" class="${css}">${name}</a>`;
 			return html;
 		},
 
 		// 跳转到某位置
 		jumpLink: function(_sid) {
-			location.href = _sid;
+			$(_sid)[0].scrollIntoView(true);
+			// location.href = _sid;
 		},
 
 		// 生成快速登陆链接
@@ -215,6 +215,7 @@ var $DV = {
 			$td = $('<td></td>').html(sex);
 			$tr.append($td);
 
+			level = $DD.LEVEL[level];
 			$td = $('<td></td>').html(level);
 			$tr.append($td);
 
@@ -280,9 +281,9 @@ var $DV = {
 		updateName: function() {
 			$('td a.qname').each(function(_idx, _element) {
 				var id = $(this).html();
-				var name = $DD.Mapid[id];
+				var name = $DD.getName(id);
 				if (name) {
-					$(this).html(name).attr('title', id);
+					$(this).html(name).attr('title', id).removeClass('qname');
 				}
 			});
 		},
@@ -457,7 +458,8 @@ var $DV = {
 			doneQuery: function(_resData) {
 				$DD.Table.load(_resData);
 				$DV.Table.fill();
-				location.href='#pg1-table';
+				$DV.Fun.jumpLink('#family_table');
+				// location.href='#pg1-table';
 			},
 
 			doNext: function() {
@@ -666,7 +668,7 @@ var $DV = {
 				// 清空原数据
 				empty: function() {
 					$('#tabMine tr.rowdata').remove();
-					this.mine = = this.parents = this.children = false;
+					this.mine = this.parents = this.children = false;
 					this.count_up = this.count_down = 0;
 				}
 			},
@@ -1108,7 +1110,8 @@ var $DV = {
 			$('#formLogin input[name=loginuid]').val(_id);
 			$('#formLogin').show();
 			$('#formLogin input[name=loginkey]').val('').focus();
-			$DV.Fun.jumpLink('#login-bar');
+			// $DV.Fun.jumpLink('#login-bar');
+			$('#formLogin div.operate-warn').html('');
 		}
 	},
 

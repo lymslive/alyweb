@@ -340,7 +340,7 @@ var $DV = {
 					$('#formFilter div.operate-warn').html('');
 				}
 				else {
-					var msg = '当前页筛选：' + $DV.Table.rows + '/' + $DD.Table.list.length + '成员';
+					var msg = '当前页筛选：' + $DV.Table.rows + '/' + $DD.Table.List.length + '成员';
 					$('#formFilter div.operate-warn').html(msg);
 				}
 			},
@@ -963,7 +963,7 @@ var $DV = {
 
 			var $form = $('#formOperate');
 			var op = $form.find('input:radio[name=operate]:checked').val();
-			var operkey = $form.find('input[name=operkey]').val();
+			var operakey = $form.find('input[name=operakey]').val();
 			var mine_id = $form.find('input[name=mine_id]').val();
 			var mine_name = $form.find('input[name=mine_name]').val();
 			var sex = $form.find('input:radio[name=sex]:checked').val();
@@ -1036,6 +1036,7 @@ var $DV = {
 				reqData.requery = 1;
 				req.api = 'modify';
 				req.data = reqData;
+				req.sess = $DD.Login.reqSess(operakey);
 				$DJ.reqModify(req);
 			}
 			else if (op == 'append') {
@@ -1103,6 +1104,7 @@ var $DV = {
 				reqData.requery = 1;
 				req.api = 'create';
 				req.data = reqData;
+				req.sess = $DD.Login.reqSess(operakey);
 				$DJ.reqAppend(req);
 			}
 			else {

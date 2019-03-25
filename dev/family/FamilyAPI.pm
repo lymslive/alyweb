@@ -446,7 +446,7 @@ sub check_parent
 		return 'ERR_PARENT_LACKED';
 	}
 
-	my $records = $db->Query(['F_id, F_level', 'F_sex'], {F_name => $jreq->{father_name}});
+	my $records = $db->Query(['F_id, F_level', 'F_sex'], $where, 2);
 	if ((scalar @$records) < 1) {
 		return 'ERR_NAME_LACKED';
 	}

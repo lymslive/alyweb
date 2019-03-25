@@ -175,7 +175,7 @@ var $DD = {
 			else if ($DD.Person.curid == mine.F_father || $DD.Person.curid == mine.F_mother) {
 				$DD.Person.fromServer({
 					"id": $DD.Person.curid,
-					"children": mine
+					"children": [mine]
 				});
 				$DV.Person.update();
 				$DV.Person.Table.expandDown();
@@ -427,7 +427,17 @@ var $DD = {
 				this.markUpdate(this.PARTNER);
 			}
 			if (_resData.children) {
-				this.children = _resData.children;
+				if (!this.children) {
+					this.children = _resData.children;
+				}
+				else {
+					var that = this;
+					_resData.children.forEach(function(_item, _idx) {
+						if (!$DD.Person.isChild(_item.F_id)) {
+							that.children.push(_item);
+						}
+					});
+				}
 				this.markUpdate(this.CHILDREN);
 			}
 			if (_resData.parents) {
