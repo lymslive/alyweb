@@ -80,11 +80,11 @@ var $DJ = {
         console.log('ajax finish with status: ' + textStatus);
     },
 
-	// 默认拉取所有数据
-	requestAll: function() {
-		var req = {"api":"query","data":{"all":1}};
+	// 默认拉取所有配置类型
+	reqConfig: function() {
+		var req = {"api":"query_config","data":{"all":1}};
 		this.query = this.requestAPI(req, function(_resData, _reqData) {
-			$DV.Table.Pager.doneQuery(_resData);
+			$DD.Table.doneConfig(_resData, _reqData);
 		});
 	},
 
@@ -153,8 +153,12 @@ var $DOC = {
 	INIT: function() {
 		this.EVENT.onLoad();
 		this.VIEW.Page.init();
-		this.AJAX.requestAll();
+		this.AJAX.reqConfig();
 	}
+};
+
+var $LOG = function(_msg) {
+	console.log(_msg);
 };
 
 $(document).ready(function() {

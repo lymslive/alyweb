@@ -232,7 +232,7 @@ var $DV = {
 			},
 
 			// 复选框变化
-			onCheckBox: functio(_evt) {
+			onCheckBox: function(_evt) {
 				var target = _evt.target;
 				var subtype = target.value;
 				if (subtype > 0) {
@@ -369,14 +369,73 @@ var $DV = {
 
 	// 操作表单在某行数据行下展开
 	Operate: {
-		refid: 0, // 记录上行参照的成员id
 
+		// 根据单选重新填充下拉列表
 		onRadio: function(_evt) {
-			// todo 根据类别载入子类别
+			var type = $('#formOperate input:radio[name=type]:checked').val();
+			var subtype;
+			if (type == 1) {
+				subtype = $DD.Table.TypeIN;
+			}
+			else if (type == -1) {
+				subtype = $DD.Table.TypeOUT;
+			}
+			else {
+				return;
+			}
+
+			var $select = $('#formOperate select[name=subtype]');
+			$select.find('option').remove();
+			subtype.forEach(function(_item, _idx) {
+				var idx = type * _idx;
+				if (_item) {
+					var html = `<option value="${idx}">${_item}</opton>`;
+					$select.append(html);
+				}
+			}, this);
 		},
 
+		// 修改某笔流水，自动填充已有信息
 		onModify: function(_id) {
-			// todo 修改某笔流水，自动填充已有信息
+			var row = $DD.getRow(_id);
+			if (!row) {
+				console.log('不存在的记录，不能自动填充表单');
+				return;
+			}
+			var $form = $('#formOperate');
+			if (row.F_id) {
+				$form.find('input[name=id]').val(row.F_id);
+			}
+			if (row.F_date) {
+				$form.find('input[name=date]').val(row.F_date);
+			}
+			if (row.F_time) {
+				$form.find('input[name=time]').val(row.F_time);
+			}
+			if (row.F_type) {
+				if (row.F_type == 1) {
+					$form.find('input[name=type]')[0].checked = true;
+				}
+				else if (row.F_type == -1) {
+					$form.find('input[name=type]')[1].checked = true;
+				}
+			}
+			if (row.F_subtype) {
+				var idx = Math.abs(row.F_subtype);
+				$form.find('select[name=subtype] option')[idx].selected = true;
+			}
+			if (row.F_money) {
+				$form.find('input[name=money]').val(row.F_money / 100);
+			}
+			if (row.F_target) {
+				$form.find('input[name=target]').val(row.F_target);
+			}
+			if (row.F_place) {
+				$form.find('input[name=place]').val(row.F_place);
+			}
+			if (row.F_note) {
+				$form.find('input[name=note]').val(row.F_note);
+			}
 		},
 
 		submit: function(evt) {

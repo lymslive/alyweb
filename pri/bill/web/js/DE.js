@@ -133,7 +133,6 @@ var $DE = {
 		init: function() {
 			this.Operate();
 			this.Filter();
-			this.Query();
 			this.Login();
 		},
 		LAST_PRETECT: true

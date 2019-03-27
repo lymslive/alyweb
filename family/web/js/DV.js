@@ -337,8 +337,8 @@ var $DV = {
 
 			// 撤销过滤，显示全表
 			onReset: function() {
-				if (this.sex !== -1 || this.levelFrom || this.levelTo) {
-					this.sex = -1;
+				if (this.sex || this.levelFrom || this.levelTo) {
+					this.sex = '';
 					this.levelFrom = this.levelTo = 0;
 					$DV.Table.fill();
 					this.showCount(false);

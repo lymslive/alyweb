@@ -15,8 +15,8 @@ var $DD = {
 	Fun: {
 		// 判断第一个 obj 是否全被包含在第二个 obj
 		objin: function(_lhs, _rhs) {
-			for (var f in _lhs){
-				if (_lhs.hasOwnProperty(var f)) {
+			for (var f in _lhs) {
+				if (_lhs.hasOwnProperty(f)) {
 					if (!_rhs[f] || _rhs[f] != _lhs[f]) {
 						return false;
 					}
@@ -61,8 +61,8 @@ var $DD = {
 		Title: ['流水', '日期', '时间', '收支', '类别', '金额', '目标', '地点', '备注'],
 		Hash: {}, // 尽可能缓存从服务端查询的记录，以 id 为键
 		List: [], // 当前页列表
-		TypeIN: [], // 收入类别
-		TypeOUT: [], // 支出类别
+		TypeIN: ['收入'], // 收入类别
+		TypeOUT: ['支出'], // 支出类别
 
 		// 更新 Hash
 		hashed: 0,
@@ -212,6 +212,20 @@ var $DD = {
 			}
 			if (!bFound) {
 				this.List.push(_row);
+			}
+		},
+
+		// 完成查询类别配置
+		doneConfig: function(_resData, _reqData) {
+			var records = _resData.records;
+			for (var i = 0; i < records.length; ++i) {
+				var re = records[i];
+				if (re.F_subtype > 0) {
+					this.TypeIN[re.F_subtype] = re.F_typename;
+				}
+				else if (re.F_subtype < 0) {
+					this.TypeOUT[-re.F_subtype] = re.F_typename;
+				}
 			}
 		},
 
