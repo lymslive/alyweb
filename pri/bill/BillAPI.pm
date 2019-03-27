@@ -8,6 +8,17 @@ use WebLog;
 use BillDB;
 use DateTime;
 
+# 数据库连接信息
+my $dbcfg = {
+	host => '47.106.142.119',
+	user => 'family',
+	pass => 'family',
+	# port => 0,
+	# flag => {},
+	database => 'db_bill',
+	table => 't_family_bill',
+};
+
 my $TABLE_BILL = 't_family_bill';
 my @FIELD_BILL = qw(F_id F_type F_subtype F_money F_date F_target F_place F_note);
 my $TABLE_CONFIG = 't_type_config';
@@ -60,13 +71,9 @@ sub handle_request
 	my $handler = $HANDLER->{$api}
 		or return response('ERR_SYSNO_API');
 
-	my $db;
-
+	my $db = BillDB->new($dbcfg);
 	if ($api =~ /config$/) {
-		$db = BillDB->new($TABLE_CONFIG);
-	}
-	else {
-		$db = FamilyDB->new($TABLE_BILL);
+		$db->{table} = $TABLE_CONFIG;
 	}
 
 	if ($db->{error}) {

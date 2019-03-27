@@ -194,8 +194,8 @@ var $DV = {
 		Filter: {
 			type: 0,
 			month: 0,
-			typeIN: [0],
-			typeOUT: [0],
+			typeIN: {},
+			typeOUT: {},
 			dateFrom: '',
 			dateTo: '',
 
@@ -203,13 +203,13 @@ var $DV = {
 				if (this.type && this.type != _row.F_type) {
 					return false;
 				}
-				if (_row.F_type > 0 && this.typeIN.length > 1) {
-					if (this.typeIN.indexOf(_row.F_subtype) < 0) {
+				if (_row.F_type > 0 && this.typeIN) {
+					if (!this.typeIN[_row.F_subtype]) {
 						return false;
 					}
 				}
-				else if (_row.F_type < 0 && this.typeOUT.length > 1) {
-					if (this.typeOUT.indexOf(_row.F_subtype) < 0) {
+				else if (_row.F_type < 0 && this.typeOUT) {
+					if (this.typeOUT[_row.F_subtype] < 0) {
 						return false;
 					}
 				}
@@ -227,7 +227,7 @@ var $DV = {
 				if (this.month) {
 					// todo 更新日期起止
 				}
-				$DV.Table.fill();
+				// $DV.Table.fill();
 				this.showCount(true);
 			},
 
@@ -235,22 +235,40 @@ var $DV = {
 			onCheckBox: function(_evt) {
 				var target = _evt.target;
 				var subtype = target.value;
-				if (subtype > 0) {
-					if (target.checked) {
-						this.typeIN.push(subtype);
-					}
-					else {
-						// todo 取消选择
-					}
+				var checked = target.checked;
+				if (subtype === '+0') {
+					
+				}
+				else if (subtype === '-0') {
+					
+				}
+				else if (subtype > 0) {
+					this.typeIN[subtype] = checked;
 				}
 				else if (subtype < 0) {
-					if (target.checked) {
-						this.typeOUT.push(subtype);
-					}
-					else {
-						// todo 取消选择
-					}
+					this.typeIN[subtype] = checked;
 				}
+				// $DV.Table.fill();
+			},
+
+			// 添加筛选框
+			loadCheckBox: function() {
+				var $income = $('#income-type');
+				var $outcome = $('#outcome-type');
+				$DD.Table.TypeIN.forEach(function(_item, _idx) {
+					if (_idx > 0) {
+						var html = `<label><input type="checkbox" name="income" value="${_idx}" checked>${_item}</label>`;
+						$income.append(html);
+						this.typeIN[_idx] = true;
+					}
+				}, this);
+				$DD.Table.TypeOUT.forEach(function(_item, _idx) {
+					if (_idx > 0) {
+						var html = `<label><input type="checkbox" name="income" value="${-_idx}" checked>${_item}</label>`;
+						$outcome.append(html);
+						this.typeOUT[-_idx] = true;
+					}
+				}, this);
 			},
 
 			showCount: function(_filtered) {
@@ -269,8 +287,8 @@ var $DV = {
 				|| this.typeIN.length > 1 || this.typeOUT.length > 1) {
 					this.type = this.month = 0;
 					this.dateFrom = this.dateTo = '';
-					this.typeIN = [0];
-					this.typeOUT = [0];
+					this.typeIN = {};
+					this.typeOUT = {};
 					$DV.Table.fill();
 					this.showCount(false);
 					$('#formFilter').trigger('reset');

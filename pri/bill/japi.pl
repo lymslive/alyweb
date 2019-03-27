@@ -1,5 +1,6 @@
 #! /usr/bin/env perl
 # package japi;
+use utf8;
 use strict;
 use warnings;
 
@@ -31,6 +32,9 @@ sub main
 	}
 	
 	my $json_res = BillAPI::handle_request($json_req);
+	if ($json_req->{log}) {
+		$json_res->{log} = WebLog::instance()->to_webline();
+	}
 	my $string_res = eval { encode_json($json_res) };
 	unless ($json_req) {
 		return err_output("Fail to encode response to json: " . $@);

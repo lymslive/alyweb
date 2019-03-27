@@ -1,4 +1,3 @@
-
 // 数据
 var $DD = {
 	// 常量
@@ -227,6 +226,7 @@ var $DD = {
 					this.TypeOUT[-re.F_subtype] = re.F_typename;
 				}
 			}
+			$DV.Table.Filter.loadCheckBox();
 		},
 
 		LAST_PRETECT: true

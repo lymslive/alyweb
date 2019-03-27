@@ -11,36 +11,52 @@ use WebLog;
 =head1 数据库配置
 =cut
 
-my $HOST = '47.106.142.119';
-my $DBNAME = 'db_bill';
+# 默认的连接信息
+my %DBOPT = (
+	driver => 'mysql',
+	host => 'localhost',
+	port => 3306,
+	user => 'test',
+	pass => 'test',
+	database => 'test',
+	table => 'test',
+	flag => {AutoCommit => 1, mysql_enable_utf8 => 1},
+);
 
-my $driver = 'mysql';
-my $dsn = "host=$HOST;database=$DBNAME";
-my $username = 'family';
-my $passwd = 'family';
-my $flags = {AutoCommit => 1, mysql_enable_utf8 => 1};
+# 连接数据库。因不能 or die，顺便返回错误信息
+sub Connect
+{
+	my ($dbopt) = @_;
+	my %opt = (%DBOPT, %$dbbopt);
+	my $driver = $opt{driver};
+	my $dsn = "host=$opt{host};database=$opt{database}";
+	my $username = $opt{user};
+	my $passwd = $opt{pass};
+	my $flags = $opt{flag};
+
+	my $error = '';
+	my $dbh = DBI->connect("dbi:$driver:$dsn", $username, $passwd, $flags)
+		or $error = "Failed to connect to database: $DBI::errstr";
+	return ($dbh, $error);
+}
 
 =head1 对象封装
 =cut
 
 sub new
 {
-	my ($class, $table) = @_;
-	my ($dbh, $error) = Connect();
+	my ($class, $dbopt, $table) = @_;
+	my ($dbh, $error) = Connect($dbopt);
 	my $self = {dbh => $dbh, error => $error};
 	$self->{sql} = SQL::Abstract->new;
-	$self->{table} = $table;
+	if ($table) {
+		$self->{table} = $table;
+	}
+	else {
+		$self->{table} = $dbopt->{table};
+	}
 	bless $self, $class;
 	return $self;
-}
-
-# 连接数据库。因不能 or die，顺便返回错误信息
-sub Connect
-{
-	my $error = '';
-	my $dbh = DBI->connect("dbi:$driver:$dsn", $username, $passwd, $flags)
-		or $error = "Failed to connect to database: $DBI::errstr";
-	return ($dbh, $error);
 }
 
 sub Disconnect

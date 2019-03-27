@@ -57,6 +57,9 @@ var $DJ = {
 			})
 			.always(function(_data, _textStatus, _jqXHR) {
 				console.log('ajax finish with status: ' + _textStatus);
+				if (_data.log) {
+					console.log(_data.log);
+				}
 				if (_form) {
 					$submit.removeAttr('disabled');
 				}
