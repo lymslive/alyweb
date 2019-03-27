@@ -5,6 +5,34 @@ var $DJ = {
 		LAST_PRETECT: true
 	},
 
+	Fun: {
+		// 解析地址栏的搜索部分
+		urlParam: function() {
+			var search = location.search;
+			if (search.length < 1) {
+				return {};
+			}
+			var param = search.substring(1).split('&');
+			var res = {};
+			for (var i = 0; i < param.length; ++i) {
+				var kv = param[i].split('=');
+				if (kv.length > 1) {
+					res[kv[0]] = res[kv[1]];
+				}
+				else if (kv.length > 0) {
+					res[kv[0]] = true;
+				}
+			}
+		},
+
+		hasLog: function() {
+			var param = this.urlParam();
+			return param['log'];
+		},
+
+		LAST_PRETECT: true
+	},
+
 	// 组装请求参数
 	reqOption: function(_req) {
 		var opt = {
@@ -24,6 +52,9 @@ var $DJ = {
 	// _form 与此请求相关联的 from id , 将自动处理重复提交
 	// _msg 在请求返回时在页面给用户的友好提示，包括 .err 与 .suc 两种提示
 	requestAPI: function(_req, _callback, _form, _msg) {
+		if (this.Fun.hasLog()) {
+			_req.log = 1;
+		}
 		var opt = this.reqOption(_req);
 		$LOG('api req = ' + opt.data);
 

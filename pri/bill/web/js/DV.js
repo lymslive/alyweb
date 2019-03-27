@@ -192,12 +192,16 @@ var $DV = {
 
 		// 过滤表单
 		Filter: {
+
+			// 动态检查一行是否要被过滤，返回 true 表示应该显示
 			checkOK: function(_row) {
+				// 大类
 				var type = $('#formFilter select[name=type]').val();
 				if (type && type != _row.F_type) {
 					return false;
 				}
 
+				// 子类
 				var checked = false;
 				var idx = Math.abs(_row.F_subtype);
 				if (_row.F_type > 0 && _row.F_subtype > 0) {
@@ -210,12 +214,28 @@ var $DV = {
 					return false;
 				}
 
-				// todo 判断日期
+				// 判断日期
+				var dateFrom = $('#formFilter input[name=date-from]').val();
+				var dateTo = $('#formFilter input[name=date-to]').val();
+				var date = _row.F_date;
+				if (dateFrom && date < dateFrom) {
+					return false;
+				}
+				else if (dateTo && date > dateTo) {
+					return false;
+				}
+
 				return true;
 			},
 
+			// 同步选项变化
 			onChange: function(_evt) {
 				var target = _evt.target;
+
+				// 不影响过滤显示的改变
+				if (target.name === 'perpage') {
+					return false;
+				}
 
 				// 复选框变化，判断全部勾选或取消
 				if (target.type === 'checkbox') {
@@ -236,7 +256,7 @@ var $DV = {
 							$('#income-type').show();
 							$('#outcome-type').hide();
 						}
-						else if (type == 1) {
+						else if (type == -1) {
 							$('#income-type').hide();
 							$('#outcome-type').show();
 						}
@@ -244,10 +264,22 @@ var $DV = {
 				}
 				// 月份下拉框，更新日期起止
 				else if (target.name === 'month') {
-					
+					var today = new Date();
+					var last = new Date();
+					var diffMonth = $('#formFilter select[name=month]').val();
+					diffMonth = parseInt(diffMonth);
+					if (diffMonth) {
+						last.setMonth(today.getMonth() - diffMonth);
+						var partToday = [today.getFullYear(), today.getMonth() + 1, today.getDate()];
+						var strToday = partToday.join('-');
+						$('#formFilter input[name=date-to]').val(strToday);
+						var partLast = [last.getFullYear(), last.getMonth() + 1, last.getDate()];
+						var strlast = partlast.join('-');
+						$('#formFilter input[name=date-from]').val(strlast);
+					}
 				}
 				
-				// $DV.Table.fill();
+				$DV.Table.fill();
 				this.showCount(true);
 			},
 
