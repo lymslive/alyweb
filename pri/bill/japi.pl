@@ -1,6 +1,6 @@
 #! /usr/bin/env perl
 # package japi;
-use utf8;
+# use utf8;
 use strict;
 use warnings;
 
@@ -41,7 +41,8 @@ sub main
 	}
 
 	# 输出响应
-	wlog("Response json: " . $string_res);
+	# wlog("Response json: " . $string_res);
+	wlog("Response json in body:");
 	print "Content-type:application/json\n\n";
 	print $string_res;
 

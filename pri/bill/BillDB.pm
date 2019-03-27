@@ -27,7 +27,7 @@ my %DBOPT = (
 sub Connect
 {
 	my ($dbopt) = @_;
-	my %opt = (%DBOPT, %$dbbopt);
+	my %opt = (%DBOPT, %$dbopt);
 	my $driver = $opt{driver};
 	my $dsn = "host=$opt{host};database=$opt{database}";
 	my $username = $opt{user};
@@ -150,7 +150,8 @@ sub LastInsertID
 {
 	my ($self) = @_;
 	my $dbh = $self->{dbh};
-	return $dbh->last_insert_id(undef, $DBNAME, $self->{table}, 'F_ID');
+	# return $dbh->last_insert_id(undef, $DBNAME, $self->{table}, 'F_ID');
+	return $dbh->last_insert_id(undef, undef, $self->{table}, 'F_ID');
 }
 
 # 入参：

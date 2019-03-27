@@ -192,83 +192,83 @@ var $DV = {
 
 		// 过滤表单
 		Filter: {
-			type: 0,
-			month: 0,
-			typeIN: {},
-			typeOUT: {},
-			dateFrom: '',
-			dateTo: '',
-
 			checkOK: function(_row) {
-				if (this.type && this.type != _row.F_type) {
+				var type = $('#formFilter select[name=type]').val();
+				if (type && type != _row.F_type) {
 					return false;
 				}
-				if (_row.F_type > 0 && this.typeIN) {
-					if (!this.typeIN[_row.F_subtype]) {
-						return false;
-					}
+
+				var checked = false;
+				var idx = Math.abs(_row.F_subtype);
+				if (_row.F_type > 0 && _row.F_subtype > 0) {
+					checked = $('#income-type input')[idx].checked;
 				}
-				else if (_row.F_type < 0 && this.typeOUT) {
-					if (this.typeOUT[_row.F_subtype] < 0) {
-						return false;
-					}
+				else if (_row.F_type < 0 && _row.F_subtype) {
+					checked = $('#outcome-type input')[idx].checked;
 				}
+				if (!checked) {
+					return false;
+				}
+
 				// todo 判断日期
 				return true;
 			},
 
-			// 下拉列表变化
-			onSelection: function() {
-				var $form = $('#formFilter');
-				var $type = $form.find('select[name=type]');
-				var $month = $form.find('select[name=month]');
-				this.type = parseInt($type.val());
-				this.month = parseInt($month.val());
-				if (this.month) {
-					// todo 更新日期起止
+			onChange: function(_evt) {
+				var target = _evt.target;
+
+				// 复选框变化，判断全部勾选或取消
+				if (target.type === 'checkbox') {
+					var subtype = target.value;
+					var checked = target.checked;
+					if (subtype === '+0') {
+						$('#income-type input').prop('checked', checked);
+					}
+					else if (subtype === '-0') {
+						$('#outcome-type input').prop('checked', checked);
+					}
 				}
+				// 收支下拉框，只显示收或支小类
+				else if (target.name === 'type') {
+					var type = $('#formFilter select[name=type]').val();
+					if (type) {
+						if (type == 1) {
+							$('#income-type').show();
+							$('#outcome-type').hide();
+						}
+						else if (type == 1) {
+							$('#income-type').hide();
+							$('#outcome-type').show();
+						}
+					}
+				}
+				// 月份下拉框，更新日期起止
+				else if (target.name === 'month') {
+					
+				}
+				
 				// $DV.Table.fill();
 				this.showCount(true);
 			},
 
-			// 复选框变化
-			onCheckBox: function(_evt) {
-				var target = _evt.target;
-				var subtype = target.value;
-				var checked = target.checked;
-				if (subtype === '+0') {
-					
-				}
-				else if (subtype === '-0') {
-					
-				}
-				else if (subtype > 0) {
-					this.typeIN[subtype] = checked;
-				}
-				else if (subtype < 0) {
-					this.typeIN[subtype] = checked;
-				}
-				// $DV.Table.fill();
-			},
-
-			// 添加筛选框
+			// 添加筛选框，初始全选中状态
 			loadCheckBox: function() {
 				var $income = $('#income-type');
 				var $outcome = $('#outcome-type');
 				$DD.Table.TypeIN.forEach(function(_item, _idx) {
 					if (_idx > 0) {
-						var html = `<label><input type="checkbox" name="income" value="${_idx}" checked>${_item}</label>`;
+						var html = `<label><input type="checkbox" name="income" value="${_idx}">${_item}</label>`;
 						$income.append(html);
-						this.typeIN[_idx] = true;
 					}
 				}, this);
+				$('#income-type input').prop('checked', true);
 				$DD.Table.TypeOUT.forEach(function(_item, _idx) {
 					if (_idx > 0) {
-						var html = `<label><input type="checkbox" name="income" value="${-_idx}" checked>${_item}</label>`;
+						var html = `<label><input type="checkbox" name="income" value="${-_idx}">${_item}</label>`;
 						$outcome.append(html);
-						this.typeOUT[-_idx] = true;
 					}
 				}, this);
+				$('#outcome-type input').prop('checked', true);
 			},
 
 			showCount: function(_filtered) {
@@ -283,16 +283,9 @@ var $DV = {
 
 			// 撤销过滤，显示全表
 			onReset: function() {
-				if (this.type || this.month || this.dateFrom || this.dateTo
-				|| this.typeIN.length > 1 || this.typeOUT.length > 1) {
-					this.type = this.month = 0;
-					this.dateFrom = this.dateTo = '';
-					this.typeIN = {};
-					this.typeOUT = {};
-					$DV.Table.fill();
-					this.showCount(false);
-					$('#formFilter').trigger('reset');
-				}
+				$('#formFilter').trigger('reset');
+				$DV.Table.fill();
+				this.showCount(false);
 			},
 
 			// 响应提交表单
@@ -305,7 +298,16 @@ var $DV = {
 					where.F_type = parseInt(type);
 				}
 
-				// todo 子类别条件
+				// 子类别条件
+				var subtype = [];
+				$form.find('input:checkbox').each(function() {
+					if (this.checked && !!parseInt(this.value)) {
+						subtype.push(this.value);
+					}
+				});
+				if (subtype.length > 0) {
+					where.F_subtype = subtype;
+				}
 
 				// 日期
 				var dateFrom  = $form.find('input[name=date-from]').val();

@@ -87,12 +87,9 @@ var $DE = {
 				$DV.Table.Filter.onReset();
 			});
 
-			$form.find('input:checkbox[name=filter]').change(function(_evt){
-				$DV.Table.Filter.onCheckbox(_evt);
-			});
-
-			$form.find('select').change(function(_evt){
-				$DV.Table.Filter.onSelection(_evt);
+			// 表单上统一处理变动事件
+			$form.change(function(_evt){
+				$DV.Table.Filter.onChange(_evt);
 			});
 
 			// 添加最近月份 select option
