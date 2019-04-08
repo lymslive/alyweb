@@ -5,7 +5,7 @@ use strict;
 use warnings;
 
 use WebLog;
-use BillDB;
+use MYDB;
 use DateTime;
 
 # 数据库连接信息
@@ -71,7 +71,7 @@ sub handle_request
 	my $handler = $HANDLER->{$api}
 		or return response('ERR_SYSNO_API');
 
-	my $db = BillDB->new($dbcfg);
+	my $db = MYDB->new($dbcfg);
 	if ($api =~ /config$/) {
 		$db->{table} = $TABLE_CONFIG;
 	}
