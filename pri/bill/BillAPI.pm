@@ -155,7 +155,6 @@ sub handle_query
 		$where = $jreq->{where};
 	}
 
-	# 默认按代际排序
 	my $order = ['F_date'];
 	my $records = $db->Query($fields, $where, $limit, $order);
 	return ('ERR_DBI_FAILED', $db->{error}) if ($db->{error});
@@ -214,7 +213,6 @@ sub handle_create
 		$jres->{F_id} = $db->LastInsertID();
 	}
 
-	# 重查
 	if ($jreq->{requery}) {
 		$jres->{mine} = query_single($db, $jres->{F_id});
 	}

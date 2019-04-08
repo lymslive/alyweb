@@ -89,5 +89,87 @@ sub ymdtime($)
 	return ($year, $month, $day);
 }
 
+# return a list reference, each item is a line of tag file
+# @param $reverse: reverse the list of content lines
+sub GetBlogList
+{
+	my ($tag, $reverse) = @_;
+	my $filename = File::Spec->catfile($pubdir, "blog-$tag.tag");
+	return '' unless -r $filename;
+	return read_txt_file($filename, $reverse);
+}
+
+# 读取一个标签文件，返回数组引用
+# @param $reverse: reverse the list of content lines
+sub read_txt_file
+{
+	my ($filename, $reverse) = @_;
+	return [] unless ($filename && -r $filename);
+	# open(my $fh, '<', $filename) or die "cannot open $filename $!";
+	open(my $fh, '<', $filename) or return [];
+	my @content = <$fh>;
+	close($fh);
+	if ($reverse) {
+		@content = reverse(@content);
+	}
+	return \@content;
+}
+
+# 读取日志文件，解析为几部分，返回 hash
+sub ReadBlogFile
+{
+	my ($noteid) = @_;
+	my $filepath = GetNotePath($noteid);
+	return undef unless ($filepath && -r $filepath);
+
+	# the file object
+	my $filemark = {
+		content => [], 
+		title => '', tags => [], 
+		date  => '', url => '',
+	};
+
+	open(my $fh, '<', $filepath) or return undef;
+	while (<$fh>) {
+		# chomp;
+		# title line
+		if ($. == 1) {
+			push(@{$filemark->{content}}, $_);
+			(my $title = $_ ) =~ s/^[#\s]+//;
+			$filemark->{title} = $title;
+			next;
+		}
+		# tag line
+		elsif ($. == 2){
+			my @tags = /`([^`]+)`/g;
+			if (@tags) {
+				push(@{$filemark->{tags}}, @tags);
+				next;
+			}
+		}
+
+		# comment line
+		if ($. < 5 && /<!--(.*)-->/) {
+			my $comment = $1;
+			$filemark->{date} ||= $1 if $comment =~ /(\d{4}-\d{2}-\d{2})/;
+			$filemark->{url} ||= $1 if $comment =~ /(https?:\S+)/;
+			next;
+		}
+
+		# 删除行首两个中文空格
+		s/^　　//;
+		push(@{$filemark->{content}}, $_);
+	}
+	close($fh);
+
+	# the default note date
+	if (!$filemark->{date}) {
+		my @ymd = $noteid =~ /^(\d{4})(\d{2})(\d{2})_/;
+		$filemark->{date} = join('-', @ymd);
+	}
+
+	return $filemark;
+}
+
 1;
 __END__
