@@ -165,29 +165,18 @@ var $DD = {
 		// 更新服务器数据回调，包含修改自己与增加子女
 		modify: function(_resData, _reqData) {
 			if (_resData.modified) {
-				if (!_resData.id || !_reqData.id || _resData.id != _reqData.id) {
-					console.log('修改资料请求响应数据不对');
-					return;
-				}
+				console.log('修改帐单了');
 			}
 
-			var id = _resData.id;
 			var mine = _resData.mine;
 			if (mine) {
 				this.store(mine);
+				$DV.Table.updateRow(mine);
 			}
 			else {
 				console.log('逻辑错误：没有返回自己的信息');
 				return;
 			}
-
-			// 更新页面表
-			if (mine) {
-				$DV.Table.updateRow(mine);
-			}
-
-			// 重置未锁定的输入域
-			$DV.Operate.resetNolock();
 		},
 
 		// 增量修改或存储一行数据

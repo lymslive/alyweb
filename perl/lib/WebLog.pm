@@ -88,7 +88,7 @@ sub output_std
 sub to_string
 {
 	my ($self, $br) = @_;
-	$br //= '';
+	$br //= "\n";
 	return join($br, @{$self->{buff}});
 }
 

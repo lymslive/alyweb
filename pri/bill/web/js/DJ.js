@@ -17,17 +17,18 @@ var $DJ = {
 			for (var i = 0; i < param.length; ++i) {
 				var kv = param[i].split('=');
 				if (kv.length > 1) {
-					res[kv[0]] = res[kv[1]];
+					res[kv[0]] = kv[1];
 				}
 				else if (kv.length > 0) {
 					res[kv[0]] = true;
 				}
 			}
+			return res;
 		},
 
 		hasLog: function() {
 			var param = this.urlParam();
-			return param['log'];
+			return param && param['log'];
 		},
 
 		LAST_PRETECT: true
@@ -131,7 +132,7 @@ var $DJ = {
 		var form = 'formQuery';
 		var msg = {suc: '查询完成，结果列于上表'};
 		this.query = this.requestAPI(_req, function(_resData, _reqData) {
-			$DV.Table.Pager.doneQuery(_resData);
+			$DV.Table.Filter.doneQuery(_resData);
 		}, form, msg);
 	},
 
@@ -142,7 +143,7 @@ var $DJ = {
 			return false;
 		}
 		var form = 'formOperate';
-		var msg = {suc: '修改资料成功', err: '修改资料失败'};
+		var msg = {suc: '修改帐单成功', err: '修改帐单失败'};
 		this.modify = this.requestAPI(_req, function(_resData, _reqData) {
 			$DD.Table.modify(_resData, _reqData);
 		}, form, msg);
@@ -155,7 +156,7 @@ var $DJ = {
 			return false;
 		}
 		var form = 'formOperate';
-		var msg = {suc: '添加子女成功', err: '添加子女失败'};
+		var msg = {suc: '添加帐单成功', err: '添加帐单失败'};
 		this.create = this.requestAPI(_req, function(_resData, _reqData) {
 			$DD.Table.modify(_resData, _reqData);
 		}, form, msg);

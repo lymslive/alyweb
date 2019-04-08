@@ -71,9 +71,6 @@ var $DE = {
 
 			$form.submit(function(_evt) {
 				_evt.preventDefault();
-				if (!$DD.Person.canOperate()) {
-					return;
-				}
 				return $DV.Operate.submit(_evt);
 			});
 
@@ -135,6 +132,43 @@ var $DE = {
 		LAST_PRETECT: true
 	},
 
+	Click: {
+		// 表格 id 链接
+		rowid: function(_evt, $target) {
+			if (_evt.target.tagName != 'TD' || _evt.target.className != 'rowid') {
+				return false;
+			}
+			console.log('click rowid ...');
+			var id = $target.html();
+			$DV.Page.see('#pg1-new');
+			$DV.Operate.onModify(id);
+			return true;
+		},
+
+		// 表格内备注链接
+		note: function(_evt, $target) {
+			if (_evt.target.tagName != 'A' || _evt.target.className != 'note') {
+				return false;
+			}
+			
+			var id = $target.attr('href').substring(1);
+			$DV.Page.see('#pg1-new');
+			$DV.Operate.onModify(id);
+			return true;
+		},
+
+		body: function(_evt) {
+			var target = _evt.target;
+			var dealt = this.rowid(_evt, $(target))
+				|| this.note(_evt, $(target))
+				|| false;
+			if (dealt) {
+				_evt.preventDefault();
+			}
+			return dealt;
+		}
+	},
+
 	// 加载页面时注册事件
 	onLoad: function() {
 		// 页签功能
@@ -147,6 +181,9 @@ var $DE = {
 		this.initFold(); // 定制折叠
 		this.Form.init(); // 定制表单
 
+		$('body').click(function(_evt) {
+			$DE.Click.body(_evt);
+		});
 	},
 
 	LAST_PRETECT: true

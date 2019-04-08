@@ -140,7 +140,7 @@ var $DV = {
 				.attr('class', this.rowcss)
 			;
 
-			var $td = $("<td></td>").html(id);
+			var $td = $('<td class="rowid"></td>').html(id);
 			$tr.append($td);
 			$td = $('<td></td>').html(date);
 			$tr.append($td);
@@ -156,6 +156,10 @@ var $DV = {
 			$tr.append($td);
 			$td = $('<td></td>').html(place);
 			$tr.append($td);
+
+			if (note) {
+				note = `<a href="#${id}" title="${note}" class="note">备注</a>`;
+			}
 			$td = $('<td></td>').html(note);
 			$tr.append($td);
 
@@ -325,20 +329,20 @@ var $DV = {
 				var $form = $('#formFilter');
 				var where = {};
 
+				// 类别条件
 				var type = $form.find('input:text[name=type]').val();
 				if (type) {
 					where.F_type = parseInt(type);
-				}
-
-				// 子类别条件
-				var subtype = [];
-				$form.find('input:checkbox').each(function() {
-					if (this.checked && !!parseInt(this.value)) {
-						subtype.push(this.value);
+					var subtype = [];
+					$form.find('input:checkbox').each(function() {
+						var sub = parseInt(this.value);
+						if (this.checked && sub) {
+							subtype.push(sub);
+						}
+					});
+					if (subtype.length > 0) {
+						where.F_subtype = subtype;
 					}
-				});
-				if (subtype.length > 0) {
-					where.F_subtype = subtype;
 				}
 
 				// 日期
@@ -471,6 +475,7 @@ var $DV = {
 				else if (row.F_type == -1) {
 					$form.find('input[name=type]')[1].checked = true;
 				}
+				this.onRadio();
 			}
 			if (row.F_subtype) {
 				var idx = Math.abs(row.F_subtype);
@@ -496,7 +501,7 @@ var $DV = {
 			var date = $form.find('input[name=date]').val();
 			var time = $form.find('input[name=time]').val();
 			var type = $form.find('input:radio[name=type]:checked').val();
-			var subtype = $form.find('select[name=subtype]:selected').val();
+			var subtype = $form.find('select[name=subtype]').val();
 			var money = $form.find('input[name=money]').val();
 			var target = $form.find('input[name=target]').val();
 			var place = $form.find('input[name=place]').val();
