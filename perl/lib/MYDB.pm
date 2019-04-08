@@ -1,6 +1,6 @@
 #! /usr/bin/env perl
 use utf8;
-package BillDB;
+package MYDB;
 use strict;
 use warnings;
 
