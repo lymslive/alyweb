@@ -20,7 +20,7 @@ my $dbcfg = {
 };
 
 my $TABLE_BILL = 't_family_bill';
-my @FIELD_BILL = qw(F_id F_type F_subtype F_money F_date F_target F_place F_note);
+my @FIELD_BILL = qw(F_id F_type F_subtype F_money F_date F_time F_target F_place F_note);
 my $TABLE_CONFIG = 't_type_config';
 my @FIELD_CONFIG = qw(F_subtype F_typename);
 
@@ -150,14 +150,13 @@ sub handle_query
 	my $ub = ($page) * $perpage;
 	my $limit = "$lb,$perpage";
 
-	# 默认不选姓名为 '0' 与旁系
 	my $where = {};
 	if (!$jreq->{all} && $jreq->{where}) {
 		$where = $jreq->{where};
 	}
 
 	# 默认按代际排序
-	my $order = ['F_datetime'];
+	my $order = ['F_date'];
 	my $records = $db->Query($fields, $where, $limit, $order);
 	return ('ERR_DBI_FAILED', $db->{error}) if ($db->{error});
 
@@ -259,7 +258,7 @@ sub handle_modify
 	}
 
 	$jres->{modified} = $ret;
-	$jres->{F_id} = $fieldvals->{id};
+	$jres->{F_id} = $mine_id;
 
 	if ($jreq->{requery}) {
 		$jres->{mine} = query_single($db, $jres->{F_id});
