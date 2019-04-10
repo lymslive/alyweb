@@ -6,7 +6,7 @@ use warnings;
 
 use FindBin qw($Bin);
 use lib "$Bin";
-use BillAPI;
+use BlogAPI;
 use JAPI;
 
 JAPI::main(\&BlogAPI::handle_request);

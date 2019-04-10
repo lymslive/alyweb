@@ -1,17 +1,22 @@
 "use strict";
 
 var $DD = {
+	API_URL: '/pub/blog/japi.cgi',
 	TOPIC: {
 		misc: "随笔杂文",
 		game: "游戏娱乐",
 		opera: "戏曲戏剧",
 		snake: "白蛇研究",
 		art: "文学艺术",
-		code: "程序生涯"
+		code: "程序生涯",
+		recent: "最近文章",
+		search: "搜索结果",
+		hot: "重点推荐"
 	},
 	
 	// 博客分类
 	Topic: {
+		hash: {},
 		current: '',
 		notelist: [],
 
@@ -21,6 +26,67 @@ var $DD = {
 			if (this.current !== 'recent') {
 				this.notelist.reverse();
 			}
+			this.hash[this.current] = this.notelist;
+		},
+
+		tosee: function(_topic) {
+			if (this.hash[_topic]) {
+				this.current = _topic;
+				this.notelist = this.hash[_topic];
+				return true;
+			}
+			else if (_topic === 'search') {
+				this.current = _topic;
+				this.notelist = [];
+				return true;
+			}
+			else {
+				$DJ.reqTopic(_topic);
+				return false;
+			}
+		},
+
+		parseTagline: function(_tagline, _tagArray) {
+			var linepart = _tagline.split("\t");
+			var noteid = linepart[0];
+			var notetitle = linepart[1];
+			var notetags = linepart[2];
+			var datestr = noteid.split('_')[0];
+			var date_str = datestr.substring(0, 4) + '-' + datestr.substring(4, 6) + '-' + datestr.substring(6);
+			if (_tagArray) {
+				notetags = notetags.substring(1, notetags.length - 1);
+				notetags = notetags.split('|');
+			}
+			return {
+				id: noteid,
+				title: notetitle,
+				date: date_str,
+				tags: notetags
+			};
+		},
+
+		ajacentNote: function(_topic, _id) {
+			var list = this.hash[_topic];
+			if (!list) {
+				return {};
+			}
+			var ret = {prev: '', next: ''};
+			var idx = -1;
+			for (var i = 0; i < list.length; ++i) {
+				if (list[i].indexOf(_id) == 0) {
+					idx = i;
+					break;
+				}
+			}
+			if (idx != -1) {
+				if (idx > 0) {
+					ret.prev = list[idx-1];
+				}
+				if (idx < list.length - 1) {
+					ret.next = list[idx+1];
+				}
+			}
+			return ret;
 		},
 
 		LAST_PRETECT: true
@@ -28,24 +94,42 @@ var $DD = {
 
 	// 博客文章
 	Article: {
-		noteid: '',
-		topic: '',
-		tags: [],
-		title: '',
-		date: '',
-		url: '',
-		author: '',
-		content: '',
+		hash: {},
+		currentId: '',
+		hashedCount: 0,
 
 		doneQuery: function(_resData) {
-			this.noteid = _resData.id;
-			this.topic = _resData.topic;
-			this.tags = _resData.tags;
-			this.title = _resData.title;
-			this.date = _resData.date;
-			this.url = _resData.url;
-			this.author = _resData.author;
-			this.content = _resData.content;
+			var note = {};
+			note.id = _resData.id;
+			note.topic = _resData.topic;
+			note.tags = _resData.tags;
+			note.title = _resData.title;
+			note.date = _resData.date;
+			note.url = _resData.url;
+			note.author = _resData.author;
+			note.content = _resData.content;
+
+			if (!this.hash[note.id]) {
+				this.hashedCount += 1;
+			}
+			this.hash[note.id] = note;
+			this.currentId = note.id;
+		},
+
+		getArticle: function(_id) {
+			var id = _id || this.currentId;
+			return this.hash[id];
+		},
+
+		tosee: function(_id) {
+			if (this.hash[_id]) {
+				this.currentId = _id;
+				return true;
+			}
+			else {
+				$DJ.reqArticle(_id);
+				return false;
+			}
 		},
 
 		LAST_PRETECT: true
@@ -55,22 +139,142 @@ var $DD = {
 };
 
 var $DV = {
+	PAGE: '',
+
 	Topic: {
-		domid = 'blog-list',
+		domid: '#blog-list',
 
 		show: function() {
-			$($DV.Topic.domid).show();
-			$($DV.Article.domid).hide();
+			if ($DV.PAGE !== 'topic') {
+				$($DV.Topic.domid).show();
+				$($DV.Article.domid).hide();
+				$DV.PAGE = 'topic';
+			}
+			return this;
 		},
+
+		fillList: function() {
+			var data = $DD.Topic;
+			if (!data.current) {// || data.notelist.length <= 0
+				return this;
+			}
+
+			if (data.current === 'search') {
+				$('#divSearch').show();
+			}
+			else {
+				$('#divSearch').hide();
+			}
+
+			var $ol = $('<ol></ol>');
+			for (var i = 0; i < data.notelist.length; ++i) {
+				var oTagline = data.parseTagline(data.notelist[i]);
+				var $date = $('<span/>').html(oTagline.date + ' ');
+				var $link = $('<a/>').attr('href', '#n-' + oTagline.id).html(oTagline.title);
+				var $title = $('<span/>').append($link);
+				var $li = $('<li/>').append($date).append($title);
+				$ol.append($li);
+			}
+
+			var $list = $('#note-list');
+			$list.children().remove();
+			// var $listHead = $('<div id="list-title"/>').html('文章列表：' + $DD.TOPIC[data.current]);
+			// $list.append($listHead);
+			$list.append($ol);
+
+			this.markTopic(data.current);
+			return this;
+		},
+
+		tosee: function(_topic) {
+			var dTopic = $DD.Topic;
+			if (_topic === dTopic.current) {
+				return this.show();
+			}
+			if (dTopic.tosee(_topic)) {
+				return this.fillList().show();
+			}
+		},
+
+		markTopic: function(_topic) {
+			var $head = $('#blog-head');
+			$head.find('a.topic-now').removeClass('topic-now');
+			$head.find(`a[href="#p-${_topic}"]`).addClass('topic-now');
+		},
+
+		submit: function() {
+			var $form = $('#formSearch');
+			var query = $form.find('input[name=q]').val();
+			$DJ.reqTopic('search', query);
+		},
+
 		LAST_PRETECT: true
 	},
 
 	Article: {
-		domid = 'blog-article',
+		domid: '#blog-article',
 		show: function() {
-			$($DV.Topic.domid).hide();
-			$($DV.Article.domid).show();
+			if ($DV.PAGE !== 'article') {
+				$($DV.Topic.domid).hide();
+				$($DV.Article.domid).show();
+				$DV.PAGE = 'article';
+			}
+			return this;
 		},
+
+		tosee: function(_id) {
+			if (_id === $DD.Article.currentId) {
+				return this.show();
+			}
+			if ($DD.Article.tosee(_id)) {
+				return this.fill().show();
+			}
+		},
+
+		fill: function() {
+			var article = $DD.Article.getArticle();
+			if (article) {
+				var $blog = $(this.domid);
+				var $title = $('<h1/>').html(article.title);
+				var $audate = $('<div id="article-audate"/>').html(article.author + ' / ' + article.date);
+				var htmd = marked(article.content);
+				var $content = $('<div id="article-content"/>').html(htmd);
+				$blog.children().remove();
+				$blog.append($title).append($audate).append($content);
+
+				if (article.topic && $DD.TOPIC[article.topic]) {
+					var topicName = $DD.TOPIC[article.topic];
+					var dTopic = $DD.Topic;
+					var ajacent = dTopic.ajacentNote(article.topic, article.id);
+					var $foot = $('<div id="article-footer"/>');
+					var link = `<a href="#p-${article.topic}">${topicName}</a>`;
+					var $index = $('<div/>').html('博客栏：' + link);
+					var $prev = $('<div/>'), $next = $('<div/>');
+					if (ajacent.prev) {
+						var oTagline = dTopic.parseTagline(ajacent.prev);
+						link = `<a href="#n-${oTagline.id}">${oTagline.title}</a>`;
+						$prev.html('前一篇：' + link);
+					}
+					else {
+						$prev.html('前一篇：无');
+					}
+					if (ajacent.next) {
+						var oTagline = dTopic.parseTagline(ajacent.next);
+						link = `<a href="#n-${oTagline.id}">${oTagline.title}</a>`;
+						$next.html('后一篇：' + link);
+					}
+					else {
+						$next.html('后一篇：无');
+					}
+					$foot.append($index).append($prev).append($next);
+					var $hr = $("<hr>");
+					$blog.append($hr).append($foot);
+				}
+				$blog[0].scrollIntoView(true);
+			}
+			return this;
+		},
+
 		LAST_PRETECT: true
 	},
 
@@ -78,6 +282,44 @@ var $DV = {
 };
 
 var $DE = {
+	linkto: function(_target) {
+		var hrefPart = _target.href.split('#');
+		if (hrefPart.length < 2) {
+			return false
+		}
+		var href = hrefPart[hrefPart.length - 1];
+		if (href.match(/^n-\w+$/)) {
+			var noteid = href.substring(2);
+			$DV.Article.tosee(noteid);
+			return true;
+		}
+		else if (href.match(/^p-\w+$/)) {
+			var topic = href.substring(2);
+			$DV.Topic.tosee(topic);
+			return true;
+		}
+		return false;
+	},
+
+	onLoad: function() {
+		var $body = $('body');
+		$body.click(function(_evt){
+			var target = _evt.target;
+			if (target.tagName === 'A') {
+				if ($DE.linkto(target)) {
+					_evt.preventDefault();
+				}
+			}
+		});
+
+		var $form = $('#formSearch');
+		$form.submit(function(_evt) {
+			_evt.preventDefault();
+			return $DV.Topic.submit();
+		});
+	},
+
+	LAST_PRETECT: true
 };
 
 // ajax 请求
@@ -198,19 +440,31 @@ var $DJ = {
     },
 
 	// 默认拉取最近博客列表
-	reqTopic: function() {
-		var req = {"api":"topic","data":{"tag":"recent"}};
+	reqTopic: function(_tag, _input) {
+		if (!_tag) {
+			return;
+		}
+		var req = {"api":"topic","data":{"tag":_tag}};
+		if (_input) {
+			req.data.input = _input;
+		}
 		this.query = this.requestAPI(req, function(_resData, _reqData) {
 			$DD.Topic.doneQuery(_resData, _reqData);
+			$DV.Topic.fillList().show();
 		});
 	},
 
 	// 请求博客文章
-	reqQuery: function(_id) {
+	reqArticle: function(_id) {
 		var req = {"api":"article","data":{"id":_id}};
-		this.query = this.requestAPI(_req, function(_resData, _reqData) {
+		var topic = $DD.Topic.current;
+		if (topic) { // && topic !== 'recent' && topic != 'search'
+			req.data.topic = topic;
+		}
+		this.query = this.requestAPI(req, function(_resData, _reqData) {
 			$DD.Article.doneQuery(_resData);
-		}, form, msg);
+			$DV.Article.fill().show();
+		});
 	},
 
 	LAST_PRETECT: true
@@ -224,9 +478,9 @@ var $DOC = {
 	AJAX: $DJ,
 
 	INIT: function() {
-		// this.EVENT.onLoad();
+		this.EVENT.onLoad();
 		// this.VIEW.Page.init();
-		// this.AJAX.reqConfig();
+		this.AJAX.reqTopic('hot');
 	}
 };
 

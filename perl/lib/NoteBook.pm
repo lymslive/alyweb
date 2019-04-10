@@ -134,7 +134,8 @@ sub ReadBlogFile
 		# chomp;
 		# title line
 		if ($. == 1) {
-			push(@{$filemark->{content}}, $_);
+			# push(@{$filemark->{content}}, $_);
+			chomp;
 			(my $title = $_ ) =~ s/^[#\s]+//;
 			$filemark->{title} = $title;
 			next;

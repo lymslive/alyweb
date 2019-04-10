@@ -6,6 +6,7 @@ use warnings;
 
 use WebLog;
 use DateTime;
+use Encode qw(decode encode);
 
 use NoteBook;
 NoteBook::SetBookdirs("$ENV{DOCUMENT_ROOT}/notebook");
@@ -21,7 +22,7 @@ my $dbcfg = {
 	table => 't_blog_state',
 };
 
-my @topic_order = qw(misc game opera snake art code);
+my @topic_order = qw(hot misc game opera snake art code);
 
 # todo
 my $TABLE_BILL = 't_family_bill';
@@ -134,13 +135,31 @@ sub handle_topic
 	my $error = 0;
 	my $jres = {};
 
-	return ('ERR_ARGUMENT') if ($jreq->{tag});
-	my $all = $jreq->{tag} =~ /^(all|recent)$/;
+	return ('ERR_ARGUMENT') unless ($jreq->{tag});
+
+	my $search = undef;
+	if ($jreq->{input}) {
+		my $input = $jreq->{input};
+		$search = join('|', split(/\s+/, $input));
+		wlog("input: $input; search note: $search");
+	}
+
+	my $all = $jreq->{tag} =~ /^(all|recent|search)$/;
 	my @result = ();
 	foreach my $topic (@topic_order) {
 		if ($all || $topic eq $jreq->{tag}) {
 			my $list = NoteBook::GetBlogList($topic);
-			push(@result, @$list);
+			for (my $i = 0; $i < @{$list}; $i++) {
+				chomp $list->[$i];
+				$list->[$i] = decode('utf-8', $list->[$i]);
+			}
+
+			if ($search) {
+				push(@result, grep {/$search/} @$list);
+			}
+			else {
+				push(@result, @$list);
+			}
 		}
 	}
 
@@ -151,6 +170,8 @@ sub handle_topic
 		my @recent = @sorted[0..9];
 		$jres->{list} = \@recent;
 	}
+	
+	$jres->{total} = scalar(@{$jres->{list}});
 	
 	return ($error, $jres);
 }
@@ -192,6 +213,13 @@ sub handle_article
 	$jres->{url} = $filemark->{url};
 	$jres->{author} = '七阶子谭';
 	$jres->{content} = join('', @{$filemark->{content}});
+
+	$jres->{title} = decode('utf-8', $jres->{title});
+	$jres->{content} = decode('utf-8', $jres->{content});
+	# $jres->{tags} = decode('utf-8', $jres->{tags});
+	for (my $i = 0; $i < @{$jres->{tags}}; $i++) {
+		$jres->{tags}->[$i] = decode('utf-8', $jres->{tags}->[$i]);
+	}
 
 	$jres->{id} = $jreq->{id};
 	$jres->{topic} = $jreq->{topic} if $jreq->{topic};
