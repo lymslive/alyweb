@@ -170,7 +170,7 @@ var $DV = {
 			for (var i = 0; i < data.notelist.length; ++i) {
 				var oTagline = data.parseTagline(data.notelist[i]);
 				var $date = $('<span class="list-date"/>').html(oTagline.date + ' ');
-				var $link = $('<a/>').attr('href', '#n-' + oTagline.id).html(oTagline.title);
+				var $link = $('<a/>').attr('href', '#n=' + oTagline.id).html(oTagline.title);
 				var $title = $('<span/>').append($link);
 				var $li = $('<li/>').append($date).append($title);
 				$ol.append($li);
@@ -247,12 +247,12 @@ var $DV = {
 					var dTopic = $DD.Topic;
 					var ajacent = dTopic.ajacentNote(article.topic, article.id);
 					var $foot = $('<div id="article-footer"/>');
-					var link = `<a href="#p-${article.topic}">${topicName}</a>`;
+					var link = `<a href="#p=${article.topic}">${topicName}</a>`;
 					var $index = $('<div/>').html('博客栏：' + link);
 					var $prev = $('<div/>'), $next = $('<div/>');
 					if (ajacent.prev) {
 						var oTagline = dTopic.parseTagline(ajacent.prev);
-						link = `<a href="#n-${oTagline.id}">${oTagline.title}</a>`;
+						link = `<a href="#n=${oTagline.id}">${oTagline.title}</a>`;
 						$prev.html('前一篇：' + link);
 					}
 					else {
@@ -260,7 +260,7 @@ var $DV = {
 					}
 					if (ajacent.next) {
 						var oTagline = dTopic.parseTagline(ajacent.next);
-						link = `<a href="#n-${oTagline.id}">${oTagline.title}</a>`;
+						link = `<a href="#n=${oTagline.id}">${oTagline.title}</a>`;
 						$next.html('后一篇：' + link);
 					}
 					else {
@@ -302,14 +302,9 @@ var $DE = {
 	},
 
 	onLoad: function() {
-		var $body = $('body');
-		$body.click(function(_evt){
-			var target = _evt.target;
-			if (target.tagName === 'A') {
-				if ($DE.linkto(target)) {
-					_evt.preventDefault();
-				}
-			}
+		window.addEventListener('hashchange', function (_evt) {
+			_evt.preventDefault();
+			this.hashChange();
 		});
 
 		var $form = $('#formSearch');
@@ -317,6 +312,77 @@ var $DE = {
 			_evt.preventDefault();
 			return $DV.Topic.submit();
 		});
+
+		var $body = $('body');
+		$body.click(function(_evt){
+			var target = _evt.target;
+			if (0 && target.tagName === 'A') {
+				if ($DE.linkto(target)) {
+					_evt.preventDefault();
+				}
+			}
+		});
+	},
+
+	hashChange: function() {
+		var hash = location.hash.slice(1);
+		if (!hash) {
+			return;
+		}
+
+		var uri = hash.split('#');
+		var search = uri[0], anchor = '';
+
+		if (uri.length > 1) {
+			anchor = uri[1];
+		}
+
+		if (!search.match(/=/)) {
+			anchor = search;
+			search = '';
+		}
+
+		var params = $FU.paramSplit(search);
+		if (params.n) {
+			$DJ.reqArticle(params.n);
+		}
+		else if (params.p) {
+			$DJ.reqTopic(params.p);
+		}
+
+		if (anchor) {
+			$('#' + anchor)[0].scrollIntoView(true);
+		}
+
+		// history.replaceState('', document.title, '#' + hash);
+	},
+
+	LAST_PRETECT: true
+};
+
+var $FU = {
+	// split key=val&key2=val2
+	paramSplit: function(_qstring) {
+		if (_qstring < 1) {
+			return {};
+		}
+		var param = search.substring(1).split('&');
+		var res = {};
+		for (var i = 0; i < param.length; ++i) {
+			var kv = param[i].split('=');
+			if (kv.length > 1) {
+				res[kv[0]] = kv[1];
+			}
+			else if (kv.length > 0) {
+				res[kv[0]] = true;
+			}
+		}
+		return res;
+	},
+
+	hasLog: function() {
+		var param = this.urlParam(location.search);
+		return param && param['log'];
 	},
 
 	LAST_PRETECT: true
@@ -326,35 +392,6 @@ var $DE = {
 var $DJ = {
 	Config: {
 		formMsg: 'operate-warn', // 表单操作错误消息区的 div class
-		LAST_PRETECT: true
-	},
-
-	Fun: {
-		// 解析地址栏的搜索部分
-		urlParam: function() {
-			var search = location.search;
-			if (search.length < 1) {
-				return {};
-			}
-			var param = search.substring(1).split('&');
-			var res = {};
-			for (var i = 0; i < param.length; ++i) {
-				var kv = param[i].split('=');
-				if (kv.length > 1) {
-					res[kv[0]] = kv[1];
-				}
-				else if (kv.length > 0) {
-					res[kv[0]] = true;
-				}
-			}
-			return res;
-		},
-
-		hasLog: function() {
-			var param = this.urlParam();
-			return param && param['log'];
-		},
-
 		LAST_PRETECT: true
 	},
 
@@ -377,7 +414,7 @@ var $DJ = {
 	// _form 与此请求相关联的 from id , 将自动处理重复提交
 	// _msg 在请求返回时在页面给用户的友好提示，包括 .err 与 .suc 两种提示
 	requestAPI: function(_req, _callback, _form, _msg) {
-		if (this.Fun.hasLog()) {
+		if ($FU.hasLog()) {
 			_req.log = 1;
 		}
 		var opt = this.reqOption(_req);
@@ -393,7 +430,6 @@ var $DJ = {
 				// api 返回的 res 直接解析为 json
 				if (_res.error) {
 					$LOG('api err = ' + _res.error + '; errmsg = ' + _res.errmsg);
-					// $DJ.resError(_res, _req);
 					if (_form && _msg && _msg.err) {
 						$msg.html(_msg.err);
 					}
@@ -429,17 +465,7 @@ var $DJ = {
 		return ajx;
 	},
 
-	// 请求错误扩展处理
-	resError: function(_res, _req) {
-	},
-    resFail: function(jqXHR, textStatus, errorThrown) {
-        alert('从服务器获取数据失败'  +  jqXHR.status + textStatus);
-    },
-    resAlways: function(data, textStatus, jqXHR) {
-        console.log('ajax finish with status: ' + textStatus);
-    },
-
-	// 默认拉取最近博客列表
+	// 拉取分类文章列表
 	reqTopic: function(_tag, _input) {
 		if (!_tag) {
 			return;
@@ -480,7 +506,12 @@ var $DOC = {
 	INIT: function() {
 		this.EVENT.onLoad();
 		// this.VIEW.Page.init();
-		this.AJAX.reqTopic('hot');
+		if (location.hash) {
+			$DE.hashChange();
+		}
+		else {
+			this.AJAX.reqTopic('hot');
+		}
 	}
 };
 
