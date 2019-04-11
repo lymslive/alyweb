@@ -169,7 +169,7 @@ var $DV = {
 			var $ol = $('<ol></ol>');
 			for (var i = 0; i < data.notelist.length; ++i) {
 				var oTagline = data.parseTagline(data.notelist[i]);
-				var $date = $('<span/>').html(oTagline.date + ' ');
+				var $date = $('<span class="list-date"/>').html(oTagline.date + ' ');
 				var $link = $('<a/>').attr('href', '#n-' + oTagline.id).html(oTagline.title);
 				var $title = $('<span/>').append($link);
 				var $li = $('<li/>').append($date).append($title);

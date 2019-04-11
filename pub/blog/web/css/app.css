@@ -1,34 +1,54 @@
-
-
-body.simple {
-	width: 90%;
-	margin: 0 auto;
-}
+/* 1em 默认约 16px, 相当于字体高度，也约等于 1 汉字宽度*/
 
 body {
 	font-family: "PingFang SC", "Hiragino Sans GB", Helvetica, Arial, sans-serif;
 	padding: 1em;
 	margin: auto;
-	max-width: 42em;
-	color: #737373;
-	background-color: white;
-	margin: 10px 13px 10px 13px;
+	width: 42em;
+	color: darkcyan;
+	background-color: lightcyan;
 }
 
-@media screen and (min-width: 914px) {
-	body {
-		width: 854px;
-		margin: 10px auto;
-	}
+a { color: blue; text-decoration: none; }
+a:hover { color: lightcyan; background-color: darkcyan; text-decoration: underline; }
+
+h1 { font-size: 2.25em; }
+h2 { font-size: 2em; }
+h3 { font-size: 1.75em; }
+h4 { font-size: 1.5em; }
+h4 { font-size: 1.25em; }
+
+ul li {
+	list-style-type: square;
+}
+
+ol li {
+	list-style-type: decimal;
+	list-style-position:inside;
+}
+
+pre {
+	font-family: "SFMono-Regular",Consolas,"Liberation Mono",Menlo,Courier,monospace;
+	padding: 1em;
+	overflow: auto;
+	font-size: small;
+	color: white;
+	background-color: black;
+	border-radius: 0.25em;
+}
+
+p code:not([class]) {
+	padding: 0.25em;
+	margin: 0;
+	font-size: small;
+	color:darkblue;
+	background-color: lightblue;
+	border-radius: 0.25em;
 }
 
 #site-footer {
-	font-size: 12px;
+	font-size: 0.75em;
 	text-align: center;
-}
-
-#site-footer hr {
-	border: thin solid;
 }
 
 #article-footer {
@@ -36,27 +56,23 @@ body {
 	font-size: smaller;
 }
 
-#blog-article p {
-  text-indent: 2em;
-}
+#site-footer hr { border: thin solid darkcyan; }
+#blog-article hr { border: thin dashed darkcyan; }
+
+#blog-article p { text-indent: 2em; }
+li p { text-indent: 0em; }
 
 #blog-article hr {
-  border: thin dashed;
-}
-
-a {
-  color: #0069d6; 
-  text-decoration: none;
-}
-
-a:hover {
-  color: #0050a3;
-  text-decoration: underline;
+  border: thin dashed darkcyan;
 }
 
 .topic-now {
 	font-weight: bold;
-	text-decoration: underline;
+	color:darkcyan;
+}
+
+.list-date {
+	color: gray;
 }
 
 .foldOff {
