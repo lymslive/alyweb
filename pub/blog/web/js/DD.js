@@ -199,7 +199,7 @@ var $DV = {
 		markTopic: function(_topic) {
 			var $head = $('#blog-head');
 			$head.find('a.topic-now').removeClass('topic-now');
-			$head.find(`a[href="#p-${_topic}"]`).addClass('topic-now');
+			$head.find(`a[href="#p=${_topic}"]`).addClass('topic-now');
 		},
 
 		submit: function() {
@@ -304,7 +304,7 @@ var $DE = {
 	onLoad: function() {
 		window.addEventListener('hashchange', function (_evt) {
 			_evt.preventDefault();
-			this.hashChange();
+			$DE.hashChange();
 		});
 
 		var $form = $('#formSearch');
@@ -343,11 +343,13 @@ var $DE = {
 		}
 
 		var params = $FU.paramSplit(search);
-		if (params.n) {
-			$DJ.reqArticle(params.n);
+		if (params.p) {
+			var topic = params.p;
+			$DV.Topic.tosee(topic);
 		}
-		else if (params.p) {
-			$DJ.reqTopic(params.p);
+		if (params.n) {
+			var noteid = params.n;
+			$DV.Article.tosee(noteid);
 		}
 
 		if (anchor) {
@@ -366,7 +368,7 @@ var $FU = {
 		if (_qstring < 1) {
 			return {};
 		}
-		var param = search.substring(1).split('&');
+		var param = _qstring.split('&');
 		var res = {};
 		for (var i = 0; i < param.length; ++i) {
 			var kv = param[i].split('=');
@@ -381,7 +383,7 @@ var $FU = {
 	},
 
 	hasLog: function() {
-		var param = this.urlParam(location.search);
+		var param = this.paramSplit(location.search.slice(1));
 		return param && param['log'];
 	},
 
