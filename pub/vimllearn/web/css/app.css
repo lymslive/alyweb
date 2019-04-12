@@ -4,7 +4,7 @@ body {
 	font-family: "PingFang SC", "Hiragino Sans GB", Helvetica, Arial, sans-serif;
 	padding: 1em;
 	margin: auto;
-	width: 42em;
+	width: 60em;
 	color: darkcyan;
 	background-color: lightcyan;
 }
@@ -51,7 +51,6 @@ p code:not([class]) {
 }
 
 #article-footer {
-	/* text-align: right; */
 	font-size: smaller;
 }
 
@@ -66,23 +65,17 @@ li p { text-indent: 0em; }
 	color:darkcyan;
 }
 
-.list-date {
-	color: gray;
+#book-contaniner {
+	display: flex;
 }
 
-.foldOff {
-	display: none;
+#book-toc {
+	flex: 0 0 15em;
+	border: 1px solid darkblue;
+	border-radius: 0.25em;
+	margin-right: 0.5em;
 }
 
-#divSearch {
-	text-align: center;
-	margin-top: 1em;
-}
-
-.operate-warn {
-	color: red;
-	font-size: smaller;
-}
-.operate-tips {
-	font-size: smaller;
+#book-page {
+	flex: auto;
 }
