@@ -12,14 +12,39 @@ var $DD = {
 		toc: '',
 
 		gotToc: function(_mdString) {
-			
+			var md = _mdString.replace(/z\/(\d+_\d+\.md)/g, '#/$1');
+			this.toc = md;
+			var lines = md.split("\n");
+			var regNote = /#\/(\d+_\d+\.md)/;
+			var match;
+			for (var i = 0; i < lines.length; ++i) {
+				if ((match = regNote.exec(lines[i])) !== null) {
+					var noteid = regNote.$1;
+					this.torder.push(noteid);
+				}
+			}
+			$DE.sawToc();
 		},
 
-		gotPage: function(_mdString) {
-			
+		gotPage: function(_id, _mdString) {
+			if (_id && _mdString) {
+				this.page[_id] = _mdString;
+			}
 		},
 
 		adjPage: function(_id) {
+			var np = {};
+			for (var i = 0; i < this.torder.length; ++i) {
+				if (this.torder[i] === _id) {
+					if (i > 0) {
+						np.prev = this.torder[i-1];
+					}
+					if (i < this.torder.length - 1) {
+						np.next = this.torder[i+1];
+					}
+					break;
+				}
+			}
 		},
 
 		seePage: function(_id) {
@@ -36,16 +61,53 @@ var $DV = {
 
 	Book: {
 		seePage: function(_id) {
+			var dBook = $DD.Book;
+			if (_id !== dBook.current) {
+				if (dBook[_id]) {
+					dBook.seePage(_id);
+					this.fillPage();
+				}
+				else {
+					$DJ.reqPage(_id);
+				}
+			}
+			return this;
 		},
 
 		fillPage: function() {
-			
+			var dBook = $DD.Book;
+			var id = dBook.current;
+			if (id && dBook.page[id]) {
+				var md = marked(dBook.page[id]);
+				$('#page.body').html(md);
+				this.markPage(id);
+
+				$('#page-foot').children().remove();
+				var adj = dBook.adjPage(id);
+				var html = '';
+				if (adj.prev) {
+					html = `<a href="#/${adj.prev}.md">上一页</a><br/>`;
+				}
+				if (adj.next) {
+					html = `<a href="#/${adj.next}.md">下一页</a><br/>`;
+				}
+				$('#page-foot').html(html);
+			}
+			return this;
 		},
 
-		markPage: function(_topic) {
-			var $head = $('#blog-head');
-			$head.find('a.topic-now').removeClass('topic-now');
-			$head.find(`a[href="#p=${_topic}"]`).addClass('topic-now');
+		fillToc: function() {
+			if ($DD.Book.toc) {
+				var md = marked($DD.Book.toc);
+				$('#book-toc').html(md);
+			}
+			return this;
+		};,
+		
+		markPage: function(_id) {
+			var $toc = $('#book-toc');
+			$head.find('a.page-now').removeClass('page-now');
+			$head.find(`a[href="#/${_id}.md"]`).addClass('page-now');
 		},
 
 		LAST_PRETECT: true
@@ -70,25 +132,18 @@ var $DE = {
 		}
 
 		var uri = hash.split('#');
-		var search = uri[0], anchor = '';
+		var page = uri[0], anchor = '';
 
 		if (uri.length > 1) {
 			anchor = uri[1];
 		}
 
-		if (!search.match(/=/)) {
-			anchor = search;
-			search = '';
-		}
-
-		var params = $FU.paramSplit(search);
-		if (params.p) {
-			var topic = params.p;
-			$DV.Topic.tosee(topic);
-		}
-		if (params.n) {
-			var noteid = params.n;
-			$DV.Article.tosee(noteid);
+		var noteid = '';
+		if (page[0] === '/') {
+			page = page.slice(1);
+			noteid = page.replace(/\.md$/, '');
+			$DV.Book.seePage(noteid);
+			$('#book-page')[0].scrollIntoView(true);
 		}
 
 		if (anchor) {
@@ -98,32 +153,13 @@ var $DE = {
 		// history.replaceState('', document.title, '#' + hash);
 	},
 
-	LAST_PRETECT: true
-};
-
-var $FU = {
-	// split key=val&key2=val2
-	paramSplit: function(_qstring) {
-		if (_qstring < 1) {
-			return {};
+	sawToc: function() {
+		if (location.hash) {
+			$DE.hashChange();
 		}
-		var param = _qstring.split('&');
-		var res = {};
-		for (var i = 0; i < param.length; ++i) {
-			var kv = param[i].split('=');
-			if (kv.length > 1) {
-				res[kv[0]] = kv[1];
-			}
-			else if (kv.length > 0) {
-				res[kv[0]] = true;
-			}
+		else if ($DD.Book.torder[0]) {
+			$DJ.reqPage($DD.Book.torder[0]);
 		}
-		return res;
-	},
-
-	hasLog: function() {
-		var param = this.paramSplit(location.search.slice(1));
-		return param && param['log'];
 	},
 
 	LAST_PRETECT: true
@@ -131,109 +167,38 @@ var $FU = {
 
 // ajax 请求
 var $DJ = {
-	Config: {
-		formMsg: 'operate-warn', // 表单操作错误消息区的 div class
-		LAST_PRETECT: true
+
+	// 请求目录页
+	reqToc: function() {
+		var url = $DD.BOOK_ROOT + '/' + $DD.BOOK_TOC;
+		this.reqFile(url, function(_resData) {
+			$DD.Book.gotToc(_resData);
+			$DV.Book.fillToc();
+		});
 	},
 
-	// 组装请求参数
-	reqOption: function(_req) {
-		var opt = {
-			method: "POST",
-			contentType: "application/json",
-			dataType: "json",
-			data: JSON.stringify(_req)
-			// data: req // 会发送 api=query& 而不是 json 串
-		};
-		return opt;
+	// 请求博客文章
+	reqPage: function(_id) {
+		var url = $DD.BOOK_ROOT + '/' + $DD.BOOK_DIR + '/' + _id + '.md';
+		this.reqFile(url, function(_resData) {
+			$DD.Book.gotPage(_id, _resData);
+			$DV.Book.fillPage();
+		});
 	},
 
-	// 封装请求服务端 api
-	// _req: 为请求 api json 对象
-	// _callback: 是成功时回调，可接收参数为(_res.data, _req.data, _res, _req)
-	//   大多情况下只要处理返回的实际 data 部分
-	// _form 与此请求相关联的 from id , 将自动处理重复提交
-	// _msg 在请求返回时在页面给用户的友好提示，包括 .err 与 .suc 两种提示
-	requestAPI: function(_req, _callback, _form, _msg) {
-		if ($FU.hasLog()) {
-			_req.log = 1;
-		}
-		var opt = this.reqOption(_req);
-		$LOG('api req = ' + opt.data);
-
-		var form = _form || 'formNULL';
-		var $form = $('#' + form);
-		var $msg = $form.find('div.' + $DJ.Config.formMsg);
-		var $submit = $form.find('input:submit');
-
-		var ajx = $.ajax($DD.API_URL, opt)
+	// 请求文档
+	reqFile: function(_url, _callback) {
+		console.log("reqFile: " + _url);
+		var ajx = $.get(_url)
 			.done(function(_res, _textStatus, _jqXHR) {
-				// api 返回的 res 直接解析为 json
-				if (_res.error) {
-					$LOG('api err = ' + _res.error + '; errmsg = ' + _res.errmsg);
-					if (_form && _msg && _msg.err) {
-						$msg.html(_msg.err);
-					}
-				}
-				else {
-					if (_form && _msg && _msg.suc) {
-						$msg.html(_msg.suc);
-					}
-					_callback(_res.data, _req.data, _res, _req);
-				}
+				_callback(_res);
 			})
 			.fail(function(_jqXHR, _textStatus, _errorThrown) {
 				console.log('从服务器获取数据失败'  +  _jqXHR.status + _textStatus);
 				if (_form) {
 					$msg.html('请求服务器失败，可能服务器或网络故障');
 				}
-			})
-			.always(function(_data, _textStatus, _jqXHR) {
-				console.log('ajax finish with status: ' + _textStatus);
-				if (_data.log) {
-					console.log(_data.log);
-				}
-				if (_form) {
-					$submit.removeAttr('disabled');
-				}
 			});
-
-		// 禁止重复提交表单
-		if (_form) {
-			$msg.html('正在请求服务器通讯……');
-			$submit.attr('disabled', 'disabled');
-		}
-		return ajx;
-	},
-
-	reqToc: function() {
-		if (!_tag) {
-			return;
-		}
-		var req = {"api":"topic","data":{"tag":_tag}};
-		this.query = this.requestAPI(req, function(_resData, _reqData) {
-			$DD.Book.gotToc(_resData, _reqData);
-		});
-	},
-
-	// 请求博客文章
-	reqPage: function(_id) {
-		var req = {"api":"article","data":{"id":_id}};
-		var topic = $DD.Topic.current;
-		this.query = this.requestAPI(req, function(_resData, _reqData) {
-			$DD.Book.gotPage(_resData);
-			$DV.Book.fillPage();
-		});
-	},
-
-	// 请求帮助文档
-	reqFile: function() {
-		var ajx = $.get($DD.HELP_URL)
-			.done(function(res, textStatus, jqXHR) {
-				$DV.Help.showdoc(res);
-			})
-			.fail(this.resFail)
-			.always(this.resAlways);
 		this.doc = ajx;
 		return ajx;
 	},
@@ -251,17 +216,8 @@ var $DOC = {
 	INIT: function() {
 		this.EVENT.onLoad();
 		// this.VIEW.Page.init();
-		if (location.hash) {
-			$DE.hashChange();
-		}
-		else {
-			this.AJAX.reqTopic('hot');
-		}
+		this.AJAX.reqToc();
 	}
-};
-
-var $LOG = function(_msg) {
-	console.log(_msg);
 };
 
 $(document).ready(function() {

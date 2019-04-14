@@ -60,7 +60,7 @@ p code:not([class]) {
 #blog-article p { text-indent: 2em; }
 li p { text-indent: 0em; }
 
-.topic-now {
+.page-now {
 	font-weight: bold;
 	color:darkcyan;
 }
