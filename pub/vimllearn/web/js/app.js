@@ -4,6 +4,7 @@ var $DD = {
 	BOOK_ROOT: '/book/vimllearn',
 	BOOK_TOC: 'content.md',
 	BOOK_DIR: 'z',
+	BOOK_NAME: '《VimL 语言编程指北路》',
 	
 	Book: {
 		current: '',
@@ -11,15 +12,21 @@ var $DD = {
 		torder: [],
 		toc: '',
 
+		init: function() {
+			this.reBookName = new RegExp('^\\s*#\\s*' + $DD.BOOK_NAME);
+			this.reTagLine = new RegExp('`.*`\\s*\\n');
+		},
+
 		gotToc: function(_mdString) {
 			var md = _mdString.replace(/z\/(\d+_\d+\.md)/g, '#/$1');
+			md = md.replace(this.reBookName, '# ');
 			this.toc = md;
 			var lines = md.split("\n");
-			var regNote = /#\/(\d+_\d+\.md)/;
+			var regNote = /#\/(\d+_\d+)\.md/;
 			var match;
 			for (var i = 0; i < lines.length; ++i) {
 				if ((match = regNote.exec(lines[i])) !== null) {
-					var noteid = regNote.$1;
+					var noteid = match[1];
 					this.torder.push(noteid);
 				}
 			}
@@ -28,7 +35,10 @@ var $DD = {
 
 		gotPage: function(_id, _mdString) {
 			if (_id && _mdString) {
-				this.page[_id] = _mdString;
+				var md = _mdString.replace(this.reBookName, '# ');
+				md = md.replace(this.reTagLine, '');
+				this.page[_id] = md;
+				this.current = _id;
 			}
 		},
 
@@ -45,6 +55,7 @@ var $DD = {
 					break;
 				}
 			}
+			return np;
 		},
 
 		seePage: function(_id) {
@@ -63,7 +74,7 @@ var $DV = {
 		seePage: function(_id) {
 			var dBook = $DD.Book;
 			if (_id !== dBook.current) {
-				if (dBook[_id]) {
+				if (dBook.page[_id]) {
 					dBook.seePage(_id);
 					this.fillPage();
 				}
@@ -79,17 +90,17 @@ var $DV = {
 			var id = dBook.current;
 			if (id && dBook.page[id]) {
 				var md = marked(dBook.page[id]);
-				$('#page.body').html(md);
+				$('#page-body').html(md);
 				this.markPage(id);
 
 				$('#page-foot').children().remove();
 				var adj = dBook.adjPage(id);
 				var html = '';
-				if (adj.prev) {
+				if (adj && adj.prev) {
 					html = `<a href="#/${adj.prev}.md">上一页</a><br/>`;
 				}
-				if (adj.next) {
-					html = `<a href="#/${adj.next}.md">下一页</a><br/>`;
+				if (adj && adj.next) {
+					html += `<a href="#/${adj.next}.md">下一页</a>`;
 				}
 				$('#page-foot').html(html);
 			}
@@ -102,12 +113,12 @@ var $DV = {
 				$('#book-toc').html(md);
 			}
 			return this;
-		};,
+		},
 		
 		markPage: function(_id) {
 			var $toc = $('#book-toc');
-			$head.find('a.page-now').removeClass('page-now');
-			$head.find(`a[href="#/${_id}.md"]`).addClass('page-now');
+			$toc.find('a.page-now').removeClass('page-now');
+			$toc.find(`a[href="#/${_id}.md"]`).addClass('page-now');
 		},
 
 		LAST_PRETECT: true
@@ -214,6 +225,7 @@ var $DOC = {
 	AJAX: $DJ,
 
 	INIT: function() {
+		this.DATA.Book.init();
 		this.EVENT.onLoad();
 		// this.VIEW.Page.init();
 		this.AJAX.reqToc();
