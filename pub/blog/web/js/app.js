@@ -2,6 +2,7 @@
 
 var $DD = {
 	API_URL: '/pub/blog/japi.cgi',
+	TITLE: '七阶子博客',
 	TOPIC: {
 		misc: "随笔杂文",
 		game: "游戏娱乐",
@@ -149,6 +150,10 @@ var $DV = {
 				$($DV.Topic.domid).show();
 				$($DV.Article.domid).hide();
 				$DV.PAGE = 'topic';
+				var topic = $DD.TOPIC[$DD.Topic.current];
+				if (topic) {
+					document.title = $DD.TITLE + '：' + topic;
+				}
 			}
 			return this;
 		},
@@ -218,6 +223,10 @@ var $DV = {
 				$($DV.Topic.domid).hide();
 				$($DV.Article.domid).show();
 				$DV.PAGE = 'article';
+				var article = $DD.Article.getArticle();
+				if (article) {
+					document.title = $DD.TITLE + '：' + article.title;
+				}
 			}
 			return this;
 		},
