@@ -9,15 +9,9 @@ use strict;
 use warnings;
 use File::Basename;
 
-our @in_buff = ();
-our $to_std = 0;
-our $to_file = 0;
-our $disable = 0;
-
-sub init
-{
-	@in_buff = ();
-}
+our $ONLY_STD = 0;
+our $TIE_STD = 0;
+our $DISABLE = 0;
 
 ## Class API
 sub new
@@ -54,27 +48,17 @@ sub close
 	$self->{kuff} = {};
 }
 
-my $INSTANCE;
-sub instance
-{
-	my ($var) = @_;
-	if (!$INSTANCE) {
-		$INSTANCE = __PACKAGE__->new();
-	}
-	return $INSTANCE;
-}
-
 sub addlog
 {
 	my ($self, $msg) = @_;
-	push(@{$self->{buff}}, $msg) unless $self->{nobuff};
-	if ($self->{to_std}) {
+	if ($self->{TIE_STD}) {
 		print STDERR "$msg\n";
 	}
 	if ($self->{FH}) {
 		my $fh = $self->{FH};
 		print $fh "$msg\n";
 	}
+	push(@{$self->{buff}}, $msg) unless $self->{nobuff};
 }
 
 sub output_std
@@ -98,6 +82,16 @@ sub to_webline
 	return $self->to_string("<br>\n");
 }
 
+my $INSTANCE;
+sub instance
+{
+	my ($var) = @_;
+	if (!$INSTANCE) {
+		$INSTANCE = __PACKAGE__->new();
+	}
+	return $INSTANCE;
+}
+
 ## Function API
 
 =sub wlog()
@@ -110,7 +104,7 @@ sub to_webline
 =cut
 sub wlog
 {
-	return 1 if $disable;
+	return 1 if $DISABLE;
 
 	my ($msg, $cfg) = @_;
 
@@ -128,15 +122,14 @@ sub wlog
 	$subroutine =~ s/^.*:://g;
 	my $logstr = "[$filename:$line] ($subroutine) | $msg";
 
-	instance()->addlog($logstr);
-	return 1;
-
-	if ($to_std) {
+	if ($ONLY_STD) {
 		print STDERR "$logstr\n";
 	}
+	else {
+		instance()->addlog($logstr);
+	}
 
-	push @in_buff, $logstr;
-	1; # always true
+	return 1;
 }
 
 =sub elog()
@@ -148,4 +141,10 @@ sub elog
 	wlog($msg, {deep => 1});
 	return {error => $msg};
 }
+
+sub std
+{
+	$ONLY_STD = 1;
+}
+
 1;
