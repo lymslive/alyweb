@@ -1,0 +1,88 @@
+/* 1em 默认约 16px, 相当于字体高度，也约等于 1 汉字宽度*/
+
+body {
+	font-family: "PingFang SC", "Hiragino Sans GB", Helvetica, Arial, sans-serif;
+	padding: 1em;
+	margin: auto;
+	width: 42em;
+	color: darkcyan;
+	background-color: lightcyan;
+}
+
+a { color: blue; text-decoration: none; }
+a:hover { color: lightcyan; background-color: darkcyan; text-decoration: underline; }
+
+h1 { font-size: 2.25em; }
+h2 { font-size: 2em; }
+h3 { font-size: 1.75em; }
+h4 { font-size: 1.5em; }
+h4 { font-size: 1.25em; }
+
+ul li {
+	list-style-type: square;
+}
+
+ol li {
+	list-style-type: decimal;
+}
+
+pre {
+	font-family: "SFMono-Regular",Consolas,"Liberation Mono",Menlo,Courier,monospace;
+	padding: 1em;
+	overflow: auto;
+	font-size: small;
+	color: white;
+	background-color: black;
+	border-radius: 0.25em;
+}
+
+p code:not([class]) {
+	padding: 0.25em;
+	margin: 0;
+	font-size: small;
+	color:darkblue;
+	background-color: lightblue;
+	border-radius: 0.25em;
+}
+
+#site-footer {
+	font-size: 0.75em;
+	text-align: center;
+}
+
+#article-footer {
+	/* text-align: right; */
+	font-size: smaller;
+}
+
+#site-footer hr { border: thin solid darkcyan; }
+#blog-article hr { border: thin dashed darkcyan; }
+
+#blog-article p { text-indent: 2em; }
+li p { text-indent: 0em; }
+
+.topic-now {
+	font-weight: bold;
+	color:darkcyan;
+}
+
+.list-date {
+	color: gray;
+}
+
+.foldOff {
+	display: none;
+}
+
+#divSearch {
+	text-align: center;
+	margin-top: 1em;
+}
+
+.operate-warn {
+	color: red;
+	font-size: smaller;
+}
+.operate-tips {
+	font-size: smaller;
+}

@@ -285,9 +285,12 @@ sub Format
 
 	# 图片
 	$text =~ s{!\[(.+?)\]\((\S+?)\)}{<img src="$2" alt="$1">}g;
-	# 超链接
+	# 超链接 [name](href)
 	$text =~ s{\[(.+?)\]\((\S+?)\)}{<a href="$1">$2</a>}g;
-	$text =~ s{ (https?://\S+)( |$)}{ <a href="$1">$1</a>$2}g;
+	# 纯网址 http://
+	$text =~ s{(?<!")(https?://[^"\s]+)(?!")}{<a href="$1">$1</a>}g;
+	# 日记链接 [yymmdd_n]
+	$text =~ s{\[(\d{8}_\d+-?)\]}{<a href="/blog/$1.html">$1</a>}g;
 
 	$text =~ s{`([^`]+)`}{<code>$1</code>}g;
 
