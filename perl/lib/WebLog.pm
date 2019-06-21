@@ -12,6 +12,7 @@ use File::Basename;
 our $ONLY_STD = 0;
 our $TIE_STD = 0;
 our $DISABLE = 0;
+our $LOGFILE = '/tmp/perl-cgi.log';
 
 ## Class API
 sub new
@@ -26,6 +27,7 @@ sub new
 	return $self;
 }
 
+# also new a object with logfile
 sub open
 {
 	my ($class, $file) = @_;
@@ -85,8 +87,10 @@ sub to_webline
 my $INSTANCE;
 sub instance
 {
-	my ($var) = @_;
 	if (!$INSTANCE) {
+		if ($ENV{REMOTE_ADDR}) {
+			$INSTANCE = __PACKAGE__->open($LOGFILE);
+		}
 		$INSTANCE = __PACKAGE__->new();
 	}
 	return $INSTANCE;

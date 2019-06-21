@@ -27,12 +27,13 @@
 				</form>
 			</div>
 			<div id="note-list">
-				<ol></ol>
+				<ol>
+					<TMPL_LOOP NAME=notelist>
+					<li></li>
+					</TMPL_LOOP>
+				</ol>
 			</div>
 			<hr>
-		</div>
-		<div id="blog-article">
-			<TMPL_VAR NAME=markhtml>
 		</div>
 		<div id="site-footer">
 			<hr>
@@ -46,3 +47,4 @@
 		</div>
 	</body>
 </html>
+
