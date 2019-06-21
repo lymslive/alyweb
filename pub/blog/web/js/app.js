@@ -1,7 +1,7 @@
 "use strict";
 
 var $DD = {
-	API_URL: '/pub/blog/japi.cgi',
+	API_URL: '/api/blog.cgi',
 	TITLE: '七阶子博客',
 	TOPIC: {
 		misc: "随笔杂文",
@@ -108,7 +108,9 @@ var $DD = {
 			note.date = _resData.date;
 			note.url = _resData.url;
 			note.author = _resData.author;
-			note.content = _resData.content;
+			// note.content = _resData.content;
+			// 合并段落行，清空汉字间空格
+			note.content = _resData.content.replace(/([^\x00-\xff])\s([^\x00-\xff])/g, '$1$2');
 
 			if (!this.hash[note.id]) {
 				this.hashedCount += 1;
@@ -276,7 +278,7 @@ var $DV = {
 						$next.html('后一篇：无');
 					}
 					$foot.append($index).append($prev).append($next);
-					var $hr = $("<hr>");
+					var $hr = $("<hr class=nplink>");
 					$blog.append($hr).append($foot);
 				}
 				$blog[0].scrollIntoView(true);

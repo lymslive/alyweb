@@ -22,7 +22,7 @@ my $dbcfg = {
 	table => 't_blog_state',
 };
 
-my @topic_order = qw(hot misc game opera snake art code);
+my @topic_order = qw(misc game opera snake art code hot);
 
 # todo
 my $TABLE_BILL = 't_family_bill';
@@ -148,6 +148,10 @@ sub handle_topic
 	my @result = ();
 	foreach my $topic (@topic_order) {
 		if ($all || $topic eq $jreq->{tag}) {
+			if ($topic eq 'hot' && $jreq->{tag} ne 'hot') {
+				next; # 不要重复搜索 hot
+			}
+
 			my $list = NoteBook::GetBlogList($topic);
 			for (my $i = 0; $i < @{$list}; $i++) {
 				chomp $list->[$i];

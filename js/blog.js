@@ -1,7 +1,7 @@
 "use strict";
 
 var $DD = {
-	API_URL: '/pub/blog/japi.cgi',
+	API_URL: '/api/blog.cgi',
 	TITLE: '七阶子博客',
 	TOPIC: {
 		misc: "随笔杂文",
@@ -93,49 +93,6 @@ var $DD = {
 		LAST_PRETECT: true
 	},
 
-	// 博客文章
-	Article: {
-		hash: {},
-		currentId: '',
-		hashedCount: 0,
-
-		doneQuery: function(_resData) {
-			var note = {};
-			note.id = _resData.id;
-			note.topic = _resData.topic;
-			note.tags = _resData.tags;
-			note.title = _resData.title;
-			note.date = _resData.date;
-			note.url = _resData.url;
-			note.author = _resData.author;
-			note.content = _resData.content;
-
-			if (!this.hash[note.id]) {
-				this.hashedCount += 1;
-			}
-			this.hash[note.id] = note;
-			this.currentId = note.id;
-		},
-
-		getArticle: function(_id) {
-			var id = _id || this.currentId;
-			return this.hash[id];
-		},
-
-		tosee: function(_id) {
-			if (this.hash[_id]) {
-				this.currentId = _id;
-				return true;
-			}
-			else {
-				$DJ.reqArticle(_id);
-				return false;
-			}
-		},
-
-		LAST_PRETECT: true
-	},
-
 	LAST_PRETECT: true
 };
 
@@ -148,7 +105,6 @@ var $DV = {
 		show: function() {
 			if ($DV.PAGE !== 'topic') {
 				$($DV.Topic.domid).show();
-				$($DV.Article.domid).hide();
 				$DV.PAGE = 'topic';
 				var topic = $DD.TOPIC[$DD.Topic.current];
 				if (topic) {
@@ -175,7 +131,7 @@ var $DV = {
 			for (var i = 0; i < data.notelist.length; ++i) {
 				var oTagline = data.parseTagline(data.notelist[i]);
 				var $date = $('<span class="list-date"/>').html(oTagline.date + ' ');
-				var $link = $('<a/>').attr('href', '#n=' + oTagline.id).html(oTagline.title);
+				var $link = $('<a/>').attr('href', '/blog/' + oTagline.id + ".html").html(oTagline.title);
 				var $title = $('<span/>').append($link);
 				var $li = $('<li/>').append($date).append($title);
 				$ol.append($li);
@@ -183,8 +139,6 @@ var $DV = {
 
 			var $list = $('#note-list');
 			$list.children().remove();
-			// var $listHead = $('<div id="list-title"/>').html('文章列表：' + $DD.TOPIC[data.current]);
-			// $list.append($listHead);
 			$list.append($ol);
 
 			this.markTopic(data.current);
@@ -216,77 +170,6 @@ var $DV = {
 		LAST_PRETECT: true
 	},
 
-	Article: {
-		domid: '#blog-article',
-		show: function() {
-			if ($DV.PAGE !== 'article') {
-				$($DV.Topic.domid).hide();
-				$($DV.Article.domid).show();
-				$DV.PAGE = 'article';
-				var article = $DD.Article.getArticle();
-				if (article) {
-					document.title = $DD.TITLE + '：' + article.title;
-				}
-			}
-			return this;
-		},
-
-		tosee: function(_id) {
-			if (_id === $DD.Article.currentId) {
-				return this.show();
-			}
-			if ($DD.Article.tosee(_id)) {
-				return this.fill().show();
-			}
-		},
-
-		fill: function() {
-			var article = $DD.Article.getArticle();
-			if (article) {
-				var $blog = $(this.domid);
-				var $title = $('<h1/>').html(article.title);
-				var $audate = $('<div id="article-audate"/>').html(article.author + ' / ' + article.date);
-				var htmd = marked(article.content);
-				var $content = $('<div id="article-content"/>').html(htmd);
-				$blog.children().remove();
-				$blog.append($title).append($audate).append($content);
-
-				if (article.topic && $DD.TOPIC[article.topic]) {
-					var topicName = $DD.TOPIC[article.topic];
-					var dTopic = $DD.Topic;
-					var ajacent = dTopic.ajacentNote(article.topic, article.id);
-					var $foot = $('<div id="article-footer"/>');
-					var link = `<a href="#p=${article.topic}">${topicName}</a>`;
-					var $index = $('<div/>').html('博客栏：' + link);
-					var $prev = $('<div/>'), $next = $('<div/>');
-					if (ajacent.prev) {
-						var oTagline = dTopic.parseTagline(ajacent.prev);
-						link = `<a href="#n=${oTagline.id}">${oTagline.title}</a>`;
-						$prev.html('前一篇：' + link);
-					}
-					else {
-						$prev.html('前一篇：无');
-					}
-					if (ajacent.next) {
-						var oTagline = dTopic.parseTagline(ajacent.next);
-						link = `<a href="#n=${oTagline.id}">${oTagline.title}</a>`;
-						$next.html('后一篇：' + link);
-					}
-					else {
-						$next.html('后一篇：无');
-					}
-					$foot.append($index).append($prev).append($next);
-					var $hr = $("<hr>");
-					$blog.append($hr).append($foot);
-				}
-				$blog[0].scrollIntoView(true);
-			}
-			return this;
-		},
-
-		LAST_PRETECT: true
-	},
-
 	LAST_PRETECT: true
 };
 
@@ -297,12 +180,7 @@ var $DE = {
 			return false
 		}
 		var href = hrefPart[hrefPart.length - 1];
-		if (href.match(/^n-\w+$/)) {
-			var noteid = href.substring(2);
-			$DV.Article.tosee(noteid);
-			return true;
-		}
-		else if (href.match(/^p-\w+$/)) {
+		if (href.match(/^p-\w+$/)) {
 			var topic = href.substring(2);
 			$DV.Topic.tosee(topic);
 			return true;
@@ -355,10 +233,6 @@ var $DE = {
 		if (params.p) {
 			var topic = params.p;
 			$DV.Topic.tosee(topic);
-		}
-		if (params.n) {
-			var noteid = params.n;
-			$DV.Article.tosee(noteid);
 		}
 
 		if (anchor) {
@@ -488,19 +362,6 @@ var $DJ = {
 		this.query = this.requestAPI(req, function(_resData, _reqData) {
 			$DD.Topic.doneQuery(_resData, _reqData);
 			$DV.Topic.fillList().show();
-		});
-	},
-
-	// 请求博客文章
-	reqArticle: function(_id) {
-		var req = {"api":"article","data":{"id":_id}};
-		var topic = $DD.Topic.current;
-		if (topic) { // && topic !== 'recent' && topic != 'search'
-			req.data.topic = topic;
-		}
-		this.query = this.requestAPI(req, function(_resData, _reqData) {
-			$DD.Article.doneQuery(_resData);
-			$DV.Article.fill().show();
 		});
 	},
 

@@ -186,7 +186,7 @@ sub expect_head
 	}
 }
 
-# 处理代码块
+# 处理无格式代码块，第一行不能在标签下，否则多显示一个空行
 sub expect_block
 {
 	my ($self, $lang) = @_;
@@ -194,13 +194,18 @@ sub expect_block
 	if ($lang) {
 		my $css = "language-$lang";
 	}
-	$self->pushout(qq{<pre><code class="$css">});
+	# $self->pushout(qq{<pre><code class="$css">});
+	my $tag_start = qq{<pre><code class="$css">};
 	while ($self->getline) {
 		if ($self->{line} =~ /^```/) {
 			last;
 		}
 		my $text = Format($self->{line}, 1);
-		$self->pushout("$text<br/>");
+		if ($tag_start) {
+			$text = $tag_start . $text;
+			$tag_start = '';
+		}
+		$self->pushout("$text");
 	}
 	$self->pushout(qq{</code></pre>});
 }
@@ -276,9 +281,9 @@ sub Format
 {
 	my ($text, $only_escape) = @_;
 
+	$text =~ s/&/&amp;/g;
 	$text =~ s/>/&gt;/g;
 	$text =~ s/</&lt;/g;
-	$text =~ s/&/&amp;/g;
 	if ($only_escape) {
 		return $text;
 	}
@@ -288,7 +293,7 @@ sub Format
 	# 超链接 [name](href)
 	$text =~ s{\[(.+?)\]\((\S+?)\)}{<a href="$1">$2</a>}g;
 	# 纯网址 http://
-	$text =~ s{(?<!")(https?://[^"\s]+)(?!")}{<a href="$1">$1</a>}g;
+	$text =~ s{(?<!")(https?://[\w?&%./]+)(?!")}{<a href="$1">$1</a>}g;
 	# 日记链接 [yymmdd_n]
 	$text =~ s{\[(\d{8}_\d+-?)\]}{<a href="/blog/$1.html">$1</a>}g;
 
@@ -305,6 +310,7 @@ sub Convert
 {
 	my ($file) = @_;
 	my $obj = __PACKAGE__->new($file);
+	return "404 note not foud" unless $obj;
 	return $obj->output();
 }
 

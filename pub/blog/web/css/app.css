@@ -56,7 +56,8 @@ p code:not([class]) {
 }
 
 #site-footer hr { border: thin solid darkcyan; }
-#blog-article hr { border: thin dashed darkcyan; }
+#blog-article hr { border: thin dashed darkcyan; width: 50%; }
+#blog-article hr.nplink { border: thin dashed darkcyan; width: 75%; }
 
 #blog-article p { text-indent: 2em; }
 li p { text-indent: 0em; }
