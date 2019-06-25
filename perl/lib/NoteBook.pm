@@ -15,6 +15,16 @@ our ($day_che, $month_che, $year_che, $hist_che);
 # 日期与标签统计数据文件
 our ($datedb, $tagdb);
 
+our @topic_order = qw(misc game opera snake art code);
+our %topic_name = (
+	misc => "随笔杂文",
+	game => "游戏娱乐",
+	opera => "戏曲戏剧",
+	snake => "白蛇研究",
+	art => "文学艺术",
+	code => "程序生涯",
+);
+
 ## 根据基础目录设定其他相关目录文件全路径
 sub SetBookdirs
 {
@@ -47,48 +57,6 @@ sub GetNotePath
 	return $path;
 }
 
-# 获取今天的年月日
-sub today
-{
-	return ymdtime(time);
-}
-
-# 获取当月天数
-sub endday($$)
-{
-	my ($year, $month) = @_;
-	wlog("error month: $month") if $month < 1 || $month > 12;
-	my @mday = (31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31);
-	return $mday[$month - 1] if $month != 2;
-
-	# 二月要根据闰年处理一天偏差
-	if ($year % 400 == 0 || $year % 4 == 0 && $year % 100 != 0) {
-		return $mday[1];
-	}
-	else {
-		return $mday[1] - 1;
-	}
-}
-
-# 返回一个文件的修改时间（年月日）
-sub datefile($)
-{
-	my $file = shift;
-	my @info = stat($file);
-	wlog("cannot stat($file)") && return () unless @info;
-	return ymdtime($info[9]);
-}
-
-# 将时间戳转为 yyyy mm dd 三元组
-sub ymdtime($)
-{
-	my @date = localtime(shift);
-	my $day = sprintf("%02d", $date[3]);
-	my $month = sprintf("%02d", $date[4] + 1);
-	my $year = $date[5] + 1900;
-	return ($year, $month, $day);
-}
-
 # return a list reference, each item is a line of tag file
 # @param $reverse: reverse the list of content lines
 sub GetBlogList
@@ -113,6 +81,23 @@ sub read_txt_file
 		@content = reverse(@content);
 	}
 	return \@content;
+}
+
+# 将日志列表转为结构化对象数组
+sub StructedList
+{
+	my $list = GetBlogList(@_);
+	my @structs = ();
+	foreach my $line (@$list) {
+		if ($line =~ /(\d{8}_\d+-?)\t(.+)\t\[(.+?)\]/) {
+			my $id = $1;
+			my $title = $2;
+			my $tagstr = $3;
+			my @tags = split('|', $tagstr);
+			push(@structs, {id => $id, title => $title, tags => \@tags});
+		}
+	}
+	return \@structs;
 }
 
 # 读取日志文件，解析为几部分，返回 hash

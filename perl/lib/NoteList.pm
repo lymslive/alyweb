@@ -70,6 +70,8 @@ sub read_tag_file
 	return \@content;
 }
 
+########################################
+
 # 生成搜索框 html
 sub HgenSearchForm
 {

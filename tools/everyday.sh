@@ -7,3 +7,8 @@ logfile=$thisdir/cron.log
 
 cd /usr/local/nginx/html/notebook/
 /usr/bin/git pull
+
+# 生成最近博客列表
+# perl /usr/local/nginx/html/tools/blog_recent.pl
+cd p
+/usr/bin/make

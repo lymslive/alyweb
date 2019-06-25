@@ -8,9 +8,9 @@ use Exporter 'import';
 use strict;
 use warnings;
 use File::Basename;
+use DateTime;
 
 our $ONLY_STD = 0;
-our $TIE_STD = 0;
 our $DISABLE = 0;
 our $LOGFILE = '/tmp/perl-cgi.log';
 
@@ -91,9 +91,16 @@ sub instance
 		if ($ENV{REMOTE_ADDR}) {
 			$INSTANCE = __PACKAGE__->open($LOGFILE);
 		}
-		$INSTANCE = __PACKAGE__->new();
+		else {
+			$INSTANCE = __PACKAGE__->new();
+			$INSTANCE->{TIE_STD} = 1;
+		}
 	}
 	return $INSTANCE;
+}
+
+END {
+	$INSTANCE->close() if $INSTANCE;
 }
 
 ## Function API
@@ -124,7 +131,10 @@ sub wlog
 	$filename = basename($filename);
 	# caller 获取的函数名含包名前缀，去掉
 	$subroutine =~ s/^.*:://g;
-	my $logstr = "[$filename:$line] ($subroutine) | $msg";
+
+	my $dt = DateTime->now;
+	my $time = $dt->ymd . " " . $dt->hms;
+	my $logstr = "[$time] [$filename:$line] ($subroutine) | $msg";
 
 	if ($ONLY_STD) {
 		print STDERR "$logstr\n";

@@ -2,6 +2,7 @@
 package MarkNote;
 use strict;
 use warnings;
+# use WebLog;
 
 # 构建对象，输入文件路径
 sub new
@@ -118,13 +119,35 @@ sub parse
 		# 普通段落
 		$self->expect_paragraph();
 	}
+
+	$self->extra_paragraph();
+}
+
+# 文末附注
+sub extra_paragraph
+{
+	my ($self) = @_;
+	my $text = '';
+	if ($self->{date}) {
+		$text .= "原稿：$self->{date}；";
+		if ($self->{url}) {
+			my $url = $self->{url};
+			$text .= qq{ <a href="$url">$url</a>};
+		}
+		$self->pushout(qq{<p>（$text）</p>});
+	}
 }
 
 # 忽略注释块
 sub skip_comment
 {
 	my ($self) = @_;
-	if ($self->{line} =~ /<!--.*-->/) {
+	if ($self->{line} =~ /<!--(.*)-->/) {
+		if ($self->{lineno} < 5) {
+			my $comment = $1;
+			$self->{date} ||= $1 if $comment =~ /(\d{4}-\d{2}-\d{2})/;
+			$self->{url} ||= $1 if $comment =~ /(https?:\S+)/;
+		}
 		return;
 	}
 	while ($self->getline) {
@@ -246,6 +269,8 @@ sub expect_paragraph
 {
 	my ($self) = @_;
 	my $text = $self->{line};
+	# 删除行首两个中文空格
+	$text =~ s/^　　//;
 	while ($self->getline) {
 		if ($self->{line} =~ /^\s*$/) {
 			last;

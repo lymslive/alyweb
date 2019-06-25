@@ -4,22 +4,21 @@
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width" />
 		<link rel="stylesheet" type="text/css" href="/css/blog.css" />
-		<title>七阶子博客</title>
+		<title>七阶子博客：<TMPL_VAR NAME=blog_topic /></title>
 	</head>
 	<body>
 		<div id="blog-head">
-			博客：
-			<a href="/blog/toc/misc">随笔杂文</a> |
-			<a href="/blog/toc/game">游戏娱乐</a> |
-			<a href="/blog/toc/opera">戏曲戏剧</a> |
-			<a href="/blog/toc/snake">白蛇研究</a> |
-			<a href="/blog/toc/art">文学艺术</a> |
-			<a href="/blog/toc/code">程序生涯</a> |
-			<a href="/blog/toc/recent">近期</a>
-			<a href="#p=search">搜寻</a>
+			<a href="/blog/">七阶子博客：</a>
+			<a href="/blog/toc/misc.html">杂文</a> |
+			<a href="/blog/toc/game.html">游戏</a> |
+			<a href="/blog/toc/opera.html">戏剧</a> |
+			<a href="/blog/toc/snake.html">白蛇</a> |
+			<a href="/blog/toc/art.html">文艺</a> |
+			<a href="/blog/toc/code.html">编程</a> |
+			<a href="/blog/toc/recent.html">近期</a>
 		</div>
 		<div id="blog-list">
-			<div id="divSearch" class="foldOff">
+			<div id="divSearch">
 				<form id="formSearch">
 					<input type="text" placeholder="标题关键字" name="q" required="required"/>
 					<input type="submit" value="搜索日志" />
@@ -28,12 +27,14 @@
 			</div>
 			<div id="note-list">
 				<ol>
-					<TMPL_LOOP NAME=notelist>
-					<li></li>
+					<TMPL_LOOP NAME=notelist />
+					<li>
+						<span class="list-date"><TMPL_VAR NAME=date /></span>
+						<a href="/blog/<TMPL_VAR NAME=id />.html"><TMPL_VAR NAME=title /></a>
+					</li>
 					</TMPL_LOOP>
 				</ol>
 			</div>
-			<hr>
 		</div>
 		<div id="site-footer">
 			<hr>
