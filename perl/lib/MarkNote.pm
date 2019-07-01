@@ -21,7 +21,7 @@ sub new
 # 标题 $title; 标签组 @tags
 sub output
 {
-	my ($self) = @_;
+	my ($self, $option) = @_;
 
 	open(my $fh, '<', $self->{filepath});
 	if (!$fh) {
@@ -33,6 +33,7 @@ sub output
 	$self->{lineno} = 0;
 	$self->{line} = "";
 	$self->{outbuf} = [];
+	$self->{option} = $option // {};
 	$self->parse();
 	close($fh);
 
@@ -205,6 +206,17 @@ sub expect_head
 		my @tags = ($self->{line} =~ /`([^`]+)`/g);
 		if (@tags) {
 			push(@{$self->{tags}}, @tags);
+		}
+		# 输出标签
+		if ($self->{option}->{showtag}) {
+			foreach my $tag (@tags) {
+				if ($tag eq '+' || $tag eq '-') {
+					$self->pushout(qq{<code>$tag</code>});
+				}
+				else {
+					$self->pushout(qq{<a href="/note/tag/$tag.html">$tag</a>});
+				}
+			}
 		}
 	}
 }

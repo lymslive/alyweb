@@ -67,6 +67,15 @@ sub GetBlogList
 	return read_txt_file($filename, $reverse);
 }
 
+# 按标签读取日记列表
+sub GetNoteList
+{
+	my ($tag, $reverse) = @_;
+	my $filename = File::Spec->catfile($tagdir, "$tag.tag");
+	return '' unless -r $filename;
+	return read_txt_file($filename, $reverse);
+}
+
 # 读取一个标签文件，返回数组引用
 # @param $reverse: reverse the list of content lines
 sub read_txt_file
@@ -81,23 +90,6 @@ sub read_txt_file
 		@content = reverse(@content);
 	}
 	return \@content;
-}
-
-# 将日志列表转为结构化对象数组
-sub StructedList
-{
-	my $list = GetBlogList(@_);
-	my @structs = ();
-	foreach my $line (@$list) {
-		if ($line =~ /(\d{8}_\d+-?)\t(.+)\t\[(.+?)\]/) {
-			my $id = $1;
-			my $title = $2;
-			my $tagstr = $3;
-			my @tags = split('|', $tagstr);
-			push(@structs, {id => $id, title => $title, tags => \@tags});
-		}
-	}
-	return \@structs;
 }
 
 # 读取日志文件，解析为几部分，返回 hash

@@ -52,12 +52,6 @@ sub main
 		$template->param(notelist => $list);
 		print $template->output;
 	}
-	elsif ($subpath =~ m|^tag/(.+)$|i) {
-		my $tag = $1;
-	}
-	elsif ($subpath =~ m|^day/(.+)$|i) {
-		my $day = $1;
-	}
 	else {
 		print "404 note not found";
 	}
