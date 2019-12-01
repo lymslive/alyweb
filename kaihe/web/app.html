@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width"/>
+		<link rel="stylesheet" href="css/app.css"/>
+		<title> 家庭记帐本 </title>
+	</head>
+	<body>
+
+		<div id="login-bar">
+			<div id="not-login"><a href="#formLogin" class="to-login">未登陆</a></div>
+			<div id="has-login" class="foldOff">
+				已登陆：<span class="data"></span> | <a href="#formLogin" class="to-login">换名登陆</a>
+			</div>
+			<form id="formLogin" class="foldOff">
+				<label>登陆用户<input type="text" name="loginuid" size="10" required="required"/></label>
+				<label>登陆口令<input type="password" name="loginkey" size="10" required="required"/></label>
+				<input type="submit" value="登陆"/>
+				<input type="button" name="close" value="关闭"/>
+				<div id="login-msg" class="operate-warn"></div>
+			</form>
+		</div>
+
+		<h1 class="atcenter">小家记帐</h1>
+		<div id="menu-bar">
+			<ul>
+				<li class="page-menu"><a href="#pg1-new">录入帐单</a></li>
+				<li class="page-menu"><a href="#pg2-see">浏览帐单</a></li>
+				<li class="page-menu"><a href="#pg3-met">分析帐单</a></li>
+			</ul>
+		</div>
+
+		<!-- 分页设计 -->
+
+		<div id="pg1-new" class="page">
+			<div id="divBillOperate">
+				<form id="formOperate">
+					<div class="operate-warn"></div>
+					<label>流水<input type="text" name="id"/></label>（仅修改时需要）<br>
+					<label>日期<input type="date" name="date"/></label>
+					<label>时间<input type="time" name="time"/></label><br>
+					<label>收入<input type="radio" name="type" value="1"/></label>
+					<label>支出<input type="radio" name="type" value="-1"/></label>
+					<select name="subtype">
+						<option value="">类别</option>
+					</select><br>
+					<label>金额<input type="text" name="money"/></label><br>
+					<label>目标<input type="text" name="target"/></label><br>
+					<label>地点<input type="text" name="place"/></label><br>
+					<label>备注<input type="text" name="note"/></label><br>
+					<input type="submit" value="提交操作"/>
+					<input type="reset" value="取消操作"/>
+				</form>
+			</div>
+		</div>
+
+		<div id="pg2-see" class="page">
+			<div id="divBillTable">
+				<form id="formFilter">
+					<a href="#divQuery" class="foldClose">筛选：</a>
+					<select name="type">
+						<option value="">收支</option>
+						<option value="1">收入</option>
+						<option value="-1">支出</option>
+					</select>
+					<select name="month">
+						<option value="">最近几月</option>
+					</select>
+					<input type="reset" value="撤销" id="filter-rollback"/>
+					<input type="submit" value="刷新"/>
+					<label>每页<input type="text" name="perpage" value="100" size="3"/></label>
+					<div class="operate-warn"></div>
+					<div id="divQuery">
+						<label>日期
+							<input type="date" name="date-from"/>至
+							<input type="date" name="date-to"/>
+						</label>
+						<br>
+						<div id="income-type" class="foldOff">收入类别
+							<label><input type="checkbox" name="income" value="+0">全部</label>
+						</div>
+						<div id="outcome-type" class="foldOff">支出类别
+							<label><input type="checkbox" name="outcome" value="-0">全部</label>
+						</div>
+					</div>
+				</form>
+				<!-- 表格需拉取服务器数据填充，可能覆盖重填 -->
+				<table id="tabBill">
+					<tr id="topTH">
+						<th>流水</th>
+						<th>日期</th>
+						<th>时间</th>
+						<th>收支</th>
+						<th>类别</th>
+						<th>金额</th>
+						<th>目标</th>
+						<th>地点</th>
+						<th>备注</th>
+					</tr>
+				</table>
+				<!-- 多于10行时表底再加一行表头，动态增加的少量行再加于其下 -->
+				<div id="tabSumary" class="atcenter">
+					<span id="table-prev-page"><a href="#">
+						◀前一页
+					</a></span>
+					第<span class="data">1</span>/<span class="data">1</span>页
+					<span id="table-next-page"><a href="#">
+						后一页▶
+					</a></span>
+					<br>
+					总计 <span class="data">1</span> 记录
+				</div>
+			</div>
+		</div>
+
+		<div id="pg3-met" class="page">
+			敬请期待
+		</div>
+
+		<!-- 页底区域 -->
+		<div id="pg-foot" class="foldOff">
+			<a href="#menu-bar">▲回顶部菜单</a>
+		</div>
+
+		<script src="http://code.jquery.com/jquery-2.1.0.js"></script>
+		<script src="js/DD.js"></script>
+		<script src="js/DV.js"></script>
+		<script src="js/DE.js"></script>
+		<script src="js/DJ.js"></script>
+	</body>
+</html>
