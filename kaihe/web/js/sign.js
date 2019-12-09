@@ -1,6 +1,6 @@
 // 全局空间
 var $DOC = {
-	API_URL: '/kaihe/japi.cgi',
+	API_URL: '/kaihe/sign.cgi',
 	TableID: "#maintbl",
 	TableSrc: null,
 	State_Que: 0,

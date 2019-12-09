@@ -24,3 +24,12 @@ CREATE TABLE `t_room` (
 	PRIMARY KEY (`F_room`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='业主表';
 
+CREATE TABLE `t_diaocha` (
+	`F_room` varchar(8) NOT NULL COMMENT '房号',
+	`F_pass` varchar(16) NOT NULL COMMENT '密码',
+	`F_json` varchar(1024) NOT NULL COMMENT '调查数据',
+	`F_create_time` datetime NOT NULL COMMENT '创建时间',
+	`F_update_time` datetime NOT NULL COMMENT '更新时间',
+	PRIMARY KEY (`F_room`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='调查表';
+

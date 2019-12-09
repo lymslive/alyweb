@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width"/>
+		<link rel="stylesheet" href="css/app.css"/>
+		<title> 凯和华府业主群 </title>
+	</head>
+	<body>
+
+		<h1> 凯和华府业主基本信息调查表 </h1>
+
+		<p>告各位业主：<br/>
+		业主代表为了方便开展下一步的工作，需要汇总大家的基本信息，
+		请大家如实填写（可以修改更新）。
+		</p>
+		<hr/>
+		<form id="form">
+			<p>
+			业户房号：<input type="text" id="room" size="15" required="required"/>
+			<select id="select-room">
+				<option value="tip-select">房号</option>
+			</select>
+			<br/>
+			（请选择或输入房号如 A1001 大写字母与数字间不要空格或其他字符）<br/>
+			<a href="javascript:void(0)">检查是否已填问卷？</a><span id="already"></span><br/>
+			</p>
+			<p>
+			业户姓名：<input type="text" id="name" size="15" required="required"/><br/>
+			</p>
+			<p>
+			电话号码：<input type="text" id="telephon" size="15" required="required"/><br/>
+			</p>
+			<p>
+			身份证号：<input type="text" id="idcard" size="15" required="required"/><br/>
+			</p>
+			<p>
+			首付日期：<input type="date" id="shoufu-date"/><br/>
+			</p>
+			<p>
+			放贷日期：<input type="date" id="fangdai-date"/><br/>
+			</p>
+			<p>
+			是否备案：<input type="radio" name="beian" value="yes"/>已备案 |
+			<input type="radio" name="beian" value="no"/>未备案 <br/>
+			</p>
+			<p>
+			房屋面积：<input type="text" id="area" size="15"/>平方米<br/>
+			</p>
+			<p>
+			是否遭遇这些不可能兑现的套路？<br/>
+			<input type="checkbox" name="taolu" value="yunlianhui"/>云联惠返积分 |
+			<input type="checkbox" name="taolu" value="songche"/>买房送车 |
+			<input type="checkbox" name="taolu" value="songzhuangxiu"/>送装修 |<br/>
+			<input type="checkbox" name="taolu" value="other"/>其他请填写
+			<input type="text" id="taolu-more" size="30"/><br/>
+			</p>
+
+			<p>
+			可有其他补充故事或诉求：<br/>
+			<textarea cols="32" rows="5" id="custome-say" class="fullrow"></textarea><br/>
+			</p>
+
+			<p>
+			<input type="submit" id="submit" size="10" value="全部保存"/>
+			<input type="reset" id="reset" size="10" value="全部重置"/><br/>
+			安全密码：<input type="password" id="passwd-1" size="10"/><br/>
+			确认密码：<input type="password" id="passwd-2" size="10"/>
+			</p>
+			<div id="form-msg" class="operate-warn">
+			</div>
+		</form>
+
+		<hr/>
+		<h3>帮助说明</h3>
+		<p> 为了信息安全，也为防止其他业主误改他人资料，
+		请在首次上传资料时自行设置密码。
+		为统一操作，后续修改时也需两次输入之前的密码。
+		</p>
+
+		<p><a href="#">返回页首</a></p>
+
+		<hr/>
+		<div id="debug"></div>
+		<p id="version" class="foldOff">test</p>
+		<script src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
+		<script src="js/diaocha.js"></script>
+	</body>
+</html>

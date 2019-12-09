@@ -1,6 +1,6 @@
 #! /usr/bin/env perl
 use utf8;
-package BillAPI;
+package SignAPI;
 use strict;
 use warnings;
 
@@ -136,7 +136,7 @@ sub response
 }
 
 =sub handle_query_event()
-  _query_event: 查询签表到
+  _query_event: 查询签到表
 
 请求：
   req = { null }
@@ -173,7 +173,7 @@ sub handle_query_event
 }
 
 =sub handle_query()
-  _query: 查询签表到
+  _query: 查询签表记录
  
 请求：
   req = {
@@ -232,7 +232,7 @@ sub handle_query
 }
 
 =sub handle_create()
-  _create: 增加签到表
+  _create: 增加签到记录
  
   请求：
   req = {
@@ -287,7 +287,7 @@ sub handle_create
 }
 
 =sub handle_modify()
-  _modify: 修改签到表
+  _modify: 修改签到记录
  
   请求：
   req = {
@@ -348,7 +348,7 @@ sub handle_modify
 }
 
 =sub handle_remove()
- _remove 删除一个签到表
+ _remove 删除一个签到记录
  请求：
  req = {
    date => string
@@ -373,15 +373,3 @@ sub now_time_str
 	return $now_time;
 }
 
-
-# 按 id 查询单行，直接返回记录 hashref ，不存在时返回 undef
-sub query_single
-{
-	my ($db, $id) = @_;
-	my $where = {F_id => $id};
-	my ($qry_err, $qry_res) = handle_query($db, {where => $where});
-	if ($qry_err || !$qry_res->{records}) {
-		return undef;
-	}
-	return $qry_res->{records}->[0];
-}

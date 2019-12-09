@@ -6,7 +6,7 @@ use warnings;
 
 use FindBin qw($Bin);
 use lib "$Bin";
-use KaiheAPI;
+use DiaochaAPI;
 use JAPI;
 
-JAPI::main(\&BillAPI::handle_request);
+JAPI::main(\&DiaochaAPI::handle_request);
