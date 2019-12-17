@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width"/>
+		<link rel="stylesheet" href="css/app.css"/>
+		<title> 凯和华府业主群 </title>
+	</head>
+	<body>
+
+		<h1 class="atcenter">凯和华府维权经费记帐</h1>
+		<div id="menu-bar">
+			<ul>
+				<li class="page-menu"><a href="#pg1-new">录入帐单</a></li>
+				<li class="page-menu"><a href="#pg2-see">浏览帐单</a></li>
+			</ul>
+		</div>
+
+		<!-- 分页设计 -->
+
+		<div id="pg1-new" class="page">
+			<div id="divBillOperate">
+				<form id="formOperate">
+					<label>流水<input type="text" id="flow"/></label>（仅修改时需要）<br>
+					<label>日期<input type="date" id="date"/></label>
+					<label>收入<input type="radio" name="type" value="1"/></label>
+					<label>支出<input type="radio" name="type" value="-1"/></label>
+					<select id="subtype">
+						<option value="0">类别</option>
+					</select><br>
+					<label>金额<input type="text" id="money"/></label><br>
+					<label>房号<input type="text" id="room"/></label>
+					<select id="select-room">
+						<option value="tip-select">选择</option>
+					</select><br/>
+					<div class="operate-warn">正在拉取房号列表……</span>
+					备注：
+					<textarea cols="32" rows="5" id="note" class="fullrow"></textarea><br/>
+					<label>密码<input type="password" id="pass"/></label><br>
+					<input type="submit" value="提交操作"/>
+					<input type="reset" value="取消操作"/>
+				</form>
+			</div>
+		</div>
+
+		<div id="pg2-see" class="page">
+			<div id="divBillTable">
+				<form id="formFilter">
+					<a href="#divQuery" class="foldClose">筛选：</a>
+					<select name="type">
+						<option value="">收支</option>
+						<option value="1">收入</option>
+						<option value="-1">支出</option>
+					</select>
+					<select id="filter-room">
+						<option value="tip-select">房号</option>
+					</select><br/>
+					<input type="reset" value="撤销" id="filter-rollback"/>
+					<input type="submit" value="刷新"/>
+					<label>每页<input type="text" name="perpage" value="100" size="3"/></label>
+					<div class="operate-warn"></div>
+					<div id="divQuery">
+						<label>日期
+							<input type="date" name="date-from"/>至
+							<input type="date" name="date-to"/>
+						</label>
+						<br>
+						<div id="income-type" class="foldOff">收入类别
+							<label><input type="checkbox" name="income" value="+0">全部</label>
+						</div>
+						<div id="outcome-type" class="foldOff">支出类别
+							<label><input type="checkbox" name="outcome" value="-0">全部</label>
+						</div>
+					</div>
+				</form>
+				<!-- 表格需拉取服务器数据填充，可能覆盖重填 -->
+				<table id="tabBill">
+					<tr id="topTH">
+						<th>流水</th>
+						<th>日期</th>
+						<th>收支</th>
+						<th>类别</th>
+						<th>金额</th>
+						<th>房号</th>
+						<th>备注</th>
+					</tr>
+				</table>
+				<!-- 多于10行时表底再加一行表头，动态增加的少量行再加于其下 -->
+				<div id="tabSumary" class="atcenter">
+					<span id="table-prev-page"><a href="#">
+						◀前一页
+					</a></span>
+					第<span class="data">1</span>/<span class="data">1</span>页
+					<span id="table-next-page"><a href="#">
+						后一页▶
+					</a></span>
+					<br>
+					总计 <span class="data">1</span> 记录
+				</div>
+			</div>
+		</div>
+
+		<!-- 页底区域 -->
+		<div id="pg-foot" class="foldOff">
+			<a href="#menu-bar">▲回顶部菜单</a>
+		</div>
+
+		<p id="version" class="foldOff">release</p>
+		<script src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
+		<script src="js/kaihe.js"></script>
+		<script src="js/bill.js"></script>
+	</body>
+</html>

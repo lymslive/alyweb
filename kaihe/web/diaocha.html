@@ -21,15 +21,16 @@
 			<select id="select-room">
 				<option value="tip-select">房号</option>
 			</select>
+			<span id="getting-room" class="operate-warn">正在拉取房号列表……</span>
 			<br/>
 			（请选择或输入房号如 A1001 大写字母与数字间不要空格或其他字符）<br/>
-			<a href="javascript:void(0)">检查是否已填问卷？</a><span id="already"></span><br/>
+			<a href="javascript:void(0)">检查是否已填问卷？</a><span id="already" class="operate-warn"></span><br/>
 			</p>
 			<p>
-			业户姓名：<input type="text" id="name" size="15" required="required"/><br/>
+			业主姓名：<input type="text" id="name" size="15" required="required"/><br/>
 			</p>
 			<p>
-			电话号码：<input type="text" id="telephon" size="15" required="required"/><br/>
+			电话号码：<input type="text" id="telephone" size="15" required="required"/><br/>
 			</p>
 			<p>
 			身份证号：<input type="text" id="idcard" size="15" required="required"/><br/>
@@ -58,7 +59,7 @@
 
 			<p>
 			可有其他补充故事或诉求：<br/>
-			<textarea cols="32" rows="5" id="custome-say" class="fullrow"></textarea><br/>
+			<textarea cols="32" rows="5" id="say-more" class="fullrow"></textarea><br/>
 			</p>
 
 			<p>
@@ -82,7 +83,7 @@
 
 		<hr/>
 		<div id="debug"></div>
-		<p id="version" class="foldOff">test</p>
+		<p id="version" class="foldOff">release</p>
 		<script src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
 		<script src="js/diaocha.js"></script>
 	</body>

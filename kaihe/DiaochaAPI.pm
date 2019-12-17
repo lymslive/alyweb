@@ -129,7 +129,7 @@ sub handle_query
 	my $error = 0;
 	my $jres = {};
 
-	if (!$jreq->{date}) {
+	if (!$jreq->{room}) {
 		return ('ERR_ARGUMENT');
 	}
 
@@ -139,6 +139,11 @@ sub handle_query
 	my $order = undef;
 	my $records = $db->Query($fields, $where, undef, $order);
 	return ('ERR_DBI_FAILED', $db->{error}) if ($db->{error});
+
+	if (scalar(@{$records}) <= 0) {
+		$jres->{room} = undef;
+		return ($error, $jres);
+	}
 
 	my $res = $records->[0];
 	return ('ERR_DBI_FAILED') unless ($res);
@@ -228,7 +233,7 @@ sub handle_modify
 		return ('ERR_ARGUMENT');
 	}
 
-	my ($query_error, $query_data) = handle_query($db, $req_data, 1);
+	my ($query_error, $query_data) = handle_query($db, $jreq, 1);
 	if ($query_error) {
 		return ($query_error);
 	}
