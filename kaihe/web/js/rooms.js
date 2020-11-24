@@ -31,10 +31,17 @@ var $DOC = {
 		this.TableSrc = res;
 		var $table = $(this.TableID);
 		res.forEach(function(_item, _idx) {
+			var css = 'none';
+			if (_item.telephone == '00000000000') {
+				css = 'que';
+			}
+			if (!_item.name || !_item.telephone || _item.name == '-') {
+				css = 'zhu';
+			}
 			var $tr = $("<tr></tr>").appendTo($table);
 			$("<td></td>").html(_item.id).appendTo($tr);
-			$("<td></td>").html(_item.name).appendTo($tr);
-			$("<td></td>").html(_item.telephone).appendTo($tr);
+			$("<td></td>").html(_item.name).addClass(css).appendTo($tr);
+			$("<td></td>").html(_item.telephone).addClass(css).appendTo($tr);
 		}, this);
 	}
 };

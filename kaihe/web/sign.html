@@ -11,12 +11,12 @@
 		<h1> 凯和华府业主签到记录 </h1>
 
 		<form id="formSign">
-			聚会日期：<input type="text" id="date" size="15" value="今天" required="required"/>
+			聚会时间：<input type="text" id="date" size="15" value="今天" required="required"/>
 			<select id="event">
 				<option value="new-date">新建聚会</option>
 			</select>
 			<br/>
-			聚会目的：<input type="text" id="short-desc" size="30" value="集合、上访"/><br/>
+			聚会名目：<input type="text" id="short-desc" size="30" value="集合、上访"/><br/>
 
 			<table id="maintbl">
 				<tr id="topTH">
@@ -43,7 +43,9 @@
 		</form>
 		<h3>帮助说明</h3>
 		<p>
-		点击房号切换左侧的签到状态，在这三种状态之间轮换：缺席、到场、捐助。
+		点击房号切换左侧的签到状态，在这三种状态之间轮换：红、绿、黄。
+		一般约定红表示缺席，绿表示到场，黄表示虽未到场但有捐助乐捐，
+		但视情况也可作为其他签到登记场合使用。
 		提交修改需由管理员房号与密码，查看历史签到不需要密码。
 		<!-- 测试时可用 test 作为用户名密码 -->
 		</p>
@@ -51,7 +53,7 @@
 
 		<hr/>
 		<div id="debug"></div>
-		<p id="version" class="foldOff">test</p>
+		<p id="version" class="foldOff">release</p>
 		<script src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
 		<script src="js/sign.js"></script>
 	</body>

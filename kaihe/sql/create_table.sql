@@ -33,3 +33,17 @@ CREATE TABLE `t_diaocha` (
 	PRIMARY KEY (`F_room`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='调查表';
 
+CREATE TABLE `t_bill` (
+	`F_flow` varchar(8) NOT NULL COMMENT '流水号',
+	`F_date` date NOT NULL COMMENT '日期',
+	`F_type` tinyint(4) NOT NULL COMMENT '类别1收入,-1支出',
+	`F_subtype` tinyint(4) NOT NULL COMMENT '收支子类别，正数',
+	`F_room` varchar(8) NOT NULL COMMENT '房号',
+	`F_money` int(10) NOT NULL COMMENT '金额，分',
+	`F_balance` int(10) NOT NULL COMMENT '金额，分',
+	`F_note` varchar(512) NOT NULL COMMENT '备注说明',
+	`F_create_time` datetime NOT NULL COMMENT '创建时间',
+	`F_update_time` datetime NOT NULL COMMENT '更新时间',
+	PRIMARY KEY (`F_flow`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='帐单表';
+

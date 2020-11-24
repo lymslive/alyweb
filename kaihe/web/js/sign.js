@@ -52,6 +52,9 @@ var $DOC = {
 		this.TableSrc = res;
 		var $table = $(this.TableID);
 		res.forEach(function(_item, _idx) {
+			if (_item.telephone == '00000000000') {
+				return;
+			}
 			var $tr = $("<tr></tr>").appendTo($table);
 			$("<td></td>").appendTo($tr)
 				.html($DOC.Sign_Que).addClass('que')
@@ -291,13 +294,20 @@ var $DOC = {
 	GotEvent: function(res) {
 		for (var i = 0; i < res.date.length; ++i) {
 			var date = res.date[i];
-			this.AddEvent(date);
+			var name = res.short[i];
+			this.AddEvent(date, name);
+		}
+		// 自动载入初始签名
+		if (window.location.hash) {
+			var date = window.location.hash.substring(1);
+			$('#event').val(date);
+			this.SendQuery({"date":date});
 		}
 	},
 
-	AddEvent: function(date) {
+	AddEvent: function(date, name) {
 		var $select = $('#event');
-		var text = date + '聚会';
+		var text = date + '|' + name;
 		var $option = $("<option></option>");
 		$option.attr("value", date).html(text);
 		$option.appendTo($select);
@@ -308,18 +318,18 @@ var $DOC = {
 		var msg = {suc: '签到已保存至服务器', err: '服务器保存签到失败'};
 		var req = {"api":"create", "data":data, "sess":sess};
 		this.query = this.requestAPI(req, function(_resData, _reqData) {
-			$DOC.DoneCreate(_resData);
+			$DOC.DoneCreate(_resData, _reqData);
 		}, form, msg);
 		$DOC.Submitting = true;
 	},
 
-	DoneCreate: function(res) {
+	DoneCreate: function(res, req) {
 		var date = res.date;
 		$('#date').val(date).attr('disabled', 'disabled');
 		$DOC.Submitting = false;
 		$DOC.SignMode = 'old';
 
-		this.AddEvent(date);
+		this.AddEvent(date, req.short);
 		$('#event').val(date);
 	},
 
@@ -352,15 +362,16 @@ var $DOC = {
 		var msg = {suc: '签到已修改保存至服务器', err: '服务器保存修改签到失败'};
 		var req = {"api":"modify", "data":data, "sess":sess};
 		this.query = this.requestAPI(req, function(_resData, _reqData) {
-			$DOC.DoneModify(_resData);
+			$DOC.DoneModify(_resData, _reqData);
 		}, form, msg);
 		$DOC.Submitting = true;
 	},
 
-	DoneModify: function(res) {
+	DoneModify: function(res, req) {
 		var date = res.date;
 		$('#event').val(date);
 		$DOC.Submitting = false;
+		// fixed: 修改名目不好同步
 	},
 
 	CheckForm: function() {

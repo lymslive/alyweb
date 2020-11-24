@@ -12,7 +12,7 @@ use DateTime;
 my $dbcfg = {
 	host => '47.106.142.119',
 	user => 'family',
-	pass => 'family',
+	pass => '0xFAFAFA',
 	# port => 0,
 	# flag => {},
 	database => 'db_bill',

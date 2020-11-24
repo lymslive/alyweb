@@ -18,7 +18,8 @@ my $DBNAME = 'db_fatree';
 my $driver = 'mysql';
 my $dsn = "host=$HOST;database=$DBNAME";
 my $username = 'family';
-my $passwd = 'family';
+# my $passwd = 'family';
+my $passwd = '0xFAFAFA';
 my $flags = {AutoCommit => 1, mysql_enable_utf8 => 1};
 
 my $TABLE_MEMBER = 't_family_member';

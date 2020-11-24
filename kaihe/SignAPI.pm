@@ -144,6 +144,7 @@ sub response
 响应：
   res = {
 	date => [date list]
+	short => [name list]
   }
 
 返回：
@@ -156,7 +157,7 @@ sub handle_query_event
 	my $jres = {};
 
 	$db->{table} = $TABLE_EVENT;
-	my $fields = ['F_date'];
+	my $fields = ['F_date', 'F_short'];
 	my $where = undef;
 
 	my $order = ['F_date'];
@@ -164,10 +165,13 @@ sub handle_query_event
 	return ('ERR_DBI_FAILED', $db->{error}) if ($db->{error});
 
 	my $date = [];
+	my $short = [];
 	foreach my $record (@$records) {
 		push(@$date, $record->{F_date});
+		push(@$short, $record->{F_short});
 	}
 	$jres->{date} = $date;
+	$jres->{short} = $short;
 
 	return ($error, $jres);
 }
@@ -339,7 +343,11 @@ sub handle_modify
 			my $fieldvals = {F_state => $sign->{state}};
 			my $where = {F_date => $jreq->{date}, F_room => $sign->{room}};
 			my $ret = $db->Modify($fieldvals, $where);
-			return ('ERR_DBI_FAILED', $db->{error}) if ($db->{error});
+			if ($db->{error} || $ret != 1) {
+				$fieldvals = {F_date => $jreq->{date}, F_room => $sign->{room}, F_state => $sign->{state}};
+				$ret = $db->Create($fieldvals);
+				return ('ERR_DBI_FAILED', $db->{error}) if ($db->{error});
+			}
 			$jres->{modified} = $jres->{modified} + 1;
 		}
 	}
