@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width"/>
+		<link rel="stylesheet" href="css/app.css"/>
+		<title> 凯和华府业主签到 </title>
+	</head>
+	<body>
+
+		<h1> 凯和华府业主签到（测试页） </h1>
+
+		<form id="formSign">
+			聚会日期：<input type="text" id="date" size="15" value="今天" required="required"/>
+			<select id="event">
+				<option value="new-date">新建聚会</option>
+			</select>
+			<br/>
+			聚会目的：<input type="text" id="short-desc" size="30" value="集合、上访"/><br/>
+
+			<table id="maintbl">
+				<tr id="topTH">
+					<th>签到</th>
+					<th>房号</th>
+					<th>姓名</th>
+					<th>电话</th>
+				</tr>
+			</table>
+
+			<div id="summary">
+				总计<span id="all-count">100</span>户业主：
+				到场<span id="dao-count" class="dao">80</span>户；
+				缺席<span id="que-count" class="que">10</span>户；
+				捐助<span id="zhu-count" class="zhu">10</span>户。
+			</div>
+			补充备注：<br/>
+			<textarea cols="32" rows="5" id="long-desc" class="fullrow"></textarea><br/>
+			管理员：<input type="text" id="admin" size="10" required="required"/>
+			密码：<input type="password" id="password" size="10" required="required"/><br/>
+			<input type="submit" id="submit" size="10" value="全部保存"/>
+			<input type="reset" id="reset" size="10" value="全部重置"/><br/>
+			<div id="form-msg" class="operate-warn">修改或增加签名前请输入管理员房号与密码</div>
+		</form>
+		<h3>帮助说明</h3>
+		<p>
+		点击房号切换左侧的签到状态，在这三种状态之间轮换：缺席、到场、捐助。
+		提交修改需由管理员房号与密码，查看历史签到不需要密码。
+		<!-- 测试时可用 test 作为用户名密码 -->
+		</p>
+		<p><a href="#">返回页首</a></p>
+
+		<hr/>
+		<div id="debug"></div>
+		<p id="version" class="foldOff">test</p>
+		<script src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
+		<script src="js/sign.js"></script>
+	</body>
+</html>
